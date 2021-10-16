@@ -133,6 +133,8 @@ impl Edition for Luau {
 	}
 
 	fn br_to_level(&self, level: usize, up: usize, is_loop: bool, w: Writer) -> Result<()> {
+		writeln!(w, "do")?;
+
 		if up == 0 {
 			if is_loop {
 				writeln!(w, "continue")?;
@@ -144,7 +146,7 @@ impl Edition for Luau {
 			writeln!(w, "break")?;
 		}
 
-		Ok(())
+		writeln!(w, "end")
 	}
 
 	fn i64(&self, i: i64) -> Infix<i64> {
