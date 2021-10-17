@@ -36,7 +36,7 @@ pub struct LuaJIT;
 
 impl Edition for LuaJIT {
 	fn runtime(&self) -> &'static str {
-		"luajit"
+		"'luajit'"
 	}
 
 	fn start_block(&self, w: Writer) -> Result<()> {
@@ -86,7 +86,7 @@ pub struct Luau;
 
 impl Edition for Luau {
 	fn runtime(&self) -> &'static str {
-		"luau"
+		"script.Runtime"
 	}
 
 	fn start_block(&self, w: Writer) -> Result<()> {

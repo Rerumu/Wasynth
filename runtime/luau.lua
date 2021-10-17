@@ -34,7 +34,7 @@ local function unsign_i64(x)
 	return x
 end
 
-local function rip_u64(x) return math.floor(x / 0x100000000), bit.tobit(x % 0x100000000) end
+local function rip_u64(x) return math.floor(x / 0x100000000), x % 0x100000000 end
 
 local function merge_u64(hi, lo) return hi * 0x100000000 + lo end
 
@@ -74,23 +74,23 @@ function ge.u64(lhs, rhs) return unsign_i64(lhs) >= unsign_i64(rhs) and 1 or 0 e
 
 function gt.u64(lhs, rhs) return unsign_i64(lhs) > unsign_i64(rhs) and 1 or 0 end
 
-band.i32 = bit.band
-bor.i32 = bit.bor
-bxor.i32 = bit.bxor
-bnot.i32 = bit.bnot
-band.i64 = bit.band
-bor.i64 = bit.bor
-bxor.i64 = bit.bxor
-bnot.i64 = bit.bnot
+band.i32 = bit32.band
+bor.i32 = bit32.bor
+bxor.i32 = bit32.bxor
+bnot.i32 = bit32.bnot
+band.i64 = bit32.band
+bor.i64 = bit32.bor
+bxor.i64 = bit32.bxor
+bnot.i64 = bit32.bnot
 
-shl.u32 = bit.lshift
-shr.u32 = bit.rshift
-shl.i32 = bit.lshift
-shr.i32 = bit.rshift
-shl.u64 = bit.lshift
-shr.u64 = bit.rshift
-shl.i64 = bit.lshift
-shr.i64 = bit.rshift
+shl.u32 = bit32.lshift
+shr.u32 = bit32.rshift
+shl.i32 = bit32.lshift
+shr.i32 = bit32.rshift
+shl.u64 = bit32.lshift
+shr.u64 = bit32.rshift
+shl.i64 = bit32.lshift
+shr.i64 = bit32.rshift
 
 extend.i32_u64 = no_op
 
@@ -105,7 +105,7 @@ end
 function load.i32_u8(memory, addr)
 	local value = load.i32(memory, addr)
 
-	return bit.band(value, 0xFF)
+	return bit32.band(value, 0xFF)
 end
 
 function load.i64(memory, addr)
@@ -126,10 +126,10 @@ end
 function store.i32_n8(memory, addr, value)
 	if addr % 4 ~= 0 then error('unaligned write') end
 
-	local old = bit.band(memory.data[addr / 4] or 0, 0xFFFFFF00)
-	local new = bit.band(value, 0xFF)
+	local old = bit32.band(memory.data[addr / 4] or 0, 0xFFFFFF00)
+	local new = bit32.band(value, 0xFF)
 
-	memory.data[addr / 4] = bit.bor(old, new)
+	memory.data[addr / 4] = bit32.bor(old, new)
 end
 
 function store.i64(memory, addr, value)

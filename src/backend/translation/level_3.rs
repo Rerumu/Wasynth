@@ -246,7 +246,7 @@ fn gen_nil_array(name: &str, len: usize, w: Writer) -> Result<()> {
 }
 
 pub fn translate(spec: &dyn Edition, m: &Module, w: Writer) -> Result<()> {
-	writeln!(w, "local runtime = require('{}')", spec.runtime())?;
+	writeln!(w, "local runtime = require({})", spec.runtime())?;
 	writeln!(w, "{}", RUNTIME_DATA)?;
 
 	gen_nil_array("FUNC_LIST", m.in_arity.len(), w)?;
