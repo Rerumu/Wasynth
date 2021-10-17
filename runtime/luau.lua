@@ -34,7 +34,7 @@ local function unsign_i64(x)
 	return x
 end
 
-local function rip_u64(x) return math.floor(x / 0x100000000), (x % 0x100000000) % 2 ^ 32 end
+local function rip_u64(x) return math.floor(x / 0x100000000), x % 0x100000000 end
 
 local function merge_u64(hi, lo) return hi * 0x100000000 + lo end
 
