@@ -38,6 +38,17 @@ local function rip_u64(x) return math.floor(x / 0x100000000), x % 0x100000000 en
 
 local function merge_u64(hi, lo) return hi * 0x100000000 + lo end
 
+local function load_byte(memory, addr)
+	local offset = addr % 4
+	return bit32.rshift(memory.data[(addr - offset) / 4] or 0, 8 * offset)
+end
+
+local function store_byte(memory, addr, value)
+	local offset = addr % 4;
+	local base = (addr - offset) / 4;
+	memory.data[base] = bit32.bor(memory.data[base] or 0, bit32.lshift(value, 8 * offset));
+end
+
 -- Runtime functions
 local function grow_page_num(memory, num)
 	local old = memory.min
@@ -97,9 +108,18 @@ extend.i32_u64 = no_op
 function wrap.i64_i32(i) return i % 2 ^ 32 end
 
 function load.i32(memory, addr)
-	if addr % 4 ~= 0 then error('unaligned read') end
-
-	return memory.data[addr / 4] or 0
+	if addr % 4 == 0 then
+		-- aligned read
+		return memory.data[addr / 4] or 0
+	else
+		-- unaligned read
+		return bit32.bor(
+			load_byte(memory, addr),
+			bit32.lshift(load_byte(memory, addr + 1), 8),
+			bit32.lshift(load_byte(memory, addr + 2), 16),
+			bit32.lshift(load_byte(memory, addr + 3), 24)
+		)
+	end
 end
 
 function load.i32_u8(memory, addr)
@@ -109,36 +129,34 @@ function load.i32_u8(memory, addr)
 end
 
 function load.i64(memory, addr)
-	if addr % 4 ~= 0 then error('unaligned read') end
-
-	local hi = memory.data[addr / 4 + 1] or 0
-	local lo = memory.data[addr / 4] or 0
+	local hi = load.i32(memory, addr)
+	local lo = load.i32(memory, addr + 4)
 
 	return merge_u64(hi, lo)
 end
 
 function store.i32(memory, addr, value)
-	if addr % 4 ~= 0 then error('unaligned write') end
-
-	memory.data[addr / 4] = value
+	if addr % 4 == 0 then
+		-- aligned write
+		memory.data[addr / 4] = value
+	else
+		-- unaligned write
+		store_byte(memory, addr, value)
+		store_byte(memory, addr + 1, bit32.rshift(value, 8))
+		store_byte(memory, addr + 2, bit32.rshift(value, 16))
+		store_byte(memory, addr + 3, bit32.rshift(value, 24))
+	end
 end
 
 function store.i32_n8(memory, addr, value)
-	if addr % 4 ~= 0 then error('unaligned write') end
-
-	local old = bit32.band(memory.data[addr / 4] or 0, 0xFFFFFF00)
-	local new = bit32.band(value, 0xFF)
-
-	memory.data[addr / 4] = bit32.bor(old, new)
+	store.i32(memory, addr, bit32.band(value, 0xFF))
 end
 
 function store.i64(memory, addr, value)
-	if addr % 4 ~= 0 then error('unaligned write') end
-
 	local hi, lo = rip_u64(value)
 
-	memory.data[addr / 4] = lo
-	memory.data[addr / 4 + 1] = hi
+	store.i32(memory, addr, lo)
+	store.i32(memory, addr + 4, hi)
 end
 
 return {
