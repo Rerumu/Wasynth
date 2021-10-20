@@ -44,9 +44,9 @@ local function load_byte(memory, addr)
 end
 
 local function store_byte(memory, addr, value)
-	local offset = addr % 4;
-	local base = (addr - offset) / 4;
-	memory.data[base] = bit32.bor(memory.data[base] or 0, bit32.lshift(value, 8 * offset));
+	local offset = addr % 4
+	local base = (addr - offset) / 4
+	memory.data[base] = bit32.bor(memory.data[base] or 0, bit32.lshift(value, 8 * offset))
 end
 
 -- Runtime functions
