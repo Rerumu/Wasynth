@@ -38,6 +38,11 @@ local function rip_u64(x) return math.floor(x / 0x100000000), x % 0x100000000 en
 
 local function merge_u64(hi, lo) return hi * 0x100000000 + lo end
 
+local function clear_byte(value, offset)
+	offset *= 8;
+	return bit32.band(value, bit32.bnot(bit32.lshift(0xFF, offset)));
+end
+
 local function load_byte(memory, addr)
 	local offset = addr % 4
 	return bit32.rshift(memory.data[(addr - offset) / 4] or 0, 8 * offset)
@@ -46,7 +51,8 @@ end
 local function store_byte(memory, addr, value)
 	local offset = addr % 4
 	local base = (addr - offset) / 4
-	memory.data[base] = bit32.bor(memory.data[base] or 0, bit32.lshift(value, 8 * offset))
+	local old = clear_byte(memory.data[base] or 0, offset);
+	memory.data[base] = bit32.bor(old, bit32.lshift(value, 8 * offset))
 end
 
 -- Runtime functions
