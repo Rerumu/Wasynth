@@ -38,21 +38,26 @@ local function rip_u64(x) return math.floor(x / 0x100000000), x % 0x100000000 en
 
 local function merge_u64(hi, lo) return hi * 0x100000000 + lo end
 
-local function clear_byte(value, offset)
-	offset *= 8
-	return bit32.band(value, bit32.bnot(bit32.lshift(0xFF, offset)))
+local function black_mask_byte(value, offset)
+	local mask = bit32.lshift(0xFF, offset * 8)
+
+	return bit32.band(value, bit32.bnot(mask))
 end
 
 local function load_byte(memory, addr)
 	local offset = addr % 4
-	return bit32.rshift(memory.data[(addr - offset) / 4] or 0, 8 * offset)
+	local value = memory.data[(addr - offset) / 4]
+
+	return bit.band(bit.rshift(value, offset * 8), 0xFF)
 end
 
 local function store_byte(memory, addr, value)
 	local offset = addr % 4
-	local base = (addr - offset) / 4
-	local old = clear_byte(memory.data[base] or 0, offset)
-	memory.data[base] = bit32.bor(old, bit32.lshift(value, 8 * offset))
+	local adjust = (addr - offset) / 4
+	local lhs = bit32.lshift(value, offset * 8)
+	local rhs = black_mask_byte(memory.data[adjust] or 0, offset)
+
+	memory.data[adjust] = bit32.bor(lhs, rhs)
 end
 
 -- Runtime functions
@@ -119,12 +124,12 @@ function load.i32(memory, addr)
 		return memory.data[addr / 4] or 0
 	else
 		-- unaligned read
-		return bit32.bor(
-			load_byte(memory, addr),
-			bit32.lshift(load_byte(memory, addr + 1), 8),
-			bit32.lshift(load_byte(memory, addr + 2), 16),
-			bit32.lshift(load_byte(memory, addr + 3), 24)
-		)
+		local b1 = load_byte(memory, addr)
+		local b2 = bit32.lshift(load_byte(memory, addr + 1), 8)
+		local b3 = bit32.lshift(load_byte(memory, addr + 2), 16)
+		local b4 = bit32.lshift(load_byte(memory, addr + 3), 24)
+
+		return bit32.bor(b1, b2, b3, b4)
 	end
 end
 
@@ -135,8 +140,8 @@ function load.i32_u8(memory, addr)
 end
 
 function load.i64(memory, addr)
-	local hi = load.i32(memory, addr)
-	local lo = load.i32(memory, addr + 4)
+	local hi = load.i32(memory, addr + 4)
+	local lo = load.i32(memory, addr)
 
 	return merge_u64(hi, lo)
 end
@@ -154,9 +159,7 @@ function store.i32(memory, addr, value)
 	end
 end
 
-function store.i32_n8(memory, addr, value)
-	store_byte(memory, addr, bit32.band(value, 0xFF))
-end
+function store.i32_n8(memory, addr, value) store_byte(memory, addr, bit32.band(value, 0xFF)) end
 
 function store.i64(memory, addr, value)
 	local hi, lo = rip_u64(value)
