@@ -10,9 +10,9 @@ mod data;
 
 fn main() {
 	let mut args = std::env::args().skip(1);
-	let spec: Box<dyn Edition> = match args.next().as_deref().map(str::to_lowercase).as_deref() {
-		Some("luau") => Box::new(Luau),
-		Some("luajit") => Box::new(LuaJIT),
+	let spec: &dyn Edition = match args.next().as_deref().map(str::to_lowercase).as_deref() {
+		Some("luau") => &Luau,
+		Some("luajit") => &LuaJIT,
 		_ => {
 			println!("expected either 'luau' or 'luajit' option");
 			return;
@@ -25,6 +25,6 @@ fn main() {
 		let wasm = deserialize_file(v).unwrap();
 		let module = Module::new(&wasm);
 
-		level_3::translate(spec.as_ref(), &module, &mut output.lock()).unwrap();
+		level_3::translate(spec, &module, &mut output.lock()).unwrap();
 	}
 }
