@@ -1,158 +1,158 @@
+local WASM_PAGE_SIZE = 65536
+
 local bit = require('bit')
 local ffi = require('ffi')
 
-local unsign_i64 = ffi.typeof('uint64_t')
+local module = {}
 
-local div = {}
+local vla_u8 = ffi.typeof('uint8_t[?]')
 
-local le = {}
-local lt = {}
-local ge = {}
-local gt = {}
+local ptr_i64 = ffi.typeof('int64_t *')
+local ptr_i32 = ffi.typeof('int32_t *')
 
-local band = {}
-local bor = {}
-local bxor = {}
-local bnot = {}
+local u32 = ffi.typeof('uint32_t')
+local u64 = ffi.typeof('uint64_t')
+local i32 = ffi.typeof('int32_t')
+local i64 = ffi.typeof('int64_t')
 
-local shl = {}
-local shr = {}
+do
+	local div = {}
 
-local extend = {}
-local wrap = {}
+	module.div = div
 
-local load = {}
-local store = {}
+	function div.i32(lhs, rhs)
+		if rhs == 0 then error('division by zero') end
 
--- Helper functions
-local function unsign_i32(x)
-	if x < 0 then x = x + 0x100000000 end
-
-	return x
-end
-
-local function rip_u64(x) return bit.band(bit.rshift(x, 32), 0xFFFFFFFF), bit.band(x, 0xFFFFFFFF) end
-
-local function merge_u64(hi, lo) return bit.bor(bit.lshift(hi, 32), lo) end
-
--- Runtime functions
-local function grow_page_num(memory, num)
-	local old = memory.min
-	local new = old + num
-
-	if memory.max and new > memory.max then
-		return -1
-	else
-		memory.min = new
-
-		return old
+		return math.floor(lhs / rhs)
 	end
 end
 
-function div.i32(lhs, rhs)
-	if rhs == 0 then error('division by zero') end
+do
+	local le = {}
+	local lt = {}
+	local ge = {}
+	local gt = {}
 
-	return math.floor(lhs / rhs)
+	module.le = le
+	module.lt = lt
+	module.ge = ge
+	module.gt = gt
+
+	function ge.u32(lhs, rhs) return u32(lhs) >= u32(rhs) and 1 or 0 end
+	function ge.u64(lhs, rhs) return u64(lhs) >= u64(rhs) and 1 or 0 end
+	function gt.u32(lhs, rhs) return u32(lhs) > u32(rhs) and 1 or 0 end
+	function gt.u64(lhs, rhs) return u64(lhs) > u64(rhs) and 1 or 0 end
+	function le.u32(lhs, rhs) return u32(lhs) <= u32(rhs) and 1 or 0 end
+	function le.u64(lhs, rhs) return u64(lhs) <= u64(rhs) and 1 or 0 end
+	function lt.u32(lhs, rhs) return u32(lhs) < u32(rhs) and 1 or 0 end
+	function lt.u64(lhs, rhs) return u64(lhs) < u64(rhs) and 1 or 0 end
 end
 
-function le.u32(lhs, rhs) return unsign_i32(lhs) <= unsign_i32(rhs) and 1 or 0 end
+do
+	local band = {}
+	local bor = {}
+	local bxor = {}
+	local bnot = {}
 
-function lt.u32(lhs, rhs) return unsign_i32(lhs) < unsign_i32(rhs) and 1 or 0 end
+	module.band = band
+	module.bor = bor
+	module.bxor = bxor
+	module.bnot = bnot
 
-function ge.u32(lhs, rhs) return unsign_i32(lhs) >= unsign_i32(rhs) and 1 or 0 end
-
-function gt.u32(lhs, rhs) return unsign_i32(lhs) > unsign_i32(rhs) and 1 or 0 end
-
-function le.u64(lhs, rhs) return unsign_i64(lhs) <= unsign_i64(rhs) and 1 or 0 end
-
-function lt.u64(lhs, rhs) return unsign_i64(lhs) < unsign_i64(rhs) and 1 or 0 end
-
-function ge.u64(lhs, rhs) return unsign_i64(lhs) >= unsign_i64(rhs) and 1 or 0 end
-
-function gt.u64(lhs, rhs) return unsign_i64(lhs) > unsign_i64(rhs) and 1 or 0 end
-
-band.i32 = bit.band
-bor.i32 = bit.bor
-bxor.i32 = bit.bxor
-bnot.i32 = bit.bnot
-band.i64 = bit.band
-bor.i64 = bit.bor
-bxor.i64 = bit.bxor
-bnot.i64 = bit.bnot
-
-shl.u32 = bit.lshift
-shr.u32 = bit.rshift
-shl.i32 = bit.lshift
-shr.i32 = bit.rshift
-shl.u64 = bit.lshift
-shr.u64 = bit.rshift
-shl.i64 = bit.lshift
-shr.i64 = bit.rshift
-
-extend.i32_u64 = ffi.typeof('int64_t')
-
-wrap.i64_i32 = ffi.typeof('int32_t')
-
-function load.i32(memory, addr)
-	if addr % 4 ~= 0 then error('unaligned read') end
-
-	return memory.data[addr / 4] or 0
+	band.i32 = bit.band
+	band.i64 = bit.band
+	bnot.i32 = bit.bnot
+	bnot.i64 = bit.bnot
+	bor.i32 = bit.bor
+	bor.i64 = bit.bor
+	bxor.i32 = bit.bxor
+	bxor.i64 = bit.bxor
 end
 
-function load.i32_u8(memory, addr)
-	local value = load.i32(memory, addr)
+do
+	local shl = {}
+	local shr = {}
 
-	return bit.band(value, 0xFF)
+	module.shl = shl
+	module.shr = shr
+
+	function shl.u32(lhs, rhs) return i32(bit.lshift(u32(lhs), rhs)) end
+	function shl.u64(lhs, rhs) return i64(bit.lshift(u64(lhs), rhs)) end
+	function shr.u32(lhs, rhs) return i32(bit.rshift(u32(lhs), rhs)) end
+	function shr.u64(lhs, rhs) return i64(bit.rshift(u64(lhs), rhs)) end
+
+	shl.i32 = bit.lshift
+	shl.i64 = bit.lshift
+	shr.i32 = bit.rshift
+	shr.i64 = bit.rshift
 end
 
-function load.i64(memory, addr)
-	if addr % 4 ~= 0 then error('unaligned read') end
+do
+	local extend = {}
+	local wrap = {}
 
-	local hi = memory.data[addr / 4 + 1] or 0
-	local lo = memory.data[addr / 4] or 0
+	module.extend = extend
+	module.wrap = wrap
 
-	return merge_u64(hi, lo)
+	extend.i32_u64 = i64
+	wrap.i64_i32 = i32
 end
 
-function store.i32(memory, addr, value)
-	if addr % 4 ~= 0 then error('unaligned write') end
+do
+	local load = {}
+	local store = {}
 
-	memory.data[addr / 4] = value
+	module.load = load
+	module.store = store
+
+	function load.i32_u8(memory, addr) return memory.data[addr] end
+	function load.i32(memory, addr) return ffi.cast(ptr_i32, memory.data + addr)[0] end
+	function load.i64(memory, addr) return ffi.cast(ptr_i64, memory.data + addr)[0] end
+	function store.i32_n8(memory, addr, value) memory.data[addr] = value end
+	function store.i32(memory, addr, value) ffi.cast(ptr_i32, memory.data + addr)[0] = value end
+	function store.i64(memory, addr, value) ffi.cast(ptr_i64, memory.data + addr)[0] = value end
 end
 
-function store.i32_n8(memory, addr, value)
-	if addr % 4 ~= 0 then error('unaligned write') end
+do
+	local memory = {}
 
-	local old = bit.band(memory.data[addr / 4] or 0, 0xFFFFFF00)
-	local new = bit.band(value, 0xFF)
+	module.memory = memory
 
-	memory.data[addr / 4] = bit.bor(old, new)
+	local function grow_unchecked(memory, old, new)
+		local data = vla_u8(new * WASM_PAGE_SIZE, 0)
+
+		ffi.copy(data, memory.data, old * WASM_PAGE_SIZE)
+
+		memory.min = new
+		memory.data = data
+	end
+
+	function memory.new(min, max)
+		local memory = {}
+
+		memory.min = min
+		memory.max = max
+		memory.data = ffi.new(vla_u8, min * WASM_PAGE_SIZE)
+
+		return memory
+	end
+
+	function memory.init(memory, offset, data) ffi.copy(memory.data + offset, data) end
+
+	function memory.size(memory) return memory.min end
+
+	function memory.grow(memory, num)
+		local old = memory.min
+		local new = old + num
+
+		if memory.max and new > memory.max then
+			return -1
+		else
+			grow_unchecked(memory, old, new)
+
+			return old
+		end
+	end
 end
 
-function store.i64(memory, addr, value)
-	if addr % 4 ~= 0 then error('unaligned write') end
-
-	local hi, lo = rip_u64(value)
-
-	memory.data[addr / 4] = lo
-	memory.data[addr / 4 + 1] = hi
-end
-
-return {
-	grow_page_num = grow_page_num,
-	div = div,
-	le = le,
-	lt = lt,
-	ge = ge,
-	gt = gt,
-	band = band,
-	bor = bor,
-	bxor = bxor,
-	bnot = bnot,
-	shl = shl,
-	shr = shr,
-	extend = extend,
-	wrap = wrap,
-	load = load,
-	store = store,
-}
+return module
