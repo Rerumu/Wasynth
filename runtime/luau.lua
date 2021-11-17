@@ -199,12 +199,10 @@ do
 		local len = #data
 		local rem = len % 4
 
-		if len >= 4 then
-			for i = 1, len - rem, 4 do
-				local v = string.unpack('<I4', data, i)
+		for i = 1, len - rem, 4 do
+			local v = string.unpack('<I4', data, i)
 
-				store_i32(memory, offset + i - 1, v)
-			end
+			store_i32(memory, offset + i - 1, v)
 		end
 
 		for i = len - rem + 1, len do
