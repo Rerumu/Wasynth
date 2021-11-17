@@ -118,7 +118,7 @@ do
 		local offset = addr % 4
 		local value = memory.data[(addr - offset) / 4]
 
-		return bit.band(bit.rshift(value, offset * 8), 0xFF)
+		return bit32.band(bit32.rshift(value, offset * 8), 0xFF)
 	end
 
 	local function store_byte(memory, addr, value)
@@ -193,26 +193,24 @@ do
 	function memory.new(min, max) return {min = min, max = max, data = {}} end
 
 	function memory.init(memory, offset, data)
-		local store_i8 = module.memory.store.i32_n8
-		local store_i32 = module.memory.store.i32
+		local store_i8 = module.store.i32_n8
+		local store_i32 = module.store.i32
 
 		local len = #data
 		local rem = len % 4
 
 		if len >= 4 then
-			for i = 1, len, 4 do
+			for i = 1, len - rem, 4 do
 				local v = string.unpack('<I4', data, i)
 
 				store_i32(memory, offset + i - 1, v)
 			end
 		end
 
-		if rem ~= 0 then
-			for i = len - rem + 1, len do
-				local v = string.byte(data, i)
+		for i = len - rem + 1, len do
+			local v = string.byte(data, i)
 
-				store_i8(memory, offset + i - 1, v)
-			end
+			store_i8(memory, offset + i - 1, v)
 		end
 	end
 
