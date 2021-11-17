@@ -238,7 +238,7 @@ impl<'a> Body<'a> {
 			}
 			Instruction::CallIndirect(i, t) => {
 				let index = func.var_name_of(self.reg.pop(1));
-				let name = format!("TABLE_LIST[{}][{}]", t, index);
+				let name = format!("TABLE_LIST[{}].data[{}]", t, index);
 				let types = m.parent.type_section().unwrap().types();
 				let arity = Arity::from_index(types, *i);
 

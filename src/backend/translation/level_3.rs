@@ -166,7 +166,7 @@ fn gen_element_list(m: &Module, w: Writer) -> Result<()> {
 
 	for v in element {
 		writeln!(w, "do")?;
-		writeln!(w, "local target = TABLE_LIST[{}]", v.index())?;
+		writeln!(w, "local target = TABLE_LIST[{}].data", v.index())?;
 		writeln!(w, "local offset =")?;
 
 		gen_init_expression(v.offset().as_ref().unwrap().code(), w)?;
