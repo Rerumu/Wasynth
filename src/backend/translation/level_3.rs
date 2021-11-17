@@ -105,7 +105,7 @@ fn gen_table_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
 }
 
 fn gen_memory_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
-	writeln!(w, "memory.new({}, ", limit.initial())?;
+	writeln!(w, "rt.memory.new({}, ", limit.initial())?;
 
 	if let Some(max) = limit.maximum() {
 		writeln!(w, "{}", max)?;
@@ -199,6 +199,7 @@ fn gen_data_list(m: &Module, w: Writer) -> Result<()> {
 
 	for v in data {
 		writeln!(w, "do")?;
+		writeln!(w, "local target = MEMORY_LIST[{}]", v.index())?;
 		writeln!(w, "local offset =")?;
 
 		gen_init_expression(v.offset().as_ref().unwrap().code(), w)?;
@@ -211,7 +212,7 @@ fn gen_data_list(m: &Module, w: Writer) -> Result<()> {
 
 		writeln!(w, "\"")?;
 
-		writeln!(w, "memory.init(MEMORY_LIST[{}], offset, data)", v.index())?;
+		writeln!(w, "rt.memory.init(target, offset, data)",)?;
 
 		writeln!(w, "end")?;
 	}
