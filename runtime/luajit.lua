@@ -39,14 +39,22 @@ do
 	module.ge = ge
 	module.gt = gt
 
-	function ge.u32(lhs, rhs) return u32(lhs) >= u32(rhs) and 1 or 0 end
-	function ge.u64(lhs, rhs) return u64(lhs) >= u64(rhs) and 1 or 0 end
-	function gt.u32(lhs, rhs) return u32(lhs) > u32(rhs) and 1 or 0 end
-	function gt.u64(lhs, rhs) return u64(lhs) > u64(rhs) and 1 or 0 end
-	function le.u32(lhs, rhs) return u32(lhs) <= u32(rhs) and 1 or 0 end
-	function le.u64(lhs, rhs) return u64(lhs) <= u64(rhs) and 1 or 0 end
-	function lt.u32(lhs, rhs) return u32(lhs) < u32(rhs) and 1 or 0 end
-	function lt.u64(lhs, rhs) return u64(lhs) < u64(rhs) and 1 or 0 end
+	local function to_boolean(cond)
+		if cond then
+			return 1
+		else
+			return 0
+		end
+	end
+
+	function ge.u32(lhs, rhs) return to_boolean(u32(lhs) >= u32(rhs)) end
+	function ge.u64(lhs, rhs) return to_boolean(u64(lhs) >= u64(rhs)) end
+	function gt.u32(lhs, rhs) return to_boolean(u32(lhs) > u32(rhs)) end
+	function gt.u64(lhs, rhs) return to_boolean(u64(lhs) > u64(rhs)) end
+	function le.u32(lhs, rhs) return to_boolean(u32(lhs) <= u32(rhs)) end
+	function le.u64(lhs, rhs) return to_boolean(u64(lhs) <= u64(rhs)) end
+	function lt.u32(lhs, rhs) return to_boolean(u32(lhs) < u32(rhs)) end
+	function lt.u64(lhs, rhs) return to_boolean(u64(lhs) < u64(rhs)) end
 end
 
 do
@@ -77,10 +85,29 @@ do
 	module.shl = shl
 	module.shr = shr
 
-	function shl.u32(lhs, rhs) return i32(bit.lshift(u32(lhs), rhs)) end
-	function shl.u64(lhs, rhs) return i64(bit.lshift(u64(lhs), rhs)) end
-	function shr.u32(lhs, rhs) return i32(bit.rshift(u32(lhs), rhs)) end
-	function shr.u64(lhs, rhs) return i64(bit.rshift(u64(lhs), rhs)) end
+	function shl.u32(lhs, rhs)
+		local v = bit.lshift(u32(lhs), rhs)
+
+		return tonumber(i32(v))
+	end
+
+	function shl.u64(lhs, rhs)
+		local v = bit.lshift(u64(lhs), rhs)
+
+		return i64(v)
+	end
+
+	function shr.u32(lhs, rhs)
+		local v = bit.rshift(u32(lhs), rhs)
+
+		return tonumber(i32(v))
+	end
+
+	function shr.u64(lhs, rhs)
+		local v = bit.rshift(u64(lhs), rhs)
+
+		return i64(v)
+	end
 
 	shl.i32 = bit.lshift
 	shl.i64 = bit.lshift
