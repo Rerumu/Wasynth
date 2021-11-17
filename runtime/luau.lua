@@ -130,6 +130,14 @@ do
 		memory.data[adjust] = bit32.bor(lhs, rhs)
 	end
 
+	function load.i32_i8(memory, addr)
+		local b = load_byte(memory, addr)
+
+		if b > 0x7F then b = b - 0x100 end
+
+		return b
+	end
+
 	load.i32_u8 = load_byte
 
 	function load.i32(memory, addr)

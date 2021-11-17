@@ -7,6 +7,7 @@ local module = {}
 
 local vla_u8 = ffi.typeof('uint8_t[?]')
 
+local ptr_i8 = ffi.typeof('int8_t *')
 local ptr_i64 = ffi.typeof('int64_t *')
 local ptr_i32 = ffi.typeof('int32_t *')
 
@@ -105,6 +106,7 @@ do
 	module.load = load
 	module.store = store
 
+	function load.i32_i8(memory, addr) return ffi.cast(ptr_i8, memory.data)[addr] end
 	function load.i32_u8(memory, addr) return memory.data[addr] end
 	function load.i32(memory, addr) return ffi.cast(ptr_i32, memory.data + addr)[0] end
 	function load.i64(memory, addr) return ffi.cast(ptr_i64, memory.data + addr)[0] end
