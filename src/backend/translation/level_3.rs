@@ -7,31 +7,29 @@ use parity_wasm::elements::{External, ImportCountType, Internal, ResizableLimits
 use std::io::Result;
 
 const RUNTIME_DATA: &str = "
-local grow_page_num = runtime.grow_page_num
+local add = rt.add
+local sub = rt.sub
+local mul = rt.mul
+local div = rt.div
 
-local add = runtime.add
-local sub = runtime.sub
-local mul = runtime.mul
-local div = runtime.div
+local le = rt.le
+local lt = rt.lt
+local ge = rt.ge
+local gt = rt.gt
 
-local le = runtime.le
-local lt = runtime.lt
-local ge = runtime.ge
-local gt = runtime.gt
+local band = rt.band
+local bor = rt.bor
+local bxor = rt.bxor
+local bnot = rt.bnot
 
-local band = runtime.band
-local bor = runtime.bor
-local bxor = runtime.bxor
-local bnot = runtime.bnot
+local shl = rt.shl
+local shr = rt.shr
 
-local shl = runtime.shl
-local shr = runtime.shr
+local extend = rt.extend
+local wrap = rt.wrap
 
-local extend = runtime.extend
-local wrap = runtime.wrap
-
-local load = runtime.load
-local store = runtime.store
+local load = rt.load
+local store = rt.store
 ";
 
 fn gen_import_of<T>(m: &Module, w: Writer, lower: &str, cond: T) -> Result<()>
@@ -96,7 +94,7 @@ fn gen_export_list(m: &Module, w: Writer) -> Result<()> {
 	gen_export_of(m, w, "global_list", |v| matches!(v, Internal::Global(_)))
 }
 
-fn gen_limit_data(limit: &ResizableLimits, w: Writer) -> Result<()> {
+fn gen_table_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
 	writeln!(w, "{{ min = {}", limit.initial())?;
 
 	if let Some(max) = limit.maximum() {
@@ -104,6 +102,18 @@ fn gen_limit_data(limit: &ResizableLimits, w: Writer) -> Result<()> {
 	}
 
 	writeln!(w, ", data = {{}} }}")
+}
+
+fn gen_memory_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
+	writeln!(w, "memory.new({}, ", limit.initial())?;
+
+	if let Some(max) = limit.maximum() {
+		writeln!(w, "{}", max)?;
+	} else {
+		writeln!(w, "nil")?;
+	}
+
+	writeln!(w, ")")
 }
 
 fn gen_table_list(m: &Module, w: Writer) -> Result<()> {
@@ -117,7 +127,7 @@ fn gen_table_list(m: &Module, w: Writer) -> Result<()> {
 		let index = i + offset;
 
 		writeln!(w, "TABLE_LIST[{}] =", index)?;
-		gen_limit_data(v.limits(), w)?;
+		gen_table_init(v.limits(), w)?;
 	}
 
 	Ok(())
@@ -134,7 +144,7 @@ fn gen_memory_list(m: &Module, w: Writer) -> Result<()> {
 		let index = i + offset;
 
 		writeln!(w, "MEMORY_LIST[{}] =", index)?;
-		gen_limit_data(v.limits(), w)?;
+		gen_memory_init(v.limits(), w)?;
 	}
 
 	Ok(())
@@ -189,22 +199,19 @@ fn gen_data_list(m: &Module, w: Writer) -> Result<()> {
 
 	for v in data {
 		writeln!(w, "do")?;
-		writeln!(w, "local target = MEMORY_LIST[{}].data", v.index())?;
 		writeln!(w, "local offset =")?;
 
 		gen_init_expression(v.offset().as_ref().unwrap().code(), w)?;
 
-		writeln!(w, "/ 4")?;
+		write!(w, "local data = \"")?;
 
-		for (i, b) in v.value().chunks(4).enumerate() {
-			let mut temp = [0; 4];
+		v.value()
+			.iter()
+			.try_for_each(|v| write!(w, "\\x{:02X}", v))?;
 
-			temp.iter_mut().zip(b).for_each(|(l, r)| *l = *r);
+		writeln!(w, "\"")?;
 
-			let value = u32::from_le_bytes(temp);
-
-			writeln!(w, "target[offset + {}] = 0x{:X}", i, value)?;
-		}
+		writeln!(w, "memory.init(MEMORY_LIST[{}], offset, data)", v.index())?;
 
 		writeln!(w, "end")?;
 	}
@@ -246,7 +253,7 @@ fn gen_nil_array(name: &str, len: usize, w: Writer) -> Result<()> {
 }
 
 pub fn translate(spec: &dyn Edition, m: &Module, w: Writer) -> Result<()> {
-	writeln!(w, "local runtime = require({})", spec.runtime())?;
+	writeln!(w, "local rt = require({})", spec.runtime())?;
 	writeln!(w, "{}", RUNTIME_DATA)?;
 
 	gen_nil_array("FUNC_LIST", m.in_arity.len(), w)?;

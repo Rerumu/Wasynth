@@ -316,14 +316,14 @@ impl<'a> Body<'a> {
 			Instruction::CurrentMemory(index) => {
 				let reg = func.var_name_of(self.reg.push(1));
 
-				writeln!(w, "{} = read_page_num(MEMORY_LIST[{}])", reg, index)
+				writeln!(w, "{} = rt.memory.size(MEMORY_LIST[{}])", reg, index)
 			}
 			Instruction::GrowMemory(index) => {
 				let reg = func.var_name_of(self.reg.pop(1));
 
 				self.reg.push(1);
 
-				writeln!(w, "{0} = grow_page_num(MEMORY_LIST[{1}], {0})", reg, index)
+				writeln!(w, "{0} = rt.memory.grow(MEMORY_LIST[{1}], {0})", reg, index)
 			}
 			Instruction::I32Const(v) => self.gen_const(v, func, w),
 			Instruction::I64Const(v) => self.gen_const(self.spec.i64(*v), func, w),
