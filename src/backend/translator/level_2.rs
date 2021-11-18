@@ -6,7 +6,7 @@ use crate::{
 	backend::{
 		edition::data::Edition,
 		helper::writer::{write_ordered, Writer},
-		visitor::{memory, register},
+		visitor::{localize, memory, register},
 	},
 	data::Module,
 };
@@ -57,8 +57,14 @@ fn gen_memory(set: BTreeSet<u8>, w: Writer) -> Result<()> {
 		.try_for_each(|i| write!(w, "local memory_at_{0} = MEMORY_LIST[{0}]", i))
 }
 
+fn gen_localize(set: BTreeSet<(&str, &str)>, w: Writer) -> Result<()> {
+	set.into_iter()
+		.try_for_each(|v| write!(w, "local {0}_{1} = {0}.{1} ", v.0, v.1))
+}
+
 pub fn gen_function(spec: &dyn Edition, index: usize, m: &Module, w: Writer) -> Result<()> {
 	let mem_set = memory::visit(m, index);
+	let loc_set = localize::visit(m, index);
 	let num_stack = register::visit(m, index);
 
 	let num_param = m.in_arity[index].num_param;
@@ -68,6 +74,7 @@ pub fn gen_function(spec: &dyn Edition, index: usize, m: &Module, w: Writer) -> 
 
 	gen_prelude(num_stack, num_param, num_local, w)?;
 	gen_memory(mem_set, w)?;
+	gen_localize(loc_set, w)?;
 	inner.generate(index, m, w)?;
 
 	assert!(

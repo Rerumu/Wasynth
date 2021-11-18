@@ -107,14 +107,14 @@ impl<'a> Body<'a> {
 
 		self.reg.push(1);
 
-		write!(w, "{0} = load.{1}(memory_at_0, {0} + {2}) ", reg, t, o)
+		write!(w, "{0} = load_{1}(memory_at_0, {0} + {2}) ", reg, t, o)
 	}
 
 	fn gen_store(&mut self, t: &str, o: u32, f: &Code, w: Writer) -> Result<()> {
 		let val = f.var_name_of(self.reg.pop(1));
 		let reg = f.var_name_of(self.reg.pop(1));
 
-		write!(w, "store.{}(memory_at_0, {} + {}, {}) ", t, reg, o, val)
+		write!(w, "store_{}(memory_at_0, {} + {}, {}) ", t, reg, o, val)
 	}
 
 	fn gen_const<T: Display>(&mut self, val: T, f: &Code, w: Writer) -> Result<()> {
@@ -370,57 +370,57 @@ impl<'a> Body<'a> {
 			}
 			// note that signed comparisons of all types behave the same so
 			// they can be condensed using Lua's operators
-			Instruction::I32LtU => self.gen_binop_ex("lt.u32", func, w),
+			Instruction::I32LtU => self.gen_binop_ex("lt_u32", func, w),
 			Instruction::I32LtS | Instruction::I64LtS | Instruction::F32Lt | Instruction::F64Lt => {
 				self.gen_compare("<", func, w)
 			}
-			Instruction::I32GtU => self.gen_binop_ex("gt.u32", func, w),
+			Instruction::I32GtU => self.gen_binop_ex("gt_u32", func, w),
 			Instruction::I32GtS | Instruction::I64GtS | Instruction::F32Gt | Instruction::F64Gt => {
 				self.gen_compare(">", func, w)
 			}
-			Instruction::I32LeU => self.gen_binop_ex("le.u32", func, w),
+			Instruction::I32LeU => self.gen_binop_ex("le_u32", func, w),
 			Instruction::I32LeS | Instruction::I64LeS | Instruction::F32Le | Instruction::F64Le => {
 				self.gen_compare("<=", func, w)
 			}
-			Instruction::I32GeU => self.gen_binop_ex("ge.u32", func, w),
+			Instruction::I32GeU => self.gen_binop_ex("ge_u32", func, w),
 			Instruction::I32GeS | Instruction::I64GeS | Instruction::F32Ge | Instruction::F64Ge => {
 				self.gen_compare(">=", func, w)
 			}
-			Instruction::I64LtU => self.gen_binop_ex("lt.u64", func, w),
-			Instruction::I64GtU => self.gen_binop_ex("gt.u64", func, w),
-			Instruction::I64LeU => self.gen_binop_ex("le.u64", func, w),
-			Instruction::I64GeU => self.gen_binop_ex("ge.u64", func, w),
-			Instruction::I32Clz => self.gen_unop_ex("clz.i32", func, w),
-			Instruction::I32Ctz => self.gen_unop_ex("ctz.i32", func, w),
-			Instruction::I32Popcnt => self.gen_unop_ex("popcnt.i32", func, w),
-			Instruction::I32DivS => self.gen_binop_ex("div.i32", func, w),
-			Instruction::I32DivU => self.gen_binop_ex("div.u32", func, w),
-			Instruction::I32RemS => self.gen_binop_ex("rem.i32", func, w),
-			Instruction::I32RemU => self.gen_binop_ex("rem.u32", func, w),
-			Instruction::I32And => self.gen_binop_ex("band.i32", func, w),
-			Instruction::I32Or => self.gen_binop_ex("bor.i32", func, w),
-			Instruction::I32Xor => self.gen_binop_ex("bxor.i32", func, w),
-			Instruction::I32Shl => self.gen_binop_ex("shl.i32", func, w),
-			Instruction::I32ShrS => self.gen_binop_ex("shr.i32", func, w),
-			Instruction::I32ShrU => self.gen_binop_ex("shr.u32", func, w),
-			Instruction::I32Rotl => self.gen_binop_ex("rotl.i32", func, w),
-			Instruction::I32Rotr => self.gen_binop_ex("rotr.i32", func, w),
-			Instruction::I64Clz => self.gen_unop_ex("clz.i64", func, w),
-			Instruction::I64Ctz => self.gen_unop_ex("ctz.i64", func, w),
-			Instruction::I64Popcnt => self.gen_unop_ex("popcnt.i64", func, w),
-			Instruction::I64DivS => self.gen_binop_ex("div.i64", func, w),
-			Instruction::I64DivU => self.gen_binop_ex("div.u64", func, w),
-			Instruction::I64RemS => self.gen_binop_ex("rem.i64", func, w),
-			Instruction::I64RemU => self.gen_binop_ex("rem.u64", func, w),
-			Instruction::I64And => self.gen_binop_ex("band.i64", func, w),
-			Instruction::I64Or => self.gen_binop_ex("bor.i64", func, w),
-			Instruction::I64Xor => self.gen_binop_ex("bxor.i64", func, w),
-			Instruction::I64Shl => self.gen_binop_ex("shl.i64", func, w),
-			Instruction::I64ShrS => self.gen_binop_ex("shr.i64", func, w),
-			Instruction::I64ShrU => self.gen_binop_ex("shr.u64", func, w),
-			Instruction::I64Rotl => self.gen_binop_ex("rotl.i64", func, w),
-			Instruction::I64Rotr => self.gen_binop_ex("rotr.i64", func, w),
-			Instruction::F32Abs | Instruction::F64Abs => self.gen_unop_ex("math.abs", func, w),
+			Instruction::I64LtU => self.gen_binop_ex("lt_u64", func, w),
+			Instruction::I64GtU => self.gen_binop_ex("gt_u64", func, w),
+			Instruction::I64LeU => self.gen_binop_ex("le_u64", func, w),
+			Instruction::I64GeU => self.gen_binop_ex("ge_u64", func, w),
+			Instruction::I32Clz => self.gen_unop_ex("clz_i32", func, w),
+			Instruction::I32Ctz => self.gen_unop_ex("ctz_i32", func, w),
+			Instruction::I32Popcnt => self.gen_unop_ex("popcnt_i32", func, w),
+			Instruction::I32DivS => self.gen_binop_ex("div_i32", func, w),
+			Instruction::I32DivU => self.gen_binop_ex("div_u32", func, w),
+			Instruction::I32RemS => self.gen_binop_ex("rem_i32", func, w),
+			Instruction::I32RemU => self.gen_binop_ex("rem_u32", func, w),
+			Instruction::I32And => self.gen_binop_ex("band_i32", func, w),
+			Instruction::I32Or => self.gen_binop_ex("bor_i32", func, w),
+			Instruction::I32Xor => self.gen_binop_ex("bxor_i32", func, w),
+			Instruction::I32Shl => self.gen_binop_ex("shl_i32", func, w),
+			Instruction::I32ShrS => self.gen_binop_ex("shr_i32", func, w),
+			Instruction::I32ShrU => self.gen_binop_ex("shr_u32", func, w),
+			Instruction::I32Rotl => self.gen_binop_ex("rotl_i32", func, w),
+			Instruction::I32Rotr => self.gen_binop_ex("rotr_i32", func, w),
+			Instruction::I64Clz => self.gen_unop_ex("clz_i64", func, w),
+			Instruction::I64Ctz => self.gen_unop_ex("ctz_i64", func, w),
+			Instruction::I64Popcnt => self.gen_unop_ex("popcnt_i64", func, w),
+			Instruction::I64DivS => self.gen_binop_ex("div_i64", func, w),
+			Instruction::I64DivU => self.gen_binop_ex("div_u64", func, w),
+			Instruction::I64RemS => self.gen_binop_ex("rem_i64", func, w),
+			Instruction::I64RemU => self.gen_binop_ex("rem_u64", func, w),
+			Instruction::I64And => self.gen_binop_ex("band_i64", func, w),
+			Instruction::I64Or => self.gen_binop_ex("bor_i64", func, w),
+			Instruction::I64Xor => self.gen_binop_ex("bxor_i64", func, w),
+			Instruction::I64Shl => self.gen_binop_ex("shl_i64", func, w),
+			Instruction::I64ShrS => self.gen_binop_ex("shr_i64", func, w),
+			Instruction::I64ShrU => self.gen_binop_ex("shr_u64", func, w),
+			Instruction::I64Rotl => self.gen_binop_ex("rotl_i64", func, w),
+			Instruction::I64Rotr => self.gen_binop_ex("rotr_i64", func, w),
+			Instruction::F32Abs | Instruction::F64Abs => self.gen_unop_ex("math_abs", func, w),
 			Instruction::F32Neg | Instruction::F64Neg => {
 				let reg = func.var_name_of(self.reg.pop(1));
 
@@ -428,15 +428,15 @@ impl<'a> Body<'a> {
 
 				write!(w, "{} = -{} ", reg, reg)
 			}
-			Instruction::F32Ceil | Instruction::F64Ceil => self.gen_unop_ex("math.ceil", func, w),
+			Instruction::F32Ceil | Instruction::F64Ceil => self.gen_unop_ex("math_ceil", func, w),
 			Instruction::F32Floor | Instruction::F64Floor => {
-				self.gen_unop_ex("math.floor", func, w)
+				self.gen_unop_ex("math_floor", func, w)
 			}
-			Instruction::F32Trunc | Instruction::F64Trunc => self.gen_unop_ex("trunc.f", func, w),
+			Instruction::F32Trunc | Instruction::F64Trunc => self.gen_unop_ex("trunc_f", func, w),
 			Instruction::F32Nearest | Instruction::F64Nearest => {
-				self.gen_unop_ex("nearest.f", func, w)
+				self.gen_unop_ex("nearest_f", func, w)
 			}
-			Instruction::F32Sqrt | Instruction::F64Sqrt => self.gen_unop_ex("math.sqrt", func, w),
+			Instruction::F32Sqrt | Instruction::F64Sqrt => self.gen_unop_ex("math_sqrt", func, w),
 			Instruction::I32Add
 			| Instruction::I64Add
 			| Instruction::F32Add
@@ -450,36 +450,36 @@ impl<'a> Body<'a> {
 			| Instruction::F32Mul
 			| Instruction::F64Mul => self.gen_binop("*", func, w),
 			Instruction::F32Div | Instruction::F64Div => self.gen_binop("/", func, w),
-			Instruction::F32Min | Instruction::F64Min => self.gen_binop_ex("math.min", func, w),
-			Instruction::F32Max | Instruction::F64Max => self.gen_binop_ex("math.max", func, w),
+			Instruction::F32Min | Instruction::F64Min => self.gen_binop_ex("math_min", func, w),
+			Instruction::F32Max | Instruction::F64Max => self.gen_binop_ex("math_max", func, w),
 			Instruction::F32Copysign | Instruction::F64Copysign => {
-				self.gen_unop_ex("math.sign", func, w)
+				self.gen_unop_ex("math_sign", func, w)
 			}
-			Instruction::I32WrapI64 => self.gen_unop_ex("wrap.i64_i32", func, w),
-			Instruction::I32TruncSF32 => self.gen_unop_ex("trunc.f32_i32", func, w),
-			Instruction::I32TruncUF32 => self.gen_unop_ex("trunc.f32_u32", func, w),
-			Instruction::I32TruncSF64 => self.gen_unop_ex("trunc.f64_i32", func, w),
-			Instruction::I32TruncUF64 => self.gen_unop_ex("trunc.f64_u32", func, w),
-			Instruction::I64ExtendSI32 => self.gen_unop_ex("extend.i32_i64", func, w),
-			Instruction::I64ExtendUI32 => self.gen_unop_ex("extend.i32_u64", func, w),
-			Instruction::I64TruncSF32 => self.gen_unop_ex("trunc.f32_i64", func, w),
-			Instruction::I64TruncUF32 => self.gen_unop_ex("trunc.f32_u64", func, w),
-			Instruction::I64TruncSF64 => self.gen_unop_ex("trunc.f64_i64", func, w),
-			Instruction::I64TruncUF64 => self.gen_unop_ex("trunc.f64_u64", func, w),
-			Instruction::F32ConvertSI32 => self.gen_unop_ex("convert.i32_f32", func, w),
-			Instruction::F32ConvertUI32 => self.gen_unop_ex("convert.u32_f32", func, w),
-			Instruction::F32ConvertSI64 => self.gen_unop_ex("convert.i64_f32", func, w),
-			Instruction::F32ConvertUI64 => self.gen_unop_ex("convert.u64_f32", func, w),
-			Instruction::F32DemoteF64 => self.gen_unop_ex("demote.f64_f32", func, w),
-			Instruction::F64ConvertSI32 => self.gen_unop_ex("convert.f64_i32", func, w),
-			Instruction::F64ConvertUI32 => self.gen_unop_ex("convert.f64_u32", func, w),
-			Instruction::F64ConvertSI64 => self.gen_unop_ex("convert.f64_i64", func, w),
-			Instruction::F64ConvertUI64 => self.gen_unop_ex("convert.f64_u64", func, w),
-			Instruction::F64PromoteF32 => self.gen_unop_ex("promote.f32_f64", func, w),
-			Instruction::I32ReinterpretF32 => self.gen_unop_ex("reinterpret.f32_i32", func, w),
-			Instruction::I64ReinterpretF64 => self.gen_unop_ex("reinterpret.f64_i64", func, w),
-			Instruction::F32ReinterpretI32 => self.gen_unop_ex("reinterpret.i32_f32", func, w),
-			Instruction::F64ReinterpretI64 => self.gen_unop_ex("reinterpret.i64_f64", func, w),
+			Instruction::I32WrapI64 => self.gen_unop_ex("wrap_i64_i32", func, w),
+			Instruction::I32TruncSF32 => self.gen_unop_ex("trunc_f32_i32", func, w),
+			Instruction::I32TruncUF32 => self.gen_unop_ex("trunc_f32_u32", func, w),
+			Instruction::I32TruncSF64 => self.gen_unop_ex("trunc_f64_i32", func, w),
+			Instruction::I32TruncUF64 => self.gen_unop_ex("trunc_f64_u32", func, w),
+			Instruction::I64ExtendSI32 => self.gen_unop_ex("extend_i32_i64", func, w),
+			Instruction::I64ExtendUI32 => self.gen_unop_ex("extend_i32_u64", func, w),
+			Instruction::I64TruncSF32 => self.gen_unop_ex("trunc_f32_i64", func, w),
+			Instruction::I64TruncUF32 => self.gen_unop_ex("trunc_f32_u64", func, w),
+			Instruction::I64TruncSF64 => self.gen_unop_ex("trunc_f64_i64", func, w),
+			Instruction::I64TruncUF64 => self.gen_unop_ex("trunc_f64_u64", func, w),
+			Instruction::F32ConvertSI32 => self.gen_unop_ex("convert_i32_f32", func, w),
+			Instruction::F32ConvertUI32 => self.gen_unop_ex("convert_u32_f32", func, w),
+			Instruction::F32ConvertSI64 => self.gen_unop_ex("convert_i64_f32", func, w),
+			Instruction::F32ConvertUI64 => self.gen_unop_ex("convert_u64_f32", func, w),
+			Instruction::F32DemoteF64 => self.gen_unop_ex("demote_f64_f32", func, w),
+			Instruction::F64ConvertSI32 => self.gen_unop_ex("convert_f64_i32", func, w),
+			Instruction::F64ConvertUI32 => self.gen_unop_ex("convert_f64_u32", func, w),
+			Instruction::F64ConvertSI64 => self.gen_unop_ex("convert_f64_i64", func, w),
+			Instruction::F64ConvertUI64 => self.gen_unop_ex("convert_f64_u64", func, w),
+			Instruction::F64PromoteF32 => self.gen_unop_ex("promote_f32_f64", func, w),
+			Instruction::I32ReinterpretF32 => self.gen_unop_ex("reinterpret_f32_i32", func, w),
+			Instruction::I64ReinterpretF64 => self.gen_unop_ex("reinterpret_f64_i64", func, w),
+			Instruction::F32ReinterpretI32 => self.gen_unop_ex("reinterpret_i32_f32", func, w),
+			Instruction::F64ReinterpretI64 => self.gen_unop_ex("reinterpret_i64_f64", func, w),
 		}
 	}
 }
