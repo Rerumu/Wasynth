@@ -1,4 +1,4 @@
-use backend::{edition::data::from_string, translation::level_3};
+use backend::{edition::data::from_string, translator::level_3};
 use data::Module;
 use parity_wasm::deserialize_file;
 
