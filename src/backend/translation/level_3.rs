@@ -1,10 +1,13 @@
-use super::level_2::{gen_function, gen_init_expression};
+use std::io::Result;
+
+use parity_wasm::elements::{External, ImportCountType, Internal, ResizableLimits};
+
 use crate::{
 	backend::{edition::data::Edition, helper::writer::Writer},
 	data::Module,
 };
-use parity_wasm::elements::{External, ImportCountType, Internal, ResizableLimits};
-use std::io::Result;
+
+use super::level_2::{gen_function, gen_init_expression};
 
 const RUNTIME_DATA: &str = "
 local add = rt.add

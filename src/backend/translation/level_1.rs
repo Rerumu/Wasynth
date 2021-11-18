@@ -1,4 +1,7 @@
-use super::level_2::list_to_range;
+use std::{fmt::Display, io::Result, ops::Range};
+
+use parity_wasm::elements::{BrTableData, Instruction};
+
 use crate::{
 	backend::{
 		edition::data::Edition,
@@ -6,8 +9,28 @@ use crate::{
 	},
 	data::{Arity, Code, Module},
 };
-use parity_wasm::elements::{BrTableData, Instruction};
-use std::{fmt::Display, io::Result};
+
+pub fn list_to_range(list: &[u32]) -> Vec<(Range<usize>, u32)> {
+	let mut result = Vec::new();
+	let mut index = 0;
+
+	while index < list.len() {
+		let start = index;
+
+		loop {
+			index += 1;
+
+			// if end of list or next value is not equal, break
+			if index == list.len() || list[index - 1] != list[index] {
+				break;
+			}
+		}
+
+		result.push((start..index, list[start]));
+	}
+
+	result
+}
 
 #[derive(PartialEq)]
 pub enum Label {

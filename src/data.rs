@@ -1,8 +1,10 @@
-use crate::backend::helper::writer::ordered_iter;
+use std::{borrow::Cow, convert::TryInto};
+
 use parity_wasm::elements::{
 	External, FunctionType, ImportEntry, Instruction, Local, Module as WasmModule, Type,
 };
-use std::{borrow::Cow, convert::TryInto};
+
+use crate::backend::helper::writer::ordered_iter;
 
 pub struct Code<'a> {
 	pub num_local: u32,

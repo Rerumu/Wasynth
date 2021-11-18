@@ -1,6 +1,8 @@
-use super::data::{Edition, Infix};
-use crate::backend::helper::writer::Writer;
 use std::io::Result;
+
+use crate::backend::helper::writer::Writer;
+
+use super::data::{Edition, Infix};
 
 pub struct LuaJIT;
 

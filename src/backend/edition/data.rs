@@ -1,6 +1,8 @@
-use super::{luajit::LuaJIT, luau::Luau};
-use crate::backend::helper::writer::Writer;
 use std::{fmt::Display, io::Result};
+
+use crate::backend::helper::writer::Writer;
+
+use super::{luajit::LuaJIT, luau::Luau};
 
 pub struct Infix<T> {
 	rhs: &'static str,

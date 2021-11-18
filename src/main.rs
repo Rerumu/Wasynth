@@ -1,6 +1,6 @@
 use backend::{edition::data::from_string, translation::level_3};
 use data::Module;
-use parity_wasm::elements::deserialize_file;
+use parity_wasm::deserialize_file;
 
 mod backend;
 mod data;
