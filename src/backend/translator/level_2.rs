@@ -6,7 +6,7 @@ use crate::{
 	backend::{
 		edition::data::Edition,
 		helper::writer::{write_ordered, Writer},
-		visitor::{memory::visit_for_memory, register::visit_for_register},
+		visitor::{memory, register},
 	},
 	data::Module,
 };
@@ -58,8 +58,8 @@ fn gen_memory(set: BTreeSet<u8>, w: Writer) -> Result<()> {
 }
 
 pub fn gen_function(spec: &dyn Edition, index: usize, m: &Module, w: Writer) -> Result<()> {
-	let mem_set = visit_for_memory(m, index);
-	let num_stack = visit_for_register(m, index);
+	let mem_set = memory::visit(m, index);
+	let num_stack = register::visit(m, index);
 
 	let num_param = m.in_arity[index].num_param;
 	let num_local = m.code[index].num_local;

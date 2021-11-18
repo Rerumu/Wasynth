@@ -4,7 +4,7 @@ use parity_wasm::elements::Instruction;
 
 use crate::data::Module;
 
-pub fn visit_for_memory(m: &Module, index: usize) -> BTreeSet<u8> {
+pub fn visit(m: &Module, index: usize) -> BTreeSet<u8> {
 	let mut result = BTreeSet::new();
 
 	for i in m.code[index].inst_list {
