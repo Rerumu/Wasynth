@@ -47,24 +47,24 @@ pub struct Body<'a> {
 }
 
 impl<'a> Body<'a> {
-	pub fn new(spec: &'a dyn Edition) -> Self {
+	pub fn new(spec: &'a dyn Edition, base: u32) -> Self {
+		let mut reg = Register::new();
+
+		reg.push(base);
+
 		Self {
 			spec,
+			reg,
 			label_list: vec![],
 			table_list: Vec::new(),
-			reg: Register::new(),
 		}
 	}
 
-	pub fn gen(&mut self, index: usize, module: &Module) -> Result<Vec<u8>> {
-		let mut w = Vec::new();
-
-		module.code[index]
+	pub fn generate(&mut self, index: usize, m: &Module, w: Writer) -> Result<()> {
+		m.code[index]
 			.inst_list
 			.iter()
-			.try_for_each(|v| self.gen_inst(index, v, module, &mut w))?;
-
-		Ok(w)
+			.try_for_each(|v| self.gen_inst(index, v, m, w))
 	}
 
 	fn gen_jump(&mut self, up: u32, w: Writer) -> Result<()> {
@@ -107,14 +107,14 @@ impl<'a> Body<'a> {
 
 		self.reg.push(1);
 
-		write!(w, "{0} = load.{1}(MEMORY_LIST[0], {0} + {2}) ", reg, t, o)
+		write!(w, "{0} = load.{1}(memory_at_0, {0} + {2}) ", reg, t, o)
 	}
 
 	fn gen_store(&mut self, t: &str, o: u32, f: &Code, w: Writer) -> Result<()> {
 		let val = f.var_name_of(self.reg.pop(1));
 		let reg = f.var_name_of(self.reg.pop(1));
 
-		write!(w, "store.{}(MEMORY_LIST[0], {} + {}, {}) ", t, reg, o, val)
+		write!(w, "store.{}(memory_at_0, {} + {}, {}) ", t, reg, o, val)
 	}
 
 	fn gen_const<T: Display>(&mut self, val: T, f: &Code, w: Writer) -> Result<()> {
@@ -342,14 +342,14 @@ impl<'a> Body<'a> {
 			Instruction::CurrentMemory(index) => {
 				let reg = func.var_name_of(self.reg.push(1));
 
-				write!(w, "{} = rt.memory.size(MEMORY_LIST[{}])", reg, index)
+				write!(w, "{} = rt.memory.size(memory_at_{})", reg, index)
 			}
 			Instruction::GrowMemory(index) => {
 				let reg = func.var_name_of(self.reg.pop(1));
 
 				self.reg.push(1);
 
-				write!(w, "{0} = rt.memory.grow(MEMORY_LIST[{1}], {0})", reg, index)
+				write!(w, "{0} = rt.memory.grow(memory_at_{1}, {0})", reg, index)
 			}
 			Instruction::I32Const(v) => self.gen_const(v, func, w),
 			Instruction::I64Const(v) => self.gen_const(self.spec.i64(*v), func, w),

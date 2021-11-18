@@ -1,4 +1,4 @@
-use std::io::{Result, Write};
+use std::{collections::BTreeSet, io::Result};
 
 use parity_wasm::elements::Instruction;
 
@@ -6,6 +6,7 @@ use crate::{
 	backend::{
 		edition::data::Edition,
 		helper::writer::{write_ordered, Writer},
+		visitor::{memory::visit_for_memory, register::visit_for_register},
 	},
 	data::Module,
 };
@@ -27,49 +28,52 @@ pub fn gen_init_expression(code: &[Instruction], w: Writer) -> Result<()> {
 	}
 }
 
-fn gen_prelude(num_param: u32, num_local: u32) -> Result<Vec<u8>> {
-	let mut w = Vec::new();
+fn gen_prelude(num_stack: u32, num_param: u32, num_local: u32, w: Writer) -> Result<()> {
+	let num_reg = num_stack - num_param - num_local;
 
 	write!(w, "function(")?;
-	write_ordered("param", num_param, &mut w)?;
+	write_ordered("param", num_param, w)?;
 	write!(w, ")")?;
 
 	if num_local != 0 {
 		let zero = vec!["0"; num_local as usize].join(", ");
 
 		write!(w, "local ")?;
-		write_ordered("var", num_local, &mut w)?;
+		write_ordered("var", num_local, w)?;
 		write!(w, "= {} ", zero)?;
 	}
 
-	Ok(w)
-}
-
-fn gen_reg_list(last: u32, num_param: u32, num_local: u32) -> Result<Vec<u8>> {
-	let mut w = Vec::new();
-	let num = last - num_local - num_param;
-
-	if num != 0 {
+	if num_reg != 0 {
 		write!(w, "local ")?;
-		write_ordered("reg", num, &mut w)?;
+		write_ordered("reg", num_reg, w)?;
 		write!(w, " ")?;
 	}
 
-	Ok(w)
+	Ok(())
+}
+
+fn gen_memory(set: BTreeSet<u8>, w: Writer) -> Result<()> {
+	set.into_iter()
+		.try_for_each(|i| write!(w, "local memory_at_{0} = MEMORY_LIST[{0}]", i))
 }
 
 pub fn gen_function(spec: &dyn Edition, index: usize, m: &Module, w: Writer) -> Result<()> {
-	let mut inner = Body::new(spec);
+	let mem_set = visit_for_memory(m, index);
+	let num_stack = visit_for_register(m, index);
+
 	let num_param = m.in_arity[index].num_param;
 	let num_local = m.code[index].num_local;
 
-	inner.reg.push(num_param + num_local);
+	let mut inner = Body::new(spec, num_param + num_local);
 
-	let prelude = gen_prelude(num_param, num_local)?;
-	let body = inner.gen(index, m)?;
-	let reg = gen_reg_list(inner.reg.last, num_param, num_local)?;
+	gen_prelude(num_stack, num_param, num_local, w)?;
+	gen_memory(mem_set, w)?;
+	inner.generate(index, m, w)?;
 
-	w.write_all(&prelude)?;
-	w.write_all(&reg)?;
-	w.write_all(&body)
+	assert!(
+		inner.reg.last == num_stack,
+		"Mismatched register allocation"
+	);
+
+	Ok(())
 }
