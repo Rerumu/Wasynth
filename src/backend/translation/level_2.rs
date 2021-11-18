@@ -1,8 +1,8 @@
 use super::level_1::Body;
 use crate::{
-	backend::helper::{
-		edition::Edition,
-		writer::{write_ordered, Writer},
+	backend::{
+		edition::data::Edition,
+		helper::writer::{write_ordered, Writer},
 	},
 	data::Module,
 };

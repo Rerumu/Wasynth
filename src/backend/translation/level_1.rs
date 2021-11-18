@@ -1,6 +1,9 @@
 use super::level_2::list_to_range;
 use crate::{
-	backend::helper::{edition::Edition, register::Register, writer::Writer},
+	backend::{
+		edition::data::Edition,
+		helper::{register::Register, writer::Writer},
+	},
 	data::{Arity, Code, Module},
 };
 use parity_wasm::elements::{BrTableData, Instruction};

@@ -1,6 +1,6 @@
 use super::level_2::{gen_function, gen_init_expression};
 use crate::{
-	backend::helper::{edition::Edition, writer::Writer},
+	backend::{edition::data::Edition, helper::writer::Writer},
 	data::Module,
 };
 use parity_wasm::elements::{External, ImportCountType, Internal, ResizableLimits};

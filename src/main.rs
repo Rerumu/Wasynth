@@ -1,7 +1,4 @@
-use backend::{
-	helper::edition::{Edition, LuaJIT, Luau},
-	translation::level_3,
-};
+use backend::{edition::data::from_string, translation::level_3};
 use data::Module;
 use parity_wasm::elements::deserialize_file;
 
@@ -10,14 +7,11 @@ mod data;
 
 fn main() {
 	let mut args = std::env::args().skip(1);
-	let spec: &dyn Edition = match args.next().as_deref().map(str::to_lowercase).as_deref() {
-		Some("luau") => &Luau,
-		Some("luajit") => &LuaJIT,
-		_ => {
-			println!("expected either 'luau' or 'luajit' option");
-			return;
-		}
-	};
+	let spec = args
+		.next()
+		.as_deref()
+		.and_then(from_string)
+		.expect("No language argument provided");
 
 	let output = std::io::stdout();
 
