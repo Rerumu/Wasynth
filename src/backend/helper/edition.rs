@@ -40,30 +40,30 @@ impl Edition for LuaJIT {
 	}
 
 	fn start_block(&self, w: Writer) -> Result<()> {
-		writeln!(w, "do")
+		write!(w, "do ")
 	}
 
 	fn start_loop(&self, level: usize, w: Writer) -> Result<()> {
-		writeln!(w, "do")?;
-		writeln!(w, "::continue_at_{}::", level)
+		write!(w, "do ")?;
+		write!(w, "::continue_at_{}::", level)
 	}
 
 	fn start_if(&self, cond: &str, w: Writer) -> Result<()> {
-		writeln!(w, "if {} ~= 0 then", cond)
+		write!(w, "if {} ~= 0 then ", cond)
 	}
 
 	fn end_block(&self, level: usize, w: Writer) -> Result<()> {
-		writeln!(w, "::continue_at_{}::", level)?;
-		writeln!(w, "end")
+		write!(w, "::continue_at_{}::", level)?;
+		write!(w, "end ")
 	}
 
 	fn end_loop(&self, w: Writer) -> Result<()> {
-		writeln!(w, "end")
+		write!(w, "end ")
 	}
 
 	fn end_if(&self, level: usize, w: Writer) -> Result<()> {
-		writeln!(w, "::continue_at_{}::", level)?;
-		writeln!(w, "end")
+		write!(w, "::continue_at_{}::", level)?;
+		write!(w, "end ")
 	}
 
 	fn br_target(&self, _level: usize, _in_loop: bool, _w: Writer) -> Result<()> {
@@ -71,7 +71,7 @@ impl Edition for LuaJIT {
 	}
 
 	fn br_to_level(&self, level: usize, up: usize, _is_loop: bool, w: Writer) -> Result<()> {
-		writeln!(w, "goto continue_at_{}", level - up)
+		write!(w, "goto continue_at_{} ", level - up)
 	}
 
 	fn i64(&self, i: i64) -> Infix<i64> {
@@ -90,63 +90,63 @@ impl Edition for Luau {
 	}
 
 	fn start_block(&self, w: Writer) -> Result<()> {
-		writeln!(w, "while true do")
+		write!(w, "while true do ")
 	}
 
 	fn start_loop(&self, _level: usize, w: Writer) -> Result<()> {
-		writeln!(w, "while true do")
+		write!(w, "while true do ")
 	}
 
 	fn start_if(&self, cond: &str, w: Writer) -> Result<()> {
-		writeln!(w, "while true do")?;
-		writeln!(w, "if {} ~= 0 then", cond)
+		write!(w, "while true do ")?;
+		write!(w, "if {} ~= 0 then ", cond)
 	}
 
 	fn end_block(&self, _level: usize, w: Writer) -> Result<()> {
-		writeln!(w, "break")?;
-		writeln!(w, "end")
+		write!(w, "break ")?;
+		write!(w, "end ")
 	}
 
 	fn end_loop(&self, w: Writer) -> Result<()> {
-		writeln!(w, "break")?;
-		writeln!(w, "end")
+		write!(w, "break ")?;
+		write!(w, "end ")
 	}
 
 	fn end_if(&self, _level: usize, w: Writer) -> Result<()> {
-		writeln!(w, "end")?;
-		writeln!(w, "break")?;
-		writeln!(w, "end")
+		write!(w, "end ")?;
+		write!(w, "break ")?;
+		write!(w, "end ")
 	}
 
 	fn br_target(&self, level: usize, in_loop: bool, w: Writer) -> Result<()> {
-		writeln!(w, "if desired then")?;
-		writeln!(w, "if desired == {} then", level)?;
-		writeln!(w, "desired = nil")?;
+		write!(w, "if desired then ")?;
+		write!(w, "if desired == {} then ", level)?;
+		write!(w, "desired = nil ")?;
 
 		if in_loop {
-			writeln!(w, "continue")?;
+			write!(w, "continue ")?;
 		}
 
-		writeln!(w, "end")?;
-		writeln!(w, "break")?;
-		writeln!(w, "end")
+		write!(w, "end ")?;
+		write!(w, "break ")?;
+		write!(w, "end ")
 	}
 
 	fn br_to_level(&self, level: usize, up: usize, is_loop: bool, w: Writer) -> Result<()> {
-		writeln!(w, "do")?;
+		write!(w, "do ")?;
 
 		if up == 0 {
 			if is_loop {
-				writeln!(w, "continue")?;
+				write!(w, "continue ")?;
 			} else {
-				writeln!(w, "break")?;
+				write!(w, "break ")?;
 			}
 		} else {
-			writeln!(w, "desired = {}", level - up)?;
-			writeln!(w, "break")?;
+			write!(w, "desired = {} ", level - up)?;
+			write!(w, "break ")?;
 		}
 
-		writeln!(w, "end")
+		write!(w, "end ")
 	}
 
 	fn i64(&self, i: i64) -> Infix<i64> {

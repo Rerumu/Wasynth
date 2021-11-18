@@ -52,28 +52,28 @@ impl<'a> Body<'a> {
 	fn gen_br_if(&mut self, i: u32, f: &Code, w: Writer) -> Result<()> {
 		let cond = f.var_name_of(self.reg.pop(1));
 
-		writeln!(w, "if {} ~= 0 then", cond)?;
+		write!(w, "if {} ~= 0 then ", cond)?;
 		self.gen_jump(i, w)?;
-		writeln!(w, "end")
+		write!(w, "end ")
 	}
 
 	fn gen_br_table(&mut self, data: &BrTableData, f: &Code, w: Writer) -> Result<()> {
-		let case = f.var_name_of(self.reg.pop(1));
+		let reg = f.var_name_of(self.reg.pop(1));
 
 		for (r, t) in list_to_range(&data.table) {
 			if r.len() == 1 {
-				writeln!(w, "if {} == {} then", case, r.start)?;
+				write!(w, "if {} == {} then ", reg, r.start)?;
 			} else {
-				writeln!(w, "if {0} >= {1} and {0} <= {2} then", case, r.start, r.end)?;
+				write!(w, "if {0} >= {1} and {0} <= {2} then ", reg, r.start, r.end)?;
 			}
 
 			self.gen_jump(t, w)?;
 			write!(w, "else")?;
 		}
 
-		writeln!(w)?;
+		write!(w, " ")?;
 		self.gen_jump(data.default, w)?;
-		writeln!(w, "end")
+		write!(w, "end ")
 	}
 
 	fn gen_load(&mut self, t: &str, o: u32, f: &Code, w: Writer) -> Result<()> {
@@ -81,20 +81,20 @@ impl<'a> Body<'a> {
 
 		self.reg.push(1);
 
-		writeln!(w, "{0} = load.{1}(MEMORY_LIST[0], {0} + {2})", reg, t, o)
+		write!(w, "{0} = load.{1}(MEMORY_LIST[0], {0} + {2}) ", reg, t, o)
 	}
 
 	fn gen_store(&mut self, t: &str, o: u32, f: &Code, w: Writer) -> Result<()> {
 		let val = f.var_name_of(self.reg.pop(1));
 		let reg = f.var_name_of(self.reg.pop(1));
 
-		writeln!(w, "store.{}(MEMORY_LIST[0], {} + {}, {})", t, reg, o, val)
+		write!(w, "store.{}(MEMORY_LIST[0], {} + {}, {}) ", t, reg, o, val)
 	}
 
 	fn gen_const<T: Display>(&mut self, val: T, f: &Code, w: Writer) -> Result<()> {
 		let reg = f.var_name_of(self.reg.push(1));
 
-		writeln!(w, "{} = {}", reg, val)
+		write!(w, "{} = {} ", reg, val)
 	}
 
 	fn gen_compare(&mut self, op: &str, f: &Code, w: Writer) -> Result<()> {
@@ -103,7 +103,7 @@ impl<'a> Body<'a> {
 
 		self.reg.push(1);
 
-		writeln!(w, "{1} = {1} {0} {2} and 1 or 0", op, lhs, rhs)
+		write!(w, "{1} = {1} {0} {2} and 1 or 0 ", op, lhs, rhs)
 	}
 
 	fn gen_unop_ex(&mut self, op: &str, f: &Code, w: Writer) -> Result<()> {
@@ -111,7 +111,7 @@ impl<'a> Body<'a> {
 
 		self.reg.push(1);
 
-		writeln!(w, "{1} = {0}({1})", op, reg)
+		write!(w, "{1} = {0}({1}) ", op, reg)
 	}
 
 	fn gen_binop(&mut self, op: &str, f: &Code, w: Writer) -> Result<()> {
@@ -120,7 +120,7 @@ impl<'a> Body<'a> {
 
 		self.reg.push(1);
 
-		writeln!(w, "{1} = {1} {0} {2}", op, lhs, rhs)
+		write!(w, "{1} = {1} {0} {2} ", op, lhs, rhs)
 	}
 
 	fn gen_binop_ex(&mut self, op: &str, f: &Code, w: Writer) -> Result<()> {
@@ -129,7 +129,7 @@ impl<'a> Body<'a> {
 
 		self.reg.push(1);
 
-		writeln!(w, "{1} = {0}({1}, {2})", op, lhs, rhs)
+		write!(w, "{1} = {0}({1}, {2}) ", op, lhs, rhs)
 	}
 
 	fn gen_call(&mut self, name: &str, f: &Code, a: &Arity, w: Writer) -> Result<()> {
@@ -140,15 +140,15 @@ impl<'a> Body<'a> {
 		if a.num_result != 0 {
 			let result = f.var_range_of(bottom, a.num_result).join(", ");
 
-			writeln!(w, "{} =", result)?;
+			write!(w, "{} =", result)?;
 		}
 
 		if a.num_param == 0 {
-			writeln!(w, "{}()", name)
+			write!(w, "{}()", name)
 		} else {
 			let param = f.var_range_of(bottom, a.num_param).join(", ");
 
-			writeln!(w, "{}({})", name, param)
+			write!(w, "{}({})", name, param)
 		}
 	}
 
@@ -158,14 +158,14 @@ impl<'a> Body<'a> {
 
 		self.reg.pop(num); // technically a no-op
 
-		writeln!(w, "do return {} end", list)
+		write!(w, "do return {} end ", list)
 	}
 
 	fn gen_inst(&mut self, index: usize, i: &Instruction, m: &Module, w: Writer) -> Result<()> {
 		let func = &m.code[index];
 
 		match i {
-			Instruction::Unreachable => writeln!(w, "error('unreachable code entered')"),
+			Instruction::Unreachable => write!(w, "error('unreachable code entered')"),
 			Instruction::Nop => {
 				// no code
 				Ok(())
@@ -194,7 +194,7 @@ impl<'a> Body<'a> {
 				self.reg.load();
 				self.reg.save();
 
-				writeln!(w, "else")
+				write!(w, "else ")
 			}
 			Instruction::End => {
 				let rem = self.label_list.len().saturating_sub(1);
@@ -210,7 +210,7 @@ impl<'a> Body<'a> {
 							self.gen_return(num, func, w)?;
 						}
 
-						writeln!(w, "end")?;
+						write!(w, "end ")?;
 					}
 				}
 
@@ -256,21 +256,21 @@ impl<'a> Body<'a> {
 
 				self.reg.push(1);
 
-				writeln!(w, "if {} == 0 then", cond)?;
-				writeln!(w, "{} = {}", v1, v2)?;
-				writeln!(w, "end")
+				write!(w, "if {} == 0 then ", cond)?;
+				write!(w, "{} = {} ", v1, v2)?;
+				write!(w, "end ")
 			}
 			Instruction::GetLocal(i) => {
 				let reg = func.var_name_of(self.reg.push(1));
 				let var = func.var_name_of(*i);
 
-				writeln!(w, "{} = {}", reg, var)
+				write!(w, "{} = {} ", reg, var)
 			}
 			Instruction::SetLocal(i) => {
 				let var = func.var_name_of(*i);
 				let reg = func.var_name_of(self.reg.pop(1));
 
-				writeln!(w, "{} = {}", var, reg)
+				write!(w, "{} = {} ", var, reg)
 			}
 			Instruction::TeeLocal(i) => {
 				let var = func.var_name_of(*i);
@@ -278,17 +278,17 @@ impl<'a> Body<'a> {
 
 				self.reg.push(1);
 
-				writeln!(w, "{} = {}", var, reg)
+				write!(w, "{} = {} ", var, reg)
 			}
 			Instruction::GetGlobal(i) => {
 				let reg = func.var_name_of(self.reg.push(1));
 
-				writeln!(w, "{} = GLOBAL_LIST[{}].value", reg, i)
+				write!(w, "{} = GLOBAL_LIST[{}].value ", reg, i)
 			}
 			Instruction::SetGlobal(i) => {
 				let reg = func.var_name_of(self.reg.pop(1));
 
-				writeln!(w, "GLOBAL_LIST[{}].value = {}", i, reg)
+				write!(w, "GLOBAL_LIST[{}].value = {} ", i, reg)
 			}
 			Instruction::I32Load(_, o) => self.gen_load("i32", *o, func, w),
 			Instruction::I64Load(_, o) => self.gen_load("i64", *o, func, w),
@@ -316,14 +316,14 @@ impl<'a> Body<'a> {
 			Instruction::CurrentMemory(index) => {
 				let reg = func.var_name_of(self.reg.push(1));
 
-				writeln!(w, "{} = rt.memory.size(MEMORY_LIST[{}])", reg, index)
+				write!(w, "{} = rt.memory.size(MEMORY_LIST[{}])", reg, index)
 			}
 			Instruction::GrowMemory(index) => {
 				let reg = func.var_name_of(self.reg.pop(1));
 
 				self.reg.push(1);
 
-				writeln!(w, "{0} = rt.memory.grow(MEMORY_LIST[{1}], {0})", reg, index)
+				write!(w, "{0} = rt.memory.grow(MEMORY_LIST[{1}], {0})", reg, index)
 			}
 			Instruction::I32Const(v) => self.gen_const(v, func, w),
 			Instruction::I64Const(v) => self.gen_const(self.spec.i64(*v), func, w),
@@ -334,7 +334,7 @@ impl<'a> Body<'a> {
 
 				self.reg.push(1);
 
-				writeln!(w, "{} = {} == 0 and 1 or 0", reg, reg)
+				write!(w, "{} = {} == 0 and 1 or 0 ", reg, reg)
 			}
 			Instruction::I32Eq | Instruction::I64Eq | Instruction::F32Eq | Instruction::F64Eq => {
 				self.gen_compare("==", func, w)
@@ -400,7 +400,7 @@ impl<'a> Body<'a> {
 
 				self.reg.push(1);
 
-				writeln!(w, "{} = -{}", reg, reg)
+				write!(w, "{} = -{} ", reg, reg)
 			}
 			Instruction::F32Ceil | Instruction::F64Ceil => self.gen_unop_ex("math.ceil", func, w),
 			Instruction::F32Floor | Instruction::F64Floor => {

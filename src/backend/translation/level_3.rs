@@ -46,7 +46,7 @@ where
 		let field = v.field();
 		let module = v.module();
 
-		writeln!(w, "{}[{}] = wasm.{}.{}.{}", upper, i, module, lower, field)?;
+		write!(w, "{}[{}] = wasm.{}.{}.{} ", upper, i, module, lower, field)?;
 	}
 
 	Ok(())
@@ -68,16 +68,16 @@ where
 	};
 	let upper = lower.to_uppercase();
 
-	writeln!(w, "{} = {{", lower)?;
+	write!(w, "{} = {{", lower)?;
 
 	for v in export.iter().filter(|v| cond(v.internal())) {
 		let field = v.field();
 		let index = aux_internal_index(*v.internal());
 
-		writeln!(w, "{} = {}[{}],", field, upper, index)?;
+		write!(w, "{} = {}[{}],", field, upper, index)?;
 	}
 
-	writeln!(w, "}},")
+	write!(w, "}},")
 }
 
 fn gen_import_list(m: &Module, w: Writer) -> Result<()> {
@@ -95,25 +95,25 @@ fn gen_export_list(m: &Module, w: Writer) -> Result<()> {
 }
 
 fn gen_table_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
-	writeln!(w, "{{ min = {}", limit.initial())?;
+	write!(w, "{{ min = {}", limit.initial())?;
 
 	if let Some(max) = limit.maximum() {
-		writeln!(w, ", max = {}", max)?;
+		write!(w, ", max = {}", max)?;
 	}
 
-	writeln!(w, ", data = {{}} }}")
+	write!(w, ", data = {{}} }}")
 }
 
 fn gen_memory_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
-	writeln!(w, "rt.memory.new({}, ", limit.initial())?;
+	write!(w, "rt.memory.new({}, ", limit.initial())?;
 
 	if let Some(max) = limit.maximum() {
-		writeln!(w, "{}", max)?;
+		write!(w, "{}", max)?;
 	} else {
-		writeln!(w, "nil")?;
+		write!(w, "nil")?;
 	}
 
-	writeln!(w, ")")
+	write!(w, ")")
 }
 
 fn gen_table_list(m: &Module, w: Writer) -> Result<()> {
@@ -126,7 +126,7 @@ fn gen_table_list(m: &Module, w: Writer) -> Result<()> {
 	for (i, v) in table.iter().enumerate() {
 		let index = i + offset;
 
-		writeln!(w, "TABLE_LIST[{}] =", index)?;
+		write!(w, "TABLE_LIST[{}] =", index)?;
 		gen_table_init(v.limits(), w)?;
 	}
 
@@ -143,7 +143,7 @@ fn gen_memory_list(m: &Module, w: Writer) -> Result<()> {
 	for (i, v) in memory.iter().enumerate() {
 		let index = i + offset;
 
-		writeln!(w, "MEMORY_LIST[{}] =", index)?;
+		write!(w, "MEMORY_LIST[{}] =", index)?;
 		gen_memory_init(v.limits(), w)?;
 	}
 
@@ -160,9 +160,9 @@ fn gen_global_list(m: &Module, w: Writer) -> Result<()> {
 	for (i, v) in global.entries().iter().enumerate() {
 		let index = i + offset;
 
-		writeln!(w, "GLOBAL_LIST[{}] = {{ value =", index)?;
+		write!(w, "GLOBAL_LIST[{}] = {{ value =", index)?;
 		gen_init_expression(v.init_expr().code(), w)?;
-		writeln!(w, "}}")?;
+		write!(w, "}}")?;
 	}
 
 	Ok(())
@@ -175,17 +175,17 @@ fn gen_element_list(m: &Module, w: Writer) -> Result<()> {
 	};
 
 	for v in element {
-		writeln!(w, "do")?;
-		writeln!(w, "local target = TABLE_LIST[{}].data", v.index())?;
-		writeln!(w, "local offset =")?;
+		write!(w, "do ")?;
+		write!(w, "local target = TABLE_LIST[{}].data ", v.index())?;
+		write!(w, "local offset =")?;
 
 		gen_init_expression(v.offset().as_ref().unwrap().code(), w)?;
 
 		for (i, f) in v.members().iter().enumerate() {
-			writeln!(w, "target[offset + {}] = FUNC_LIST[{}]", i, f)?;
+			write!(w, "target[offset + {}] = FUNC_LIST[{}]", i, f)?;
 		}
 
-		writeln!(w, "end")?;
+		write!(w, "end ")?;
 	}
 
 	Ok(())
@@ -198,9 +198,9 @@ fn gen_data_list(m: &Module, w: Writer) -> Result<()> {
 	};
 
 	for v in data {
-		writeln!(w, "do")?;
-		writeln!(w, "local target = MEMORY_LIST[{}]", v.index())?;
-		writeln!(w, "local offset =")?;
+		write!(w, "do ")?;
+		write!(w, "local target = MEMORY_LIST[{}]", v.index())?;
+		write!(w, "local offset =")?;
 
 		gen_init_expression(v.offset().as_ref().unwrap().code(), w)?;
 
@@ -210,37 +210,36 @@ fn gen_data_list(m: &Module, w: Writer) -> Result<()> {
 			.iter()
 			.try_for_each(|v| write!(w, "\\x{:02X}", v))?;
 
-		writeln!(w, "\"")?;
+		write!(w, "\"")?;
 
-		writeln!(w, "rt.memory.init(target, offset, data)",)?;
+		write!(w, "rt.memory.init(target, offset, data)")?;
 
-		writeln!(w, "end")?;
+		write!(w, "end ")?;
 	}
 
 	Ok(())
 }
 
 fn gen_start_point(m: &Module, w: Writer) -> Result<()> {
-	writeln!(w, "local function run_init_code()")?;
+	write!(w, "local function run_init_code()")?;
 	gen_table_list(m, w)?;
 	gen_memory_list(m, w)?;
 	gen_global_list(m, w)?;
 	gen_element_list(m, w)?;
 	gen_data_list(m, w)?;
-	writeln!(w, "end")?;
+	write!(w, "end ")?;
 
-	writeln!(w, "return function(wasm)")?;
+	write!(w, "return function(wasm)")?;
 	gen_import_list(m, w)?;
-	writeln!(w, "run_init_code()")?;
+	write!(w, "run_init_code()")?;
 
 	if let Some(start) = m.parent.start_section() {
-		writeln!(w, "FUNC_LIST[{}]()", start)?;
+		write!(w, "FUNC_LIST[{}]()", start)?;
 	}
 
-	writeln!(w, "return {{")?;
+	write!(w, "return {{")?;
 	gen_export_list(m, w)?;
-
-	writeln!(w, "}} end")
+	write!(w, "}} end ")
 }
 
 fn gen_nil_array(name: &str, len: usize, w: Writer) -> Result<()> {
@@ -250,12 +249,12 @@ fn gen_nil_array(name: &str, len: usize, w: Writer) -> Result<()> {
 
 	let list = vec!["nil"; len].join(", ");
 
-	writeln!(w, "local {} = {{[0] = {}}}", name, list)
+	write!(w, "local {} = {{[0] = {}}}", name, list)
 }
 
 pub fn translate(spec: &dyn Edition, m: &Module, w: Writer) -> Result<()> {
-	writeln!(w, "local rt = require({})", spec.runtime())?;
-	writeln!(w, "{}", RUNTIME_DATA)?;
+	write!(w, "local rt = require({})", spec.runtime())?;
+	write!(w, "{}", RUNTIME_DATA)?;
 
 	gen_nil_array("FUNC_LIST", m.in_arity.len(), w)?;
 	gen_nil_array("TABLE_LIST", m.parent.table_space(), w)?;
@@ -265,7 +264,7 @@ pub fn translate(spec: &dyn Edition, m: &Module, w: Writer) -> Result<()> {
 	let offset = m.ex_arity.len();
 
 	for i in 0..m.in_arity.len() {
-		writeln!(w, "FUNC_LIST[{}] =", i + offset)?;
+		write!(w, "FUNC_LIST[{}] =", i + offset)?;
 
 		gen_function(spec, i, m, w)?;
 	}

@@ -40,11 +40,11 @@ pub fn gen_init_expression(code: &[Instruction], w: Writer) -> Result<()> {
 	let inst = code.first().unwrap();
 
 	match *inst {
-		Instruction::I32Const(v) => writeln!(w, "{}", v),
-		Instruction::I64Const(v) => writeln!(w, "{}", v),
-		Instruction::F32Const(v) => writeln!(w, "{}", f32::from_bits(v)),
-		Instruction::F64Const(v) => writeln!(w, "{}", f64::from_bits(v)),
-		Instruction::GetGlobal(i) => writeln!(w, "GLOBAL_LIST[{}].value", i),
+		Instruction::I32Const(v) => write!(w, "{} ", v),
+		Instruction::I64Const(v) => write!(w, "{} ", v),
+		Instruction::F32Const(v) => write!(w, "{} ", f32::from_bits(v)),
+		Instruction::F64Const(v) => write!(w, "{} ", f64::from_bits(v)),
+		Instruction::GetGlobal(i) => write!(w, "GLOBAL_LIST[{}].value ", i),
 		_ => unreachable!(),
 	}
 }
@@ -52,16 +52,16 @@ pub fn gen_init_expression(code: &[Instruction], w: Writer) -> Result<()> {
 fn gen_prelude(num_param: u32, num_local: u32) -> Result<Vec<u8>> {
 	let mut w = Vec::new();
 
-	writeln!(w, "function(")?;
+	write!(w, "function(")?;
 	write_ordered("param", num_param, &mut w)?;
-	writeln!(w, ")")?;
+	write!(w, ")")?;
 
 	if num_local != 0 {
 		let zero = vec!["0"; num_local as usize].join(", ");
 
-		writeln!(w, "local")?;
+		write!(w, "local ")?;
 		write_ordered("var", num_local, &mut w)?;
-		writeln!(w, "= {}", zero)?;
+		write!(w, "= {} ", zero)?;
 	}
 
 	Ok(w)
@@ -72,9 +72,9 @@ fn gen_reg_list(last: u32, num_param: u32, num_local: u32) -> Result<Vec<u8>> {
 	let num = last - num_local - num_param;
 
 	if num != 0 {
-		writeln!(w, "local")?;
+		write!(w, "local ")?;
 		write_ordered("reg", num, &mut w)?;
-		writeln!(w)?;
+		write!(w, " ")?;
 	}
 
 	Ok(w)
