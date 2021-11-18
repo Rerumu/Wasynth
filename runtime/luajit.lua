@@ -85,18 +85,6 @@ do
 	module.shl = shl
 	module.shr = shr
 
-	function shl.u32(lhs, rhs)
-		local v = bit.lshift(u32(lhs), rhs)
-
-		return tonumber(i32(v))
-	end
-
-	function shl.u64(lhs, rhs)
-		local v = bit.lshift(u64(lhs), rhs)
-
-		return i64(v)
-	end
-
 	function shr.u32(lhs, rhs)
 		local v = bit.rshift(u32(lhs), rhs)
 
@@ -111,6 +99,8 @@ do
 
 	shl.i32 = bit.lshift
 	shl.i64 = bit.lshift
+	shl.u32 = bit.lshift
+	shl.u64 = bit.lshift
 	shr.i32 = bit.rshift
 	shr.i64 = bit.rshift
 end
