@@ -42,7 +42,6 @@ pub enum Label {
 pub struct Body<'a> {
 	spec: &'a dyn Edition,
 	label_list: Vec<Label>,
-	pub table_list: Vec<BrTableData>,
 	pub reg: Register,
 }
 
@@ -56,7 +55,6 @@ impl<'a> Body<'a> {
 			spec,
 			reg,
 			label_list: vec![],
-			table_list: Vec::new(),
 		}
 	}
 
