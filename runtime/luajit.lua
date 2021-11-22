@@ -37,30 +37,35 @@ do
 	module.ctz = ctz
 	module.popcnt = popcnt
 
-	function clz.i32(x)
-		local n = 0
+	function clz.i32(num)
+		for i = 0, 31 do
+			local mask = bit.lshift(1, 31 - i)
 
-		x = u32(x)
+			if bit.band(num, mask) ~= 0 then return i end
+		end
 
-		if x <= 0x0000ffff then
-			n = n + 16
-			x = bit.lshift(x, 16)
-		end
-		if x <= 0x00ffffff then
-			n = n + 8
-			x = bit.lshift(x, 8)
-		end
-		if x <= 0x0fffffff then
-			n = n + 4
-			x = bit.lshift(x, 4)
-		end
-		if x <= 0x3fffffff then
-			n = n + 2
-			x = bit.lshift(x, 2)
-		end
-		if x <= 0x7fffffff then n = n + 1 end
+		return 32
+	end
 
-		return n
+	function ctz.i32(num)
+		for i = 0, 31 do
+			local mask = bit.lshift(1, i)
+
+			if bit.band(num, mask) ~= 0 then return i end
+		end
+
+		return 32
+	end
+
+	function popcnt.i32(num)
+		local count = 0
+
+		while num ~= 0 do
+			num = bit.band(num, num - 1)
+			count = count + 1
+		end
+
+		return count
 	end
 end
 
@@ -193,6 +198,7 @@ do
 	function load.i64(memory, addr) return ffi.cast(ptr_i64, memory.data + addr)[0] end
 	function store.i32_n8(memory, addr, value) memory.data[addr] = value end
 	function store.i32(memory, addr, value) ffi.cast(ptr_i32, memory.data + addr)[0] = value end
+	function store.i64_n32(memory, addr, value) ffi.cast(ptr_i32, memory.data + addr)[0] = value end
 	function store.i64(memory, addr, value) ffi.cast(ptr_i64, memory.data + addr)[0] = value end
 end
 
