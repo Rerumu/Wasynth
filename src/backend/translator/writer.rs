@@ -375,7 +375,7 @@ impl CallIndirect {
 	fn output(&self, d: &mut Data, w: &mut dyn Write) -> Result<()> {
 		Call::write_result_list(self.result.clone(), w)?;
 
-		write!(w, "TABLE_LIST[{}][", self.table)?;
+		write!(w, "TABLE_LIST[{}].data[", self.table)?;
 
 		self.index.output(d, w)?;
 
