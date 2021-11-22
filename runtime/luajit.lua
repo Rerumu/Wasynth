@@ -29,11 +29,17 @@ do
 end
 
 do
+	local eqz = {}
+	local eq = {}
+	local ne = {}
 	local le = {}
 	local lt = {}
 	local ge = {}
 	local gt = {}
 
+	module.eqz = eqz
+	module.eq = eq
+	module.ne = ne
 	module.le = le
 	module.lt = lt
 	module.ge = ge
@@ -47,6 +53,10 @@ do
 		end
 	end
 
+	function eqz.i32(lhs) return to_boolean(lhs == 0) end
+	function eqz.i64(lhs) return to_boolean(lhs == 0) end
+	function eq.i32(lhs, rhs) return to_boolean(lhs == rhs) end
+	function eq.i64(lhs, rhs) return to_boolean(lhs == rhs) end
 	function ge.u32(lhs, rhs) return to_boolean(u32(lhs) >= u32(rhs)) end
 	function ge.u64(lhs, rhs) return to_boolean(u64(lhs) >= u64(rhs)) end
 	function gt.u32(lhs, rhs) return to_boolean(u32(lhs) > u32(rhs)) end
@@ -55,6 +65,8 @@ do
 	function le.u64(lhs, rhs) return to_boolean(u64(lhs) <= u64(rhs)) end
 	function lt.u32(lhs, rhs) return to_boolean(u32(lhs) < u32(rhs)) end
 	function lt.u64(lhs, rhs) return to_boolean(u64(lhs) < u64(rhs)) end
+	function ne.i32(lhs, rhs) return to_boolean(lhs ~= rhs) end
+	function ne.i64(lhs, rhs) return to_boolean(lhs ~= rhs) end
 end
 
 do

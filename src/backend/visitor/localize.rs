@@ -1,24 +1,53 @@
-use std::{collections::BTreeSet, convert::TryFrom};
+use std::collections::BTreeSet;
 
-use crate::{
-	backend::helper::operation::{BinOp, Load, Named, Store, UnOp},
-	data::Module,
-};
+use crate::backend::ast::data::{AnyBinOp, AnyLoad, AnyStore, AnyUnOp, Function};
 
-pub fn visit(m: &Module, index: usize) -> BTreeSet<(&'static str, &'static str)> {
-	let mut result = BTreeSet::new();
+use super::data::Visitor;
 
-	for i in m.code[index].inst_list {
-		if let Ok(used) = Load::try_from(i) {
-			result.insert(used.as_name());
-		} else if let Ok(used) = Store::try_from(i) {
-			result.insert(used.as_name());
-		} else if let Ok(used) = UnOp::try_from(i) {
-			result.insert(used.as_name());
-		} else if let Ok(used) = BinOp::try_from(i) {
-			result.insert(used.as_name());
-		}
+struct Visit {
+	result: BTreeSet<(&'static str, &'static str)>,
+}
+
+impl Visitor for Visit {
+	fn visit_any_load(&mut self, v: &AnyLoad) {
+		let name = v.op.as_name();
+
+		self.result.insert(("load", name));
 	}
 
-	result
+	fn visit_any_store(&mut self, v: &AnyStore) {
+		let name = v.op.as_name();
+
+		self.result.insert(("store", name));
+	}
+
+	fn visit_any_unop(&mut self, v: &AnyUnOp) {
+		if v.op.as_operator().is_some() {
+			return;
+		}
+
+		let name = v.op.as_name();
+
+		self.result.insert(name);
+	}
+
+	fn visit_any_binop(&mut self, v: &AnyBinOp) {
+		if v.op.as_operator().is_some() {
+			return;
+		}
+
+		let name = v.op.as_name();
+
+		self.result.insert(name);
+	}
+}
+
+pub fn visit(func: &Function) -> BTreeSet<(&'static str, &'static str)> {
+	let mut visit = Visit {
+		result: BTreeSet::new(),
+	};
+
+	func.accept(&mut visit);
+
+	visit.result
 }

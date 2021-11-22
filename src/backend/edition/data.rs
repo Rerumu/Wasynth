@@ -1,6 +1,7 @@
-use std::{fmt::Display, io::Result};
-
-use crate::backend::helper::writer::Writer;
+use std::{
+	fmt::Display,
+	io::{Result, Write},
+};
 
 use super::{luajit::LuaJIT, luau::Luau};
 
@@ -28,15 +29,15 @@ where
 pub trait Edition {
 	fn runtime(&self) -> &'static str;
 
-	fn start_block(&self, w: Writer) -> Result<()>;
-	fn start_loop(&self, level: usize, w: Writer) -> Result<()>;
-	fn start_if(&self, cond: &str, w: Writer) -> Result<()>;
-	fn end_block(&self, level: usize, w: Writer) -> Result<()>;
-	fn end_loop(&self, w: Writer) -> Result<()>;
-	fn end_if(&self, level: usize, w: Writer) -> Result<()>;
+	fn start_block(&self, w: &mut dyn Write) -> Result<()>;
+	fn start_loop(&self, level: usize, w: &mut dyn Write) -> Result<()>;
+	fn start_if(&self, cond: &str, w: &mut dyn Write) -> Result<()>;
+	fn end_block(&self, level: usize, w: &mut dyn Write) -> Result<()>;
+	fn end_loop(&self, w: &mut dyn Write) -> Result<()>;
+	fn end_if(&self, level: usize, w: &mut dyn Write) -> Result<()>;
 
-	fn br_target(&self, level: usize, in_loop: bool, w: Writer) -> Result<()>;
-	fn br_to_level(&self, level: usize, up: usize, is_loop: bool, w: Writer) -> Result<()>;
+	fn br_target(&self, level: usize, in_loop: bool, w: &mut dyn Write) -> Result<()>;
+	fn br_to_level(&self, level: usize, up: usize, is_loop: bool, w: &mut dyn Write) -> Result<()>;
 
 	fn i64(&self, i: i64) -> Infix<i64>;
 }

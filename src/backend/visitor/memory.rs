@@ -1,45 +1,37 @@
 use std::collections::BTreeSet;
 
-use parity_wasm::elements::Instruction;
+use crate::backend::ast::data::{AnyLoad, AnyStore, Function, MemoryGrow, MemorySize};
 
-use crate::data::Module;
+use super::data::Visitor;
 
-pub fn visit(m: &Module, index: usize) -> BTreeSet<u8> {
-	let mut result = BTreeSet::new();
+struct Visit {
+	result: BTreeSet<u8>,
+}
 
-	for i in m.code[index].inst_list {
-		match i {
-			Instruction::I32Store(_, _)
-			| Instruction::I64Store(_, _)
-			| Instruction::F32Store(_, _)
-			| Instruction::F64Store(_, _)
-			| Instruction::I32Store8(_, _)
-			| Instruction::I32Store16(_, _)
-			| Instruction::I64Store8(_, _)
-			| Instruction::I64Store16(_, _)
-			| Instruction::I64Store32(_, _)
-			| Instruction::I32Load(_, _)
-			| Instruction::I64Load(_, _)
-			| Instruction::F32Load(_, _)
-			| Instruction::F64Load(_, _)
-			| Instruction::I32Load8S(_, _)
-			| Instruction::I32Load8U(_, _)
-			| Instruction::I32Load16S(_, _)
-			| Instruction::I32Load16U(_, _)
-			| Instruction::I64Load8S(_, _)
-			| Instruction::I64Load8U(_, _)
-			| Instruction::I64Load16S(_, _)
-			| Instruction::I64Load16U(_, _)
-			| Instruction::I64Load32S(_, _)
-			| Instruction::I64Load32U(_, _) => {
-				result.insert(0);
-			}
-			Instruction::CurrentMemory(index) | Instruction::GrowMemory(index) => {
-				result.insert(*index);
-			}
-			_ => {}
-		}
+impl Visitor for Visit {
+	fn visit_any_store(&mut self, _: &AnyStore) {
+		self.result.insert(0);
 	}
 
-	result
+	fn visit_any_load(&mut self, _: &AnyLoad) {
+		self.result.insert(0);
+	}
+
+	fn visit_memory_size(&mut self, m: &MemorySize) {
+		self.result.insert(m.memory);
+	}
+
+	fn visit_memory_grow(&mut self, m: &MemoryGrow) {
+		self.result.insert(m.memory);
+	}
+}
+
+pub fn visit(func: &Function) -> BTreeSet<u8> {
+	let mut visit = Visit {
+		result: BTreeSet::new(),
+	};
+
+	func.accept(&mut visit);
+
+	visit.result
 }

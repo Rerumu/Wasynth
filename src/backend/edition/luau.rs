@@ -1,6 +1,4 @@
-use std::io::Result;
-
-use crate::backend::helper::writer::Writer;
+use std::io::{Result, Write};
 
 use super::data::{Edition, Infix};
 
@@ -11,36 +9,36 @@ impl Edition for Luau {
 		"script.Runtime"
 	}
 
-	fn start_block(&self, w: Writer) -> Result<()> {
+	fn start_block(&self, w: &mut dyn Write) -> Result<()> {
 		write!(w, "while true do ")
 	}
 
-	fn start_loop(&self, _level: usize, w: Writer) -> Result<()> {
+	fn start_loop(&self, _level: usize, w: &mut dyn Write) -> Result<()> {
 		write!(w, "while true do ")
 	}
 
-	fn start_if(&self, cond: &str, w: Writer) -> Result<()> {
+	fn start_if(&self, cond: &str, w: &mut dyn Write) -> Result<()> {
 		write!(w, "while true do ")?;
 		write!(w, "if {} ~= 0 then ", cond)
 	}
 
-	fn end_block(&self, _level: usize, w: Writer) -> Result<()> {
+	fn end_block(&self, _level: usize, w: &mut dyn Write) -> Result<()> {
 		write!(w, "break ")?;
 		write!(w, "end ")
 	}
 
-	fn end_loop(&self, w: Writer) -> Result<()> {
+	fn end_loop(&self, w: &mut dyn Write) -> Result<()> {
 		write!(w, "break ")?;
 		write!(w, "end ")
 	}
 
-	fn end_if(&self, _level: usize, w: Writer) -> Result<()> {
+	fn end_if(&self, _level: usize, w: &mut dyn Write) -> Result<()> {
 		write!(w, "end ")?;
 		write!(w, "break ")?;
 		write!(w, "end ")
 	}
 
-	fn br_target(&self, level: usize, in_loop: bool, w: Writer) -> Result<()> {
+	fn br_target(&self, level: usize, in_loop: bool, w: &mut dyn Write) -> Result<()> {
 		write!(w, "if desired then ")?;
 		write!(w, "if desired == {} then ", level)?;
 		write!(w, "desired = nil ")?;
@@ -54,7 +52,7 @@ impl Edition for Luau {
 		write!(w, "end ")
 	}
 
-	fn br_to_level(&self, level: usize, up: usize, is_loop: bool, w: Writer) -> Result<()> {
+	fn br_to_level(&self, level: usize, up: usize, is_loop: bool, w: &mut dyn Write) -> Result<()> {
 		write!(w, "do ")?;
 
 		if up == 0 {

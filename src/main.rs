@@ -1,13 +1,11 @@
-use backend::{edition::data::from_string, translator::level_3};
-use data::Module;
+use backend::{edition::data::from_string, translator::data::Module};
 use parity_wasm::deserialize_file;
 
 mod backend;
-mod data;
 
 fn main() {
 	let mut args = std::env::args().skip(1);
-	let spec = args
+	let ed = args
 		.next()
 		.as_deref()
 		.and_then(from_string)
@@ -19,6 +17,6 @@ fn main() {
 		let wasm = deserialize_file(v).unwrap();
 		let module = Module::new(&wasm);
 
-		level_3::translate(spec, &module, &mut output.lock()).unwrap();
+		module.translate(ed, &mut output.lock()).unwrap();
 	}
 }

@@ -1,6 +1,4 @@
-use std::io::Result;
-
-use crate::backend::helper::writer::Writer;
+use std::io::{Result, Write};
 
 use super::data::{Edition, Infix};
 
@@ -11,38 +9,44 @@ impl Edition for LuaJIT {
 		"'luajit'"
 	}
 
-	fn start_block(&self, w: Writer) -> Result<()> {
+	fn start_block(&self, w: &mut dyn Write) -> Result<()> {
 		write!(w, "do ")
 	}
 
-	fn start_loop(&self, level: usize, w: Writer) -> Result<()> {
+	fn start_loop(&self, level: usize, w: &mut dyn Write) -> Result<()> {
 		write!(w, "do ")?;
 		write!(w, "::continue_at_{}::", level)
 	}
 
-	fn start_if(&self, cond: &str, w: Writer) -> Result<()> {
+	fn start_if(&self, cond: &str, w: &mut dyn Write) -> Result<()> {
 		write!(w, "if {} ~= 0 then ", cond)
 	}
 
-	fn end_block(&self, level: usize, w: Writer) -> Result<()> {
+	fn end_block(&self, level: usize, w: &mut dyn Write) -> Result<()> {
 		write!(w, "::continue_at_{}::", level)?;
 		write!(w, "end ")
 	}
 
-	fn end_loop(&self, w: Writer) -> Result<()> {
+	fn end_loop(&self, w: &mut dyn Write) -> Result<()> {
 		write!(w, "end ")
 	}
 
-	fn end_if(&self, level: usize, w: Writer) -> Result<()> {
+	fn end_if(&self, level: usize, w: &mut dyn Write) -> Result<()> {
 		write!(w, "::continue_at_{}::", level)?;
 		write!(w, "end ")
 	}
 
-	fn br_target(&self, _level: usize, _in_loop: bool, _w: Writer) -> Result<()> {
+	fn br_target(&self, _level: usize, _in_loop: bool, _w: &mut dyn Write) -> Result<()> {
 		Ok(())
 	}
 
-	fn br_to_level(&self, level: usize, up: usize, _is_loop: bool, w: Writer) -> Result<()> {
+	fn br_to_level(
+		&self,
+		level: usize,
+		up: usize,
+		_is_loop: bool,
+		w: &mut dyn Write,
+	) -> Result<()> {
 		write!(w, "goto continue_at_{} ", level - up)
 	}
 

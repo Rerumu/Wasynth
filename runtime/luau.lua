@@ -15,11 +15,17 @@ do
 end
 
 do
+	local eqz = {}
+	local eq = {}
+	local ne = {}
 	local le = {}
 	local lt = {}
 	local ge = {}
 	local gt = {}
 
+	module.eqz = eqz
+	module.eq = eq
+	module.ne = ne
 	module.le = le
 	module.lt = lt
 	module.ge = ge
@@ -37,6 +43,10 @@ do
 		return x
 	end
 
+	function eqz.i32(lhs) return lhs == 0 and 1 or 0 end
+	function eqz.i64(lhs) return lhs == 0 and 1 or 0 end
+	function eq.i32(lhs, rhs) return lhs == rhs and 1 or 0 end
+	function eq.i64(lhs, rhs) return lhs == rhs and 1 or 0 end
 	function ge.u32(lhs, rhs) return unsign_i32(lhs) >= unsign_i32(rhs) and 1 or 0 end
 	function ge.u64(lhs, rhs) return unsign_i64(lhs) >= unsign_i64(rhs) and 1 or 0 end
 	function gt.u32(lhs, rhs) return unsign_i32(lhs) > unsign_i32(rhs) and 1 or 0 end
@@ -45,6 +55,8 @@ do
 	function le.u64(lhs, rhs) return unsign_i64(lhs) <= unsign_i64(rhs) and 1 or 0 end
 	function lt.u32(lhs, rhs) return unsign_i32(lhs) < unsign_i32(rhs) and 1 or 0 end
 	function lt.u64(lhs, rhs) return unsign_i64(lhs) < unsign_i64(rhs) and 1 or 0 end
+	function ne.i32(lhs, rhs) return lhs ~= rhs and 1 or 0 end
+	function ne.i64(lhs, rhs) return lhs ~= rhs and 1 or 0 end
 end
 
 do
