@@ -1,4 +1,4 @@
-use parity_wasm::elements::{Instruction, Local, Module};
+use parity_wasm::elements::{BlockType, Instruction, Local, Module};
 
 use crate::backend::translator::arity::{Arity, List as ArityList};
 
@@ -27,12 +27,12 @@ pub struct Transformer<'a> {
 	last_stack: usize,
 }
 
-fn is_now_else(inst: &[Instruction]) -> bool {
-	inst.get(0) == Some(&Instruction::Else)
-}
-
 fn local_sum(list: &[Local]) -> u32 {
 	list.iter().map(Local::count).sum()
+}
+
+fn is_else_stat(list: &[Instruction]) -> bool {
+	list.get(0) == Some(&Instruction::Else)
 }
 
 impl<'a> Transformer<'a> {
@@ -61,12 +61,20 @@ impl<'a> Transformer<'a> {
 		}
 	}
 
-	fn gen_push_recall(&mut self, num: u32) {
+	fn push_recall(&mut self, num: u32) {
 		let len = self.living.len();
 
 		(len..len + num as usize)
 			.map(Expression::Recall)
 			.for_each(|v| self.living.push(v));
+	}
+
+	fn push_block_result(&mut self, typ: BlockType) {
+		if matches!(typ, BlockType::NoResult) {
+			return;
+		}
+
+		self.push_recall(1);
 	}
 
 	// If any expressions are still pending at the start of
@@ -99,15 +107,7 @@ impl<'a> Transformer<'a> {
 	}
 
 	fn load_pending(&mut self) {
-		let mut old = self.sleeping.pop().unwrap();
-
-		if self.living.len() > old.len() {
-			let rem = self.living.drain(old.len()..);
-
-			old.extend(rem);
-		}
-
-		self.living = old;
+		self.living = self.sleeping.pop().unwrap();
 	}
 
 	fn gen_return(&mut self, stat: &mut Vec<Statement>) {
@@ -128,7 +128,7 @@ impl<'a> Transformer<'a> {
 		let len = u32::try_from(self.living.len()).unwrap();
 		let result = len..len + arity.num_result;
 
-		self.gen_push_recall(arity.num_result);
+		self.push_recall(arity.num_result);
 		self.gen_leak_pending(stat);
 		stat.push(Statement::Call(Call {
 			func,
@@ -149,7 +149,7 @@ impl<'a> Transformer<'a> {
 		let len = u32::try_from(self.living.len()).unwrap();
 		let result = len..len + arity.num_result;
 
-		self.gen_push_recall(arity.num_result);
+		self.push_recall(arity.num_result);
 		self.gen_leak_pending(stat);
 		stat.push(Statement::CallIndirect(CallIndirect {
 			table,
@@ -224,27 +224,30 @@ impl<'a> Transformer<'a> {
 					self.gen_leak_pending(&mut stat);
 					stat.push(Statement::Unreachable);
 				}
-				Inst::Block(_) => {
+				Inst::Block(t) => {
 					self.gen_leak_pending(&mut stat);
 
 					let data = self.new_forward(list);
 
+					self.push_block_result(*t);
 					stat.push(Statement::Forward(data));
 				}
-				Inst::Loop(_) => {
+				Inst::Loop(t) => {
 					self.gen_leak_pending(&mut stat);
 
 					let data = self.new_backward(list);
 
+					self.push_block_result(*t);
 					stat.push(Statement::Backward(data));
 				}
-				Inst::If(_) => {
+				Inst::If(t) => {
 					let cond = self.living.pop().unwrap();
 
 					self.gen_leak_pending(&mut stat);
 
 					let data = self.new_if(cond, list);
 
+					self.push_block_result(*t);
 					stat.push(Statement::If(data));
 				}
 				Inst::Else => {
@@ -263,7 +266,6 @@ impl<'a> Transformer<'a> {
 				}
 				Inst::Br(i) => {
 					self.gen_leak_pending(&mut stat);
-
 					stat.push(Statement::Br(Br { target: *i }));
 				}
 				Inst::BrIf(i) => {
@@ -383,7 +385,7 @@ impl<'a> Transformer<'a> {
 
 	fn new_if(&mut self, cond: Expression, list: &mut &[Instruction]) -> If {
 		let body = self.new_stored_body(list);
-		let other = is_now_else(list).then(|| {
+		let other = is_else_stat(list).then(|| {
 			*list = &list[1..];
 			self.new_stored_body(list)
 		});
