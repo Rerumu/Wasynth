@@ -29,6 +29,42 @@ do
 end
 
 do
+	local clz = {}
+	local ctz = {}
+	local popcnt = {}
+
+	module.clz = clz
+	module.ctz = ctz
+	module.popcnt = popcnt
+
+	function clz.i32(x)
+		local n = 0
+
+		x = u32(x)
+
+		if x <= 0x0000ffff then
+			n = n + 16
+			x = bit.lshift(x, 16)
+		end
+		if x <= 0x00ffffff then
+			n = n + 8
+			x = bit.lshift(x, 8)
+		end
+		if x <= 0x0fffffff then
+			n = n + 4
+			x = bit.lshift(x, 4)
+		end
+		if x <= 0x3fffffff then
+			n = n + 2
+			x = bit.lshift(x, 2)
+		end
+		if x <= 0x7fffffff then n = n + 1 end
+
+		return n
+	end
+end
+
+do
 	local eqz = {}
 	local eq = {}
 	local ne = {}
@@ -53,16 +89,24 @@ do
 		end
 	end
 
-	function eqz.i32(lhs) return to_boolean(lhs == 0) end
-	function eqz.i64(lhs) return to_boolean(lhs == 0) end
 	function eq.i32(lhs, rhs) return to_boolean(lhs == rhs) end
 	function eq.i64(lhs, rhs) return to_boolean(lhs == rhs) end
+	function eqz.i32(lhs) return to_boolean(lhs == 0) end
+	function eqz.i64(lhs) return to_boolean(lhs == 0) end
+	function ge.i32(lhs, rhs) return to_boolean(lhs >= rhs) end
+	function ge.i64(lhs, rhs) return to_boolean(lhs >= rhs) end
 	function ge.u32(lhs, rhs) return to_boolean(u32(lhs) >= u32(rhs)) end
 	function ge.u64(lhs, rhs) return to_boolean(u64(lhs) >= u64(rhs)) end
+	function gt.i32(lhs, rhs) return to_boolean(lhs > rhs) end
+	function gt.i64(lhs, rhs) return to_boolean(lhs > rhs) end
 	function gt.u32(lhs, rhs) return to_boolean(u32(lhs) > u32(rhs)) end
 	function gt.u64(lhs, rhs) return to_boolean(u64(lhs) > u64(rhs)) end
+	function le.i32(lhs, rhs) return to_boolean(lhs <= rhs) end
+	function le.i64(lhs, rhs) return to_boolean(lhs <= rhs) end
 	function le.u32(lhs, rhs) return to_boolean(u32(lhs) <= u32(rhs)) end
 	function le.u64(lhs, rhs) return to_boolean(u64(lhs) <= u64(rhs)) end
+	function lt.i32(lhs, rhs) return to_boolean(lhs < rhs) end
+	function lt.i64(lhs, rhs) return to_boolean(lhs < rhs) end
 	function lt.u32(lhs, rhs) return to_boolean(u32(lhs) < u32(rhs)) end
 	function lt.u64(lhs, rhs) return to_boolean(u64(lhs) < u64(rhs)) end
 	function ne.i32(lhs, rhs) return to_boolean(lhs ~= rhs) end
@@ -93,9 +137,13 @@ end
 do
 	local shl = {}
 	local shr = {}
+	local rotl = {}
+	local rotr = {}
 
 	module.shl = shl
 	module.shr = shr
+	module.rotl = rotl
+	module.rotr = rotr
 
 	function shr.u32(lhs, rhs)
 		local v = bit.rshift(u32(lhs), rhs)
@@ -109,6 +157,10 @@ do
 		return i64(v)
 	end
 
+	rotl.i32 = bit.rol
+	rotl.i64 = bit.rol
+	rotr.i32 = bit.ror
+	rotr.i64 = bit.ror
 	shl.i32 = bit.lshift
 	shl.i64 = bit.lshift
 	shl.u32 = bit.lshift
