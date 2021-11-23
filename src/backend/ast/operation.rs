@@ -137,7 +137,6 @@ pub enum UnOp {
 	Trunc_FN,
 	Nearest_FN,
 	Sqrt_FN,
-	Copysign_FN,
 	Wrap_I32_I64,
 	Trunc_I32_F32,
 	Trunc_U32_F32,
@@ -192,7 +191,6 @@ impl UnOp {
 			Self::Trunc_FN => ("trunc", "num"),
 			Self::Nearest_FN => ("nearest", "num"),
 			Self::Sqrt_FN => ("math", "sqrt"),
-			Self::Copysign_FN => ("math", "sign"),
 			Self::Wrap_I32_I64 => ("wrap", "i64_i32"),
 			Self::Trunc_I32_F32 => ("trunc", "f32_i32"),
 			Self::Trunc_U32_F32 => ("trunc", "f32_u32"),
@@ -242,7 +240,6 @@ impl TryFrom<&Instruction> for UnOp {
 			Instruction::F32Trunc | Instruction::F64Trunc => Self::Trunc_FN,
 			Instruction::F32Nearest | Instruction::F64Nearest => Self::Nearest_FN,
 			Instruction::F32Sqrt | Instruction::F64Sqrt => Self::Sqrt_FN,
-			Instruction::F32Copysign | Instruction::F64Copysign => Self::Copysign_FN,
 			Instruction::I32WrapI64 => Self::Wrap_I32_I64,
 			Instruction::I32TruncSF32 => Self::Trunc_I32_F32,
 			Instruction::I32TruncUF32 => Self::Trunc_U32_F32,
@@ -340,6 +337,7 @@ pub enum BinOp {
 	Div_FN,
 	Min_FN,
 	Max_FN,
+	Copysign_FN,
 }
 
 impl BinOp {
@@ -420,6 +418,7 @@ impl BinOp {
 			Self::Div_FN => ("div", "num"),
 			Self::Min_FN => ("math", "min"),
 			Self::Max_FN => ("math", "max"),
+			Self::Copysign_FN => ("copysign", "num"),
 		}
 	}
 }
@@ -491,6 +490,7 @@ impl TryFrom<&Instruction> for BinOp {
 			Instruction::F32Div | Instruction::F64Div => Self::Div_FN,
 			Instruction::F32Min | Instruction::F64Min => Self::Min_FN,
 			Instruction::F32Max | Instruction::F64Max => Self::Max_FN,
+			Instruction::F32Copysign | Instruction::F64Copysign => Self::Copysign_FN,
 			_ => {
 				return Err(());
 			}
