@@ -31,8 +31,8 @@ fn local_sum(list: &[Local]) -> u32 {
 	list.iter().map(Local::count).sum()
 }
 
-fn is_else_stat(list: &[Instruction]) -> bool {
-	list.get(0) == Some(&Instruction::Else)
+fn is_else_stat(inst: &Instruction) -> bool {
+	inst == &Instruction::Else
 }
 
 impl<'a> Transformer<'a> {
@@ -51,7 +51,7 @@ impl<'a> Transformer<'a> {
 		debug_assert!(self.name != usize::MAX, "Not an indexed value");
 
 		let func = &self.wasm.code_section().unwrap().bodies()[self.name];
-		let body = self.new_stored_body(&mut func.code().elements());
+		let body = self.new_forward(&mut func.code().elements());
 
 		Function {
 			num_param: self.arity.in_arity[self.name].num_param,
@@ -205,7 +205,9 @@ impl<'a> Transformer<'a> {
 
 		let mut stat = Vec::new();
 
-		while let Some(inst) = list.get(0) {
+		loop {
+			let inst = &list[0];
+
 			*list = &list[1..];
 
 			if let Ok(op) = UnOp::try_from(inst) {
@@ -384,13 +386,17 @@ impl<'a> Transformer<'a> {
 	}
 
 	fn new_if(&mut self, cond: Expression, list: &mut &[Instruction]) -> If {
-		let body = self.new_stored_body(list);
-		let other = is_else_stat(list).then(|| {
-			*list = &list[1..];
-			self.new_stored_body(list)
-		});
+		let copied = list.clone();
+		let truthy = self.new_stored_body(list);
 
-		If { cond, body, other }
+		let last = copied.len() - list.len() - 1;
+		let falsey = is_else_stat(&copied[last]).then(|| self.new_stored_body(list));
+
+		If {
+			cond,
+			truthy,
+			falsey,
+		}
 	}
 
 	fn new_backward(&mut self, list: &mut &[Instruction]) -> Backward {

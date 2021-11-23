@@ -271,7 +271,11 @@ impl If {
 
 		d.edition.start_if(&var, w)?;
 
-		self.body.iter().try_for_each(|s| s.output(d, w))?;
+		self.truthy.iter().try_for_each(|s| s.output(d, w))?;
+
+		if let Some(v) = &self.falsey {
+			v.iter().try_for_each(|s| s.output(d, w))?;
+		}
 
 		d.edition.end_if(rem, w)?;
 		d.label_list.pop().unwrap();
@@ -478,7 +482,7 @@ impl Function {
 		self.write_visitor_list(w)?;
 		self.write_variable_list(w)?;
 
-		self.body.iter().try_for_each(|s| s.output(d, w))?;
+		self.body.output(d, w)?;
 
 		write!(w, "end ")
 	}

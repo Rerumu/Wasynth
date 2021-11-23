@@ -212,8 +212,8 @@ impl Backward {
 
 pub struct If {
 	pub cond: Expression,
-	pub body: Vec<Statement>,
-	pub other: Option<Vec<Statement>>,
+	pub truthy: Vec<Statement>,
+	pub falsey: Option<Vec<Statement>>,
 }
 
 impl If {
@@ -222,11 +222,11 @@ impl If {
 
 		self.cond.accept(visitor);
 
-		for v in &self.body {
+		for v in &self.truthy {
 			v.accept(visitor);
 		}
 
-		if let Some(v) = &self.other {
+		if let Some(v) = &self.falsey {
 			for v in v {
 				v.accept(visitor);
 			}
@@ -403,13 +403,11 @@ pub struct Function {
 	pub num_param: u32,
 	pub num_local: u32,
 	pub num_stack: u32,
-	pub body: Vec<Statement>,
+	pub body: Forward,
 }
 
 impl Function {
 	pub fn accept<V: Visitor>(&self, visitor: &mut V) {
-		for v in &self.body {
-			v.accept(visitor);
-		}
+		self.body.accept(visitor);
 	}
 }
