@@ -212,13 +212,17 @@ do
 
 	function load.i32_i8(memory, addr) return ffi.cast(ptr_i8, memory.data)[addr] end
 	function load.i32_u8(memory, addr) return memory.data[addr] end
+	function load.i32_i16(memory, addr) return ffi.cast(ptr_i16, memory.data + addr)[0] end
 	function load.i32_u16(memory, addr) return ffi.cast(ptr_u16, memory.data + addr)[0] end
 	function load.i32(memory, addr) return ffi.cast(ptr_i32, memory.data + addr)[0] end
 
-	function load.i64_u8(memory, addr) return memory.data[addr] end
-	function load.i64_u16(memory, addr) return ffi.cast(ptr_u16, memory.data + addr)[0] end
-	function load.i64_u32(memory, addr) return ffi.cast(ptr_u32, memory.data + addr)[0] end
-	function load.i64(memory, addr) return ffi.cast(ptr_i64, memory.data + addr)[0] end
+	function load.i64_i8(memory, addr) return i64(ffi.cast(ptr_i8, memory.data)[addr]) end
+	function load.i64_u8(memory, addr) return i64(memory.data[addr]) end
+	function load.i64_i16(memory, addr) return i64(ffi.cast(ptr_i16, memory.data + addr)[0]) end
+	function load.i64_u16(memory, addr) return i64(ffi.cast(ptr_u16, memory.data + addr)[0]) end
+	function load.i64_i32(memory, addr) return i64(ffi.cast(ptr_i32, memory.data + addr)[0]) end
+	function load.i64_u32(memory, addr) return i64(ffi.cast(ptr_u32, memory.data + addr)[0]) end
+	function load.i64(memory, addr) return i64(ffi.cast(ptr_i64, memory.data + addr)[0]) end
 
 	function store.i32_n8(memory, addr, value) memory.data[addr] = value end
 	function store.i32_n16(memory, addr, value) ffi.cast(ptr_i16, memory.data + addr)[0] = value end
