@@ -71,24 +71,28 @@ do
 	function eq.i64(lhs, rhs) return lhs == rhs and 1 or 0 end
 	function eqz.i32(lhs) return lhs == 0 and 1 or 0 end
 	function eqz.i64(lhs) return lhs == 0 and 1 or 0 end
+	function ne.i32(lhs, rhs) return lhs ~= rhs and 1 or 0 end
+	function ne.i64(lhs, rhs) return lhs ~= rhs and 1 or 0 end
+
 	function ge.i32(lhs, rhs) return lhs >= rhs and 1 or 0 end
 	function ge.i64(lhs, rhs) return lhs >= rhs and 1 or 0 end
 	function ge.u32(lhs, rhs) return unsign_i32(lhs) >= unsign_i32(rhs) and 1 or 0 end
 	function ge.u64(lhs, rhs) return unsign_i64(lhs) >= unsign_i64(rhs) and 1 or 0 end
+
 	function gt.i32(lhs, rhs) return lhs > rhs and 1 or 0 end
 	function gt.i64(lhs, rhs) return lhs > rhs and 1 or 0 end
 	function gt.u32(lhs, rhs) return unsign_i32(lhs) > unsign_i32(rhs) and 1 or 0 end
 	function gt.u64(lhs, rhs) return unsign_i64(lhs) > unsign_i64(rhs) and 1 or 0 end
+
 	function le.i32(lhs, rhs) return lhs <= rhs and 1 or 0 end
 	function le.i64(lhs, rhs) return lhs <= rhs and 1 or 0 end
 	function le.u32(lhs, rhs) return unsign_i32(lhs) <= unsign_i32(rhs) and 1 or 0 end
 	function le.u64(lhs, rhs) return unsign_i64(lhs) <= unsign_i64(rhs) and 1 or 0 end
+
 	function lt.i32(lhs, rhs) return lhs < rhs and 1 or 0 end
 	function lt.i64(lhs, rhs) return lhs < rhs and 1 or 0 end
 	function lt.u32(lhs, rhs) return unsign_i32(lhs) < unsign_i32(rhs) and 1 or 0 end
 	function lt.u64(lhs, rhs) return unsign_i64(lhs) < unsign_i64(rhs) and 1 or 0 end
-	function ne.i32(lhs, rhs) return lhs ~= rhs and 1 or 0 end
-	function ne.i64(lhs, rhs) return lhs ~= rhs and 1 or 0 end
 end
 
 do
@@ -125,6 +129,7 @@ do
 
 	rotl.i32 = bit32.lrotate
 	rotr.i32 = bit32.rrotate
+
 	shl.i32 = bit32.lshift
 	shl.i64 = bit32.lshift
 	shl.u32 = bit32.lshift
