@@ -8,8 +8,12 @@ local module = {}
 local vla_u8 = ffi.typeof('uint8_t[?]')
 
 local ptr_i8 = ffi.typeof('int8_t *')
-local ptr_i64 = ffi.typeof('int64_t *')
+local ptr_i16 = ffi.typeof('int16_t *')
 local ptr_i32 = ffi.typeof('int32_t *')
+local ptr_i64 = ffi.typeof('int64_t *')
+
+local ptr_u16 = ffi.typeof('uint16_t *')
+local ptr_u32 = ffi.typeof('uint32_t *')
 
 local u32 = ffi.typeof('uint32_t')
 local u64 = ffi.typeof('uint64_t')
@@ -23,6 +27,15 @@ do
 
 	function div.i32(lhs, rhs)
 		if rhs == 0 then error('division by zero') end
+
+		return math.floor(lhs / rhs)
+	end
+
+	function div.u32(lhs, rhs)
+		if rhs == 0 then error('division by zero') end
+
+		lhs = tonumber(u32(lhs))
+		rhs = tonumber(u32(rhs))
 
 		return math.floor(lhs / rhs)
 	end
@@ -98,24 +111,28 @@ do
 	function eq.i64(lhs, rhs) return to_boolean(lhs == rhs) end
 	function eqz.i32(lhs) return to_boolean(lhs == 0) end
 	function eqz.i64(lhs) return to_boolean(lhs == 0) end
+	function ne.i32(lhs, rhs) return to_boolean(lhs ~= rhs) end
+	function ne.i64(lhs, rhs) return to_boolean(lhs ~= rhs) end
+
 	function ge.i32(lhs, rhs) return to_boolean(lhs >= rhs) end
 	function ge.i64(lhs, rhs) return to_boolean(lhs >= rhs) end
 	function ge.u32(lhs, rhs) return to_boolean(u32(lhs) >= u32(rhs)) end
 	function ge.u64(lhs, rhs) return to_boolean(u64(lhs) >= u64(rhs)) end
+
 	function gt.i32(lhs, rhs) return to_boolean(lhs > rhs) end
 	function gt.i64(lhs, rhs) return to_boolean(lhs > rhs) end
 	function gt.u32(lhs, rhs) return to_boolean(u32(lhs) > u32(rhs)) end
 	function gt.u64(lhs, rhs) return to_boolean(u64(lhs) > u64(rhs)) end
+
 	function le.i32(lhs, rhs) return to_boolean(lhs <= rhs) end
 	function le.i64(lhs, rhs) return to_boolean(lhs <= rhs) end
 	function le.u32(lhs, rhs) return to_boolean(u32(lhs) <= u32(rhs)) end
 	function le.u64(lhs, rhs) return to_boolean(u64(lhs) <= u64(rhs)) end
+
 	function lt.i32(lhs, rhs) return to_boolean(lhs < rhs) end
 	function lt.i64(lhs, rhs) return to_boolean(lhs < rhs) end
 	function lt.u32(lhs, rhs) return to_boolean(u32(lhs) < u32(rhs)) end
 	function lt.u64(lhs, rhs) return to_boolean(u64(lhs) < u64(rhs)) end
-	function ne.i32(lhs, rhs) return to_boolean(lhs ~= rhs) end
-	function ne.i64(lhs, rhs) return to_boolean(lhs ~= rhs) end
 end
 
 do
@@ -166,6 +183,7 @@ do
 	rotl.i64 = bit.rol
 	rotr.i32 = bit.ror
 	rotr.i64 = bit.ror
+
 	shl.i32 = bit.lshift
 	shl.i64 = bit.lshift
 	shl.u32 = bit.lshift
@@ -182,7 +200,7 @@ do
 	module.wrap = wrap
 
 	extend.i32_u64 = i64
-	wrap.i64_i32 = i32
+	wrap.i64_i32 = function(num) return tonumber(i32(num)) end
 end
 
 do
@@ -194,10 +212,20 @@ do
 
 	function load.i32_i8(memory, addr) return ffi.cast(ptr_i8, memory.data)[addr] end
 	function load.i32_u8(memory, addr) return memory.data[addr] end
+	function load.i32_u16(memory, addr) return ffi.cast(ptr_u16, memory.data + addr)[0] end
 	function load.i32(memory, addr) return ffi.cast(ptr_i32, memory.data + addr)[0] end
+
+	function load.i64_u8(memory, addr) return memory.data[addr] end
+	function load.i64_u16(memory, addr) return ffi.cast(ptr_u16, memory.data + addr)[0] end
+	function load.i64_u32(memory, addr) return ffi.cast(ptr_u32, memory.data + addr)[0] end
 	function load.i64(memory, addr) return ffi.cast(ptr_i64, memory.data + addr)[0] end
+
 	function store.i32_n8(memory, addr, value) memory.data[addr] = value end
+	function store.i32_n16(memory, addr, value) ffi.cast(ptr_i16, memory.data + addr)[0] = value end
 	function store.i32(memory, addr, value) ffi.cast(ptr_i32, memory.data + addr)[0] = value end
+
+	function store.i64_n8(memory, addr, value) memory.data[addr] = value end
+	function store.i64_n16(memory, addr, value) ffi.cast(ptr_i16, memory.data + addr)[0] = value end
 	function store.i64_n32(memory, addr, value) ffi.cast(ptr_i32, memory.data + addr)[0] = value end
 	function store.i64(memory, addr, value) ffi.cast(ptr_i64, memory.data + addr)[0] = value end
 end
