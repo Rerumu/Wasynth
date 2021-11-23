@@ -15,6 +15,30 @@ do
 end
 
 do
+	local clz = {}
+	local ctz = {}
+	local popcnt = {}
+
+	module.clz = clz
+	module.ctz = ctz
+	module.popcnt = popcnt
+
+	clz.i32 = bit32.countlz
+	ctz.i32 = bit32.countrz
+
+	function popcnt.i32(num)
+		local count = 0
+
+		while num ~= 0 do
+			num = bit.band(num, num - 1)
+			count = count + 1
+		end
+
+		return count
+	end
+end
+
+do
 	local eqz = {}
 	local eq = {}
 	local ne = {}
@@ -43,16 +67,24 @@ do
 		return x
 	end
 
-	function eqz.i32(lhs) return lhs == 0 and 1 or 0 end
-	function eqz.i64(lhs) return lhs == 0 and 1 or 0 end
 	function eq.i32(lhs, rhs) return lhs == rhs and 1 or 0 end
 	function eq.i64(lhs, rhs) return lhs == rhs and 1 or 0 end
+	function eqz.i32(lhs) return lhs == 0 and 1 or 0 end
+	function eqz.i64(lhs) return lhs == 0 and 1 or 0 end
+	function ge.i32(lhs, rhs) return lhs >= rhs and 1 or 0 end
+	function ge.i64(lhs, rhs) return lhs >= rhs and 1 or 0 end
 	function ge.u32(lhs, rhs) return unsign_i32(lhs) >= unsign_i32(rhs) and 1 or 0 end
 	function ge.u64(lhs, rhs) return unsign_i64(lhs) >= unsign_i64(rhs) and 1 or 0 end
+	function gt.i32(lhs, rhs) return lhs > rhs and 1 or 0 end
+	function gt.i64(lhs, rhs) return lhs > rhs and 1 or 0 end
 	function gt.u32(lhs, rhs) return unsign_i32(lhs) > unsign_i32(rhs) and 1 or 0 end
 	function gt.u64(lhs, rhs) return unsign_i64(lhs) > unsign_i64(rhs) and 1 or 0 end
+	function le.i32(lhs, rhs) return lhs <= rhs and 1 or 0 end
+	function le.i64(lhs, rhs) return lhs <= rhs and 1 or 0 end
 	function le.u32(lhs, rhs) return unsign_i32(lhs) <= unsign_i32(rhs) and 1 or 0 end
 	function le.u64(lhs, rhs) return unsign_i64(lhs) <= unsign_i64(rhs) and 1 or 0 end
+	function lt.i32(lhs, rhs) return lhs < rhs and 1 or 0 end
+	function lt.i64(lhs, rhs) return lhs < rhs and 1 or 0 end
 	function lt.u32(lhs, rhs) return unsign_i32(lhs) < unsign_i32(rhs) and 1 or 0 end
 	function lt.u64(lhs, rhs) return unsign_i64(lhs) < unsign_i64(rhs) and 1 or 0 end
 	function ne.i32(lhs, rhs) return lhs ~= rhs and 1 or 0 end
@@ -83,10 +115,16 @@ end
 do
 	local shl = {}
 	local shr = {}
+	local rotl = {}
+	local rotr = {}
 
 	module.shl = shl
 	module.shr = shr
+	module.rotl = rotl
+	module.rotr = rotr
 
+	rotl.i32 = bit32.lrotate
+	rotr.i32 = bit32.rrotate
 	shl.i32 = bit32.lshift
 	shl.i64 = bit32.lshift
 	shl.u32 = bit32.lshift
@@ -128,7 +166,7 @@ do
 
 	local function load_byte(memory, addr)
 		local offset = addr % 4
-		local value = memory.data[(addr - offset) / 4]
+		local value = memory.data[(addr - offset) / 4] or 0
 
 		return bit32.band(bit32.rshift(value, offset * 8), 0xFF)
 	end
