@@ -30,7 +30,7 @@ fn write_br_gadget(rem: usize, d: &mut Data, w: &mut dyn Write) -> Result<()> {
 	}
 }
 
-pub fn list_to_range(list: &[u32]) -> Vec<(Range<usize>, u32)> {
+pub fn condense_jump_table(list: &[u32]) -> Vec<(usize, usize, u32)> {
 	let mut result = Vec::new();
 	let mut index = 0;
 
@@ -46,7 +46,7 @@ pub fn list_to_range(list: &[u32]) -> Vec<(Range<usize>, u32)> {
 			}
 		}
 
-		result.push((start..index, list[start]));
+		result.push((start, index - 1, list[start]));
 	}
 
 	result
@@ -338,14 +338,14 @@ impl BrTable {
 		self.cond.output(d, w)?;
 		write!(w, " ")?;
 
-		for (r, t) in list_to_range(&self.data.table) {
-			if r.len() == 1 {
-				write!(w, "if temp == {} then ", r.start)?;
+		for (start, end, dest) in condense_jump_table(&self.data.table) {
+			if start == end {
+				write!(w, "if temp == {} then ", start)?;
 			} else {
-				write!(w, "if temp >= {} and temp <= {} then ", r.start, r.end)?;
+				write!(w, "if temp >= {} and temp <= {} then ", start, end)?;
 			}
 
-			Br::write_at(t, d, w)?;
+			Br::write_at(dest, d, w)?;
 			write!(w, "else")?;
 		}
 
