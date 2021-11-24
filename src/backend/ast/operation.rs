@@ -119,6 +119,8 @@ impl TryFrom<&Instruction> for Store {
 	}
 }
 
+// Order of mnemonics is:
+// operation_result_parameter
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
 pub enum UnOp {
@@ -191,31 +193,31 @@ impl UnOp {
 			Self::Trunc_FN => ("trunc", "num"),
 			Self::Nearest_FN => ("nearest", "num"),
 			Self::Sqrt_FN => ("math", "sqrt"),
-			Self::Wrap_I32_I64 => ("wrap", "i64_i32"),
-			Self::Trunc_I32_F32 => ("trunc", "f32_i32"),
-			Self::Trunc_U32_F32 => ("trunc", "f32_u32"),
-			Self::Trunc_I32_F64 => ("trunc", "f64_i32"),
-			Self::Trunc_U32_F64 => ("trunc", "f64_u32"),
-			Self::Extend_I64_I32 => ("extend", "i32_i64"),
-			Self::Extend_U64_I32 => ("extend", "i32_u64"),
-			Self::Trunc_I64_F32 => ("trunc", "f32_i64"),
-			Self::Trunc_U64_F32 => ("trunc", "f32_u64"),
-			Self::Trunc_I64_F64 => ("trunc", "f64_i64"),
-			Self::Trunc_U64_F64 => ("trunc", "f64_u64"),
-			Self::Convert_F32_I32 => ("convert", "i32_f32"),
-			Self::Convert_F32_U32 => ("convert", "u32_f32"),
-			Self::Convert_F32_I64 => ("convert", "i64_f32"),
-			Self::Convert_F32_U64 => ("convert", "u64_f32"),
-			Self::Demote_F32_F64 => ("demote", "f64_f32"),
+			Self::Wrap_I32_I64 => ("wrap", "i32_i64"),
+			Self::Trunc_I32_F32 => ("trunc", "i32_f32"),
+			Self::Trunc_U32_F32 => ("trunc", "u32_f32"),
+			Self::Trunc_I32_F64 => ("trunc", "i32_f64"),
+			Self::Trunc_U32_F64 => ("trunc", "u32_f64"),
+			Self::Extend_I64_I32 => ("extend", "i64_i32"),
+			Self::Extend_U64_I32 => ("extend", "u64_i32"),
+			Self::Trunc_I64_F32 => ("trunc", "i64_f32"),
+			Self::Trunc_U64_F32 => ("trunc", "u64_f32"),
+			Self::Trunc_I64_F64 => ("trunc", "i64_f64"),
+			Self::Trunc_U64_F64 => ("trunc", "u64_f64"),
+			Self::Convert_F32_I32 => ("convert", "f32_i32"),
+			Self::Convert_F32_U32 => ("convert", "f32_u32"),
+			Self::Convert_F32_I64 => ("convert", "f32_i64"),
+			Self::Convert_F32_U64 => ("convert", "f32_u64"),
+			Self::Demote_F32_F64 => ("demote", "f32_f64"),
 			Self::Convert_F64_I32 => ("convert", "f64_i32"),
 			Self::Convert_F64_U32 => ("convert", "f64_u32"),
 			Self::Convert_F64_I64 => ("convert", "f64_i64"),
 			Self::Convert_F64_U64 => ("convert", "f64_u64"),
-			Self::Promote_F64_F32 => ("promote", "f32_f64"),
-			Self::Reinterpret_I32_F32 => ("reinterpret", "f32_i32"),
-			Self::Reinterpret_I64_F64 => ("reinterpret", "f64_i64"),
-			Self::Reinterpret_F32_I32 => ("reinterpret", "i32_f32"),
-			Self::Reinterpret_F64_I64 => ("reinterpret", "i64_f64"),
+			Self::Promote_F64_F32 => ("promote", "f64_f32"),
+			Self::Reinterpret_I32_F32 => ("reinterpret", "i32_f32"),
+			Self::Reinterpret_I64_F64 => ("reinterpret", "i64_f64"),
+			Self::Reinterpret_F32_I32 => ("reinterpret", "f32_i32"),
+			Self::Reinterpret_F64_I64 => ("reinterpret", "f64_i64"),
 		}
 	}
 }

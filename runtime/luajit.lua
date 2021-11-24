@@ -223,9 +223,9 @@ do
 	module.wrap = wrap
 	module.reinterpret = reinterpret
 
-	extend.i32_u64 = i64
+	function extend.u64_i32(num) return i64(u64(num)) end
 
-	function wrap.i64_i32(num) return tonumber(i32(num)) end
+	function wrap.i32_i64(num) return tonumber(i32(num)) end
 
 	function reinterpret.i32_f32(num)
 		RE_INSTANCE.f32 = num
