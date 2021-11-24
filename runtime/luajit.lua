@@ -7,17 +7,6 @@ local module = {}
 
 local vla_u8 = ffi.typeof('uint8_t[?]')
 
-local ptr_i8 = ffi.typeof('int8_t *')
-local ptr_i16 = ffi.typeof('int16_t *')
-local ptr_i32 = ffi.typeof('int32_t *')
-local ptr_i64 = ffi.typeof('int64_t *')
-
-local ptr_u16 = ffi.typeof('uint16_t *')
-local ptr_u32 = ffi.typeof('uint32_t *')
-
-local ptr_f32 = ffi.typeof('float *')
-local ptr_f64 = ffi.typeof('double *')
-
 local u32 = ffi.typeof('uint32_t')
 local u64 = ffi.typeof('uint64_t')
 local i32 = ffi.typeof('int32_t')
@@ -64,15 +53,18 @@ do
 	local ctz = {}
 	local popcnt = {}
 
+	local lj_band = bit.band
+	local lj_lshift = bit.lshift
+
 	module.clz = clz
 	module.ctz = ctz
 	module.popcnt = popcnt
 
 	function clz.i32(num)
 		for i = 0, 31 do
-			local mask = bit.lshift(1, 31 - i)
+			local mask = lj_lshift(1, 31 - i)
 
-			if bit.band(num, mask) ~= 0 then return i end
+			if lj_band(num, mask) ~= 0 then return i end
 		end
 
 		return 32
@@ -80,9 +72,9 @@ do
 
 	function ctz.i32(num)
 		for i = 0, 31 do
-			local mask = bit.lshift(1, i)
+			local mask = lj_lshift(1, i)
 
-			if bit.band(num, mask) ~= 0 then return i end
+			if lj_band(num, mask) ~= 0 then return i end
 		end
 
 		return 32
@@ -92,7 +84,7 @@ do
 		local count = 0
 
 		while num ~= 0 do
-			num = bit.band(num, num - 1)
+			num = lj_band(num, num - 1)
 			count = count + 1
 		end
 
@@ -180,19 +172,22 @@ do
 	local rotl = {}
 	local rotr = {}
 
+	local lj_lshift = bit.lshift
+	local lj_rshift = bit.rshift
+
 	module.shl = shl
 	module.shr = shr
 	module.rotl = rotl
 	module.rotr = rotr
 
 	function shr.u32(lhs, rhs)
-		local v = bit.rshift(u32(lhs), rhs)
+		local v = lj_rshift(u32(lhs), rhs)
 
 		return tonumber(i32(v))
 	end
 
 	function shr.u64(lhs, rhs)
-		local v = bit.rshift(u64(lhs), rhs)
+		local v = lj_rshift(u64(lhs), rhs)
 
 		return i64(v)
 	end
@@ -202,12 +197,12 @@ do
 	rotr.i32 = bit.ror
 	rotr.i64 = bit.ror
 
-	shl.i32 = bit.lshift
-	shl.i64 = bit.lshift
-	shl.u32 = bit.lshift
-	shl.u64 = bit.lshift
-	shr.i32 = bit.rshift
-	shr.i64 = bit.rshift
+	shl.i32 = lj_lshift
+	shl.i64 = lj_lshift
+	shl.u32 = lj_lshift
+	shl.u64 = lj_lshift
+	shr.i32 = lj_rshift
+	shr.i64 = lj_rshift
 end
 
 do
@@ -267,38 +262,50 @@ end
 do
 	local load = {}
 	local store = {}
+	local cast = ffi.cast
+
+	local ptr_i8 = ffi.typeof('int8_t *')
+	local ptr_i16 = ffi.typeof('int16_t *')
+	local ptr_i32 = ffi.typeof('int32_t *')
+	local ptr_i64 = ffi.typeof('int64_t *')
+
+	local ptr_u16 = ffi.typeof('uint16_t *')
+	local ptr_u32 = ffi.typeof('uint32_t *')
+
+	local ptr_f32 = ffi.typeof('float *')
+	local ptr_f64 = ffi.typeof('double *')
 
 	module.load = load
 	module.store = store
 
-	function load.i32_i8(memory, addr) return ffi.cast(ptr_i8, memory.data)[addr] end
+	function load.i32_i8(memory, addr) return cast(ptr_i8, memory.data)[addr] end
 	function load.i32_u8(memory, addr) return memory.data[addr] end
-	function load.i32_i16(memory, addr) return ffi.cast(ptr_i16, memory.data + addr)[0] end
-	function load.i32_u16(memory, addr) return ffi.cast(ptr_u16, memory.data + addr)[0] end
-	function load.i32(memory, addr) return ffi.cast(ptr_i32, memory.data + addr)[0] end
+	function load.i32_i16(memory, addr) return cast(ptr_i16, memory.data + addr)[0] end
+	function load.i32_u16(memory, addr) return cast(ptr_u16, memory.data + addr)[0] end
+	function load.i32(memory, addr) return cast(ptr_i32, memory.data + addr)[0] end
 
-	function load.i64_i8(memory, addr) return i64(ffi.cast(ptr_i8, memory.data)[addr]) end
+	function load.i64_i8(memory, addr) return i64(cast(ptr_i8, memory.data)[addr]) end
 	function load.i64_u8(memory, addr) return i64(memory.data[addr]) end
-	function load.i64_i16(memory, addr) return i64(ffi.cast(ptr_i16, memory.data + addr)[0]) end
-	function load.i64_u16(memory, addr) return i64(ffi.cast(ptr_u16, memory.data + addr)[0]) end
-	function load.i64_i32(memory, addr) return i64(ffi.cast(ptr_i32, memory.data + addr)[0]) end
-	function load.i64_u32(memory, addr) return i64(ffi.cast(ptr_u32, memory.data + addr)[0]) end
-	function load.i64(memory, addr) return i64(ffi.cast(ptr_i64, memory.data + addr)[0]) end
+	function load.i64_i16(memory, addr) return i64(cast(ptr_i16, memory.data + addr)[0]) end
+	function load.i64_u16(memory, addr) return i64(cast(ptr_u16, memory.data + addr)[0]) end
+	function load.i64_i32(memory, addr) return i64(cast(ptr_i32, memory.data + addr)[0]) end
+	function load.i64_u32(memory, addr) return i64(cast(ptr_u32, memory.data + addr)[0]) end
+	function load.i64(memory, addr) return i64(cast(ptr_i64, memory.data + addr)[0]) end
 
-	function load.f32(memory, addr) return ffi.cast(ptr_f32, memory.data + addr)[0] end
-	function load.f64(memory, addr) return ffi.cast(ptr_f64, memory.data + addr)[0] end
+	function load.f32(memory, addr) return cast(ptr_f32, memory.data + addr)[0] end
+	function load.f64(memory, addr) return cast(ptr_f64, memory.data + addr)[0] end
 
 	function store.i32_n8(memory, addr, value) memory.data[addr] = value end
-	function store.i32_n16(memory, addr, value) ffi.cast(ptr_i16, memory.data + addr)[0] = value end
-	function store.i32(memory, addr, value) ffi.cast(ptr_i32, memory.data + addr)[0] = value end
+	function store.i32_n16(memory, addr, value) cast(ptr_i16, memory.data + addr)[0] = value end
+	function store.i32(memory, addr, value) cast(ptr_i32, memory.data + addr)[0] = value end
 
 	function store.i64_n8(memory, addr, value) memory.data[addr] = value end
-	function store.i64_n16(memory, addr, value) ffi.cast(ptr_i16, memory.data + addr)[0] = value end
-	function store.i64_n32(memory, addr, value) ffi.cast(ptr_i32, memory.data + addr)[0] = value end
-	function store.i64(memory, addr, value) ffi.cast(ptr_i64, memory.data + addr)[0] = value end
+	function store.i64_n16(memory, addr, value) cast(ptr_i16, memory.data + addr)[0] = value end
+	function store.i64_n32(memory, addr, value) cast(ptr_i32, memory.data + addr)[0] = value end
+	function store.i64(memory, addr, value) cast(ptr_i64, memory.data + addr)[0] = value end
 
-	function store.f32(memory, addr, value) ffi.cast(ptr_f32, memory.data + addr)[0] = value end
-	function store.f64(memory, addr, value) ffi.cast(ptr_f64, memory.data + addr)[0] = value end
+	function store.f32(memory, addr, value) cast(ptr_f32, memory.data + addr)[0] = value end
+	function store.f64(memory, addr, value) cast(ptr_f64, memory.data + addr)[0] = value end
 end
 
 do
