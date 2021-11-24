@@ -130,12 +130,36 @@ impl MemoryGrow {
 }
 
 impl Value {
+	fn write_f32(f: f32, w: &mut dyn Write) -> Result<()> {
+		let sign = if f.is_sign_negative() { "-" } else { "" };
+
+		if f.is_infinite() {
+			write!(w, "{}math.huge", sign)
+		} else if f.is_nan() {
+			write!(w, "{}0/0", sign)
+		} else {
+			write!(w, "{:e}", f)
+		}
+	}
+
+	fn write_f64(f: f64, w: &mut dyn Write) -> Result<()> {
+		let sign = if f.is_sign_negative() { "-" } else { "" };
+
+		if f.is_infinite() {
+			write!(w, "{}math.huge", sign)
+		} else if f.is_nan() {
+			write!(w, "{}0/0", sign)
+		} else {
+			write!(w, "{:e}", f)
+		}
+	}
+
 	fn output(&self, d: &Data, w: &mut dyn Write) -> Result<()> {
 		match self {
 			Self::I32(i) => write!(w, "{} ", i),
 			Self::I64(i) => write!(w, "{} ", d.edition.i64(*i)),
-			Self::F32(f) => write!(w, "{} ", f),
-			Self::F64(f) => write!(w, "{} ", f),
+			Self::F32(f) => Self::write_f32(*f, w),
+			Self::F64(f) => Self::write_f64(*f, w),
 		}
 	}
 }
