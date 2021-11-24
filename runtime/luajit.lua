@@ -39,6 +39,12 @@ do
 
 		return math.floor(lhs / rhs)
 	end
+
+	function div.u64(lhs, rhs)
+		if rhs == 0 then error('division by zero') end
+
+		return i64(u64(lhs) / u64(rhs))
+	end
 end
 
 do
