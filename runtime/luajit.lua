@@ -5,11 +5,12 @@ local ffi = require('ffi')
 
 local module = {}
 
+local to_signed = bit.tobit
+
 local vla_u8 = ffi.typeof('uint8_t[?]')
 
 local u32 = ffi.typeof('uint32_t')
 local u64 = ffi.typeof('uint64_t')
-local i32 = ffi.typeof('int32_t')
 local i64 = ffi.typeof('int64_t')
 
 ffi.cdef [[
@@ -38,7 +39,7 @@ do
 		lhs = tonumber(u32(lhs))
 		rhs = tonumber(u32(rhs))
 
-		return math.floor(lhs / rhs)
+		return to_signed(math.floor(lhs / rhs))
 	end
 
 	function div.u64(lhs, rhs)
@@ -183,7 +184,7 @@ do
 	function shr.u32(lhs, rhs)
 		local v = lj_rshift(u32(lhs), rhs)
 
-		return tonumber(i32(v))
+		return to_signed(v)
 	end
 
 	function shr.u64(lhs, rhs)
@@ -220,9 +221,17 @@ do
 	module.convert = convert
 	module.reinterpret = reinterpret
 
-	function extend.u64_i32(num) return i64(u64(num)) end
+	function extend.u64_i32(num)
+		RE_INSTANCE.i32 = num
 
-	function wrap.i32_i64(num) return tonumber(i32(num)) end
+		return RE_INSTANCE.i64
+	end
+
+	function wrap.i32_i64(num)
+		RE_INSTANCE.i64 = num
+
+		return RE_INSTANCE.i32
+	end
 
 	function convert.f32_i32(num) return num end
 	function convert.f32_u32(num) return tonumber(u32(num)) end
@@ -290,7 +299,7 @@ do
 	function load.i64_u16(memory, addr) return i64(cast(ptr_u16, memory.data + addr)[0]) end
 	function load.i64_i32(memory, addr) return i64(cast(ptr_i32, memory.data + addr)[0]) end
 	function load.i64_u32(memory, addr) return i64(cast(ptr_u32, memory.data + addr)[0]) end
-	function load.i64(memory, addr) return i64(cast(ptr_i64, memory.data + addr)[0]) end
+	function load.i64(memory, addr) return cast(ptr_i64, memory.data + addr)[0] end
 
 	function load.f32(memory, addr) return cast(ptr_f32, memory.data + addr)[0] end
 	function load.f64(memory, addr) return cast(ptr_f64, memory.data + addr)[0] end
