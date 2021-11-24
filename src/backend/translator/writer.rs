@@ -298,6 +298,8 @@ impl If {
 		self.truthy.iter().try_for_each(|s| s.output(d, w))?;
 
 		if let Some(v) = &self.falsey {
+			write!(w, "else ")?;
+
 			v.iter().try_for_each(|s| s.output(d, w))?;
 		}
 
