@@ -20,6 +20,15 @@ local u64 = ffi.typeof('uint64_t')
 local i32 = ffi.typeof('int32_t')
 local i64 = ffi.typeof('int64_t')
 
+ffi.cdef [[
+typedef union {
+	int32_t i32;
+	int64_t i64;
+	float f32;
+	double f64;
+} Reinterpret;
+]]
+
 do
 	local div = {}
 
@@ -201,12 +210,43 @@ end
 do
 	local extend = {}
 	local wrap = {}
+	local reinterpret = {}
+
+	-- This would surely be an issue in a multi-thread environment...
+	-- ... thankfully this isn't one.
+	local RE_INSTANCE = ffi.new('Reinterpret')
 
 	module.extend = extend
 	module.wrap = wrap
+	module.reinterpret = reinterpret
 
 	extend.i32_u64 = i64
-	wrap.i64_i32 = function(num) return tonumber(i32(num)) end
+
+	function wrap.i64_i32(num) return tonumber(i32(num)) end
+
+	function reinterpret.i32_f32(num)
+		RE_INSTANCE.f32 = num
+
+		return RE_INSTANCE.i32
+	end
+
+	function reinterpret.i64_f64(num)
+		RE_INSTANCE.f64 = num
+
+		return RE_INSTANCE.i64
+	end
+
+	function reinterpret.f32_i32(num)
+		RE_INSTANCE.i32 = num
+
+		return RE_INSTANCE.f32
+	end
+
+	function reinterpret.f64_i64(num)
+		RE_INSTANCE.i64 = num
+
+		return RE_INSTANCE.f64
+	end
 end
 
 do
