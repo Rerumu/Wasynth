@@ -15,6 +15,9 @@ local ptr_i64 = ffi.typeof('int64_t *')
 local ptr_u16 = ffi.typeof('uint16_t *')
 local ptr_u32 = ffi.typeof('uint32_t *')
 
+local ptr_f32 = ffi.typeof('float *')
+local ptr_f64 = ffi.typeof('double *')
+
 local u32 = ffi.typeof('uint32_t')
 local u64 = ffi.typeof('uint64_t')
 local i32 = ffi.typeof('int32_t')
@@ -270,6 +273,9 @@ do
 	function load.i64_u32(memory, addr) return i64(ffi.cast(ptr_u32, memory.data + addr)[0]) end
 	function load.i64(memory, addr) return i64(ffi.cast(ptr_i64, memory.data + addr)[0]) end
 
+	function load.f32(memory, addr) return ffi.cast(ptr_f32, memory.data + addr)[0] end
+	function load.f64(memory, addr) return ffi.cast(ptr_f64, memory.data + addr)[0] end
+
 	function store.i32_n8(memory, addr, value) memory.data[addr] = value end
 	function store.i32_n16(memory, addr, value) ffi.cast(ptr_i16, memory.data + addr)[0] = value end
 	function store.i32(memory, addr, value) ffi.cast(ptr_i32, memory.data + addr)[0] = value end
@@ -278,6 +284,9 @@ do
 	function store.i64_n16(memory, addr, value) ffi.cast(ptr_i16, memory.data + addr)[0] = value end
 	function store.i64_n32(memory, addr, value) ffi.cast(ptr_i32, memory.data + addr)[0] = value end
 	function store.i64(memory, addr, value) ffi.cast(ptr_i64, memory.data + addr)[0] = value end
+
+	function store.f32(memory, addr, value) ffi.cast(ptr_f32, memory.data + addr)[0] = value end
+	function store.f64(memory, addr, value) ffi.cast(ptr_f64, memory.data + addr)[0] = value end
 end
 
 do
