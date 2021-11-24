@@ -213,6 +213,7 @@ end
 do
 	local extend = {}
 	local wrap = {}
+	local convert = {}
 	local reinterpret = {}
 
 	-- This would surely be an issue in a multi-thread environment...
@@ -221,11 +222,22 @@ do
 
 	module.extend = extend
 	module.wrap = wrap
+	module.convert = convert
 	module.reinterpret = reinterpret
 
 	function extend.u64_i32(num) return i64(u64(num)) end
 
 	function wrap.i32_i64(num) return tonumber(i32(num)) end
+
+	function convert.f32_i32(num) return num end
+	function convert.f32_u32(num) return tonumber(u32(num)) end
+	function convert.f32_i64(num) return tonumber(num) end
+	function convert.f32_u64(num) return tonumber(u64(num)) end
+
+	function convert.f64_i32(num) return num end
+	function convert.f64_u32(num) return tonumber(u32(num)) end
+	function convert.f64_i64(num) return tonumber(num) end
+	function convert.f64_u64(num) return tonumber(u64(num)) end
 
 	function reinterpret.i32_f32(num)
 		RE_INSTANCE.f32 = num
