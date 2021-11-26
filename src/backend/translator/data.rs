@@ -194,9 +194,15 @@ impl<'a> Module<'a> {
 
 			gen_expression(v.offset().as_ref().unwrap().code(), w)?;
 
-			for (i, f) in v.members().iter().enumerate() {
-				write!(w, "target[offset + {}] = FUNC_LIST[{}]", i, f)?;
-			}
+			write!(w, "local data = {{")?;
+
+			v.members()
+				.iter()
+				.try_for_each(|v| write!(w, "FUNC_LIST[{}],", v))?;
+
+			write!(w, "}}")?;
+
+			write!(w, "table.move(data, 1, #data, offset, target)")?;
 
 			write!(w, "end ")?;
 		}
