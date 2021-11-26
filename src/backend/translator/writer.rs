@@ -10,7 +10,7 @@ use crate::backend::{
 		Return, Select, SetGlobal, SetLocal, Statement, Value,
 	},
 	edition::data::Edition,
-	visitor::{localize, memory},
+	visitor::memory,
 };
 
 fn write_in_order(prefix: &'static str, len: u32, w: &mut dyn Write) -> Result<()> {
@@ -483,21 +483,6 @@ impl Function {
 		Ok(())
 	}
 
-	fn write_visitor_list(&self, w: &mut dyn Write) -> Result<()> {
-		let memory = memory::visit(self);
-		let localize = localize::visit(self);
-
-		for v in memory {
-			write!(w, "local memory_at_{0} = MEMORY_LIST[{0}]", v)?;
-		}
-
-		for (a, b) in localize {
-			write!(w, "local {0}_{1} = rt.{0}.{1} ", a, b)?;
-		}
-
-		Ok(())
-	}
-
 	pub fn output(&self, d: &mut Data, w: &mut dyn Write) -> Result<()> {
 		write!(w, "function(")?;
 
@@ -505,7 +490,10 @@ impl Function {
 
 		write!(w, ")")?;
 
-		self.write_visitor_list(w)?;
+		for v in memory::visit(self) {
+			write!(w, "local memory_at_{0} = MEMORY_LIST[{0}]", v)?;
+		}
+
 		self.write_variable_list(w)?;
 
 		self.body.output(d, w)?;

@@ -1,10 +1,17 @@
-use std::io::{Result, Write};
+use std::{
+	collections::BTreeSet,
+	io::{Result, Write},
+};
 
 use parity_wasm::elements::{
 	External, ImportCountType, Instruction, Internal, Module as WasmModule, ResizableLimits,
 };
 
-use crate::backend::{ast::transformer::Transformer, edition::data::Edition};
+use crate::backend::{
+	ast::{data::Function, transformer::Transformer},
+	edition::data::Edition,
+	visitor::localize,
+};
 
 use super::{arity::List as ArityList, writer::Data};
 
@@ -261,8 +268,26 @@ impl<'a> Module<'a> {
 		write!(w, "}} end ")
 	}
 
+	fn gen_localize(&self, func_list: &[Function], w: &mut dyn Write) -> Result<()> {
+		let mut loc_set = BTreeSet::new();
+
+		for func in func_list {
+			loc_set.extend(localize::visit(func));
+		}
+
+		loc_set
+			.into_iter()
+			.try_for_each(|(a, b)| write!(w, "local {0}_{1} = rt.{0}.{1} ", a, b))
+	}
+
 	pub fn translate(&self, ed: &dyn Edition, w: &mut dyn Write) -> Result<()> {
 		write!(w, "local rt = require({})", ed.runtime())?;
+
+		let func_list: Vec<_> = (0..self.arity.in_arity.len())
+			.map(|i| Transformer::new(self.wasm, &self.arity, i).consume())
+			.collect();
+
+		self.gen_localize(&func_list, w)?;
 
 		gen_nil_array("FUNC_LIST", self.wasm.functions_space(), w)?;
 		gen_nil_array("TABLE_LIST", self.wasm.table_space(), w)?;
@@ -271,13 +296,10 @@ impl<'a> Module<'a> {
 
 		let offset = self.arity.ex_arity.len();
 
-		for i in 0..self.arity.in_arity.len() {
-			let func = Transformer::new(self.wasm, &self.arity, i).consume();
-			let data = &mut Data::new(func.num_param, ed);
-
+		for (i, v) in func_list.into_iter().enumerate() {
 			write!(w, "FUNC_LIST[{}] =", i + offset)?;
 
-			func.output(data, w)?;
+			v.output(&mut Data::new(v.num_param, ed), w)?;
 		}
 
 		self.gen_start_point(w)
