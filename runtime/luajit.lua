@@ -175,23 +175,12 @@ do
 
 	local lj_lshift = bit.lshift
 	local lj_rshift = bit.rshift
+	local lj_arshift = bit.arshift
 
 	module.shl = shl
 	module.shr = shr
 	module.rotl = rotl
 	module.rotr = rotr
-
-	function shr.u32(lhs, rhs)
-		local v = lj_rshift(u32(lhs), rhs)
-
-		return to_signed(v)
-	end
-
-	function shr.u64(lhs, rhs)
-		local v = lj_rshift(u64(lhs), rhs)
-
-		return i64(v)
-	end
 
 	rotl.i32 = bit.rol
 	rotl.i64 = bit.rol
@@ -202,8 +191,10 @@ do
 	shl.i64 = lj_lshift
 	shl.u32 = lj_lshift
 	shl.u64 = lj_lshift
-	shr.i32 = lj_rshift
-	shr.i64 = lj_rshift
+	shr.i32 = lj_arshift
+	shr.i64 = lj_arshift
+	shr.u32 = lj_rshift
+	shr.u64 = lj_rshift
 end
 
 do
