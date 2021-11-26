@@ -22,8 +22,8 @@ pub struct Transformer<'a> {
 	name: usize,
 
 	// translation state
-	sleeping: Vec<Vec<Expression>>,
-	living: Vec<Expression>,
+	pending: Vec<Vec<Expression>>,
+	stack: Vec<Expression>,
 	last_stack: usize,
 }
 
@@ -41,8 +41,8 @@ impl<'a> Transformer<'a> {
 			wasm,
 			arity,
 			name,
-			sleeping: Vec::new(),
-			living: Vec::new(),
+			pending: Vec::new(),
+			stack: Vec::new(),
 			last_stack: 0,
 		}
 	}
@@ -62,11 +62,11 @@ impl<'a> Transformer<'a> {
 	}
 
 	fn push_recall(&mut self, num: u32) {
-		let len = self.living.len();
+		let len = self.stack.len();
 
 		(len..len + num as usize)
 			.map(Expression::Recall)
-			.for_each(|v| self.living.push(v));
+			.for_each(|v| self.stack.push(v));
 	}
 
 	fn push_block_result(&mut self, typ: BlockType) {
@@ -82,10 +82,10 @@ impl<'a> Transformer<'a> {
 	// Since expressions do not have set ordering rules, this is
 	// safe and condenses code.
 	fn gen_leak_pending(&mut self, stat: &mut Vec<Statement>) {
-		self.last_stack = self.last_stack.max(self.living.len());
+		self.last_stack = self.last_stack.max(self.stack.len());
 
 		for (i, v) in self
-			.living
+			.stack
 			.iter_mut()
 			.enumerate()
 			.filter(|v| !v.1.is_recalling(v.0))
@@ -103,16 +103,16 @@ impl<'a> Transformer<'a> {
 	// Pending expressions are put to sleep before entering
 	// a control structure so that they are not lost.
 	fn save_pending(&mut self) {
-		self.sleeping.push(self.living.clone());
+		self.pending.push(self.stack.clone());
 	}
 
 	fn load_pending(&mut self) {
-		self.living = self.sleeping.pop().unwrap();
+		self.stack = self.pending.pop().unwrap();
 	}
 
 	fn gen_return(&mut self, stat: &mut Vec<Statement>) {
 		let num = self.arity.in_arity[self.name].num_result as usize;
-		let list = self.living.split_off(self.living.len() - num);
+		let list = self.stack.split_off(self.stack.len() - num);
 
 		self.gen_leak_pending(stat);
 		stat.push(Statement::Return(Return { list }));
@@ -122,10 +122,10 @@ impl<'a> Transformer<'a> {
 		let arity = self.arity.arity_of(func as usize);
 
 		let param_list = self
-			.living
-			.split_off(self.living.len() - arity.num_param as usize);
+			.stack
+			.split_off(self.stack.len() - arity.num_param as usize);
 
-		let len = u32::try_from(self.living.len()).unwrap();
+		let len = u32::try_from(self.stack.len()).unwrap();
 		let result = len..len + arity.num_result;
 
 		self.push_recall(arity.num_result);
@@ -141,12 +141,12 @@ impl<'a> Transformer<'a> {
 		let types = self.wasm.type_section().unwrap().types();
 		let arity = Arity::from_index(types, typ);
 
-		let index = self.living.pop().unwrap();
+		let index = self.stack.pop().unwrap();
 		let param_list = self
-			.living
-			.split_off(self.living.len() - arity.num_param as usize);
+			.stack
+			.split_off(self.stack.len() - arity.num_param as usize);
 
-		let len = u32::try_from(self.living.len()).unwrap();
+		let len = u32::try_from(self.stack.len()).unwrap();
 		let result = len..len + arity.num_result;
 
 		self.push_recall(arity.num_result);
@@ -160,9 +160,9 @@ impl<'a> Transformer<'a> {
 	}
 
 	fn push_load(&mut self, op: Load, offset: u32) {
-		let pointer = Box::new(self.living.pop().unwrap());
+		let pointer = Box::new(self.stack.pop().unwrap());
 
-		self.living.push(Expression::AnyLoad(AnyLoad {
+		self.stack.push(Expression::AnyLoad(AnyLoad {
 			op,
 			offset,
 			pointer,
@@ -170,8 +170,8 @@ impl<'a> Transformer<'a> {
 	}
 
 	fn gen_store(&mut self, op: Store, offset: u32, stat: &mut Vec<Statement>) {
-		let value = self.living.pop().unwrap();
-		let pointer = self.living.pop().unwrap();
+		let value = self.stack.pop().unwrap();
+		let pointer = self.stack.pop().unwrap();
 
 		self.gen_leak_pending(stat);
 		stat.push(Statement::AnyStore(AnyStore {
@@ -183,20 +183,20 @@ impl<'a> Transformer<'a> {
 	}
 
 	fn push_constant(&mut self, value: Value) {
-		self.living.push(Expression::Value(value));
+		self.stack.push(Expression::Value(value));
 	}
 
 	fn push_un_op(&mut self, op: UnOp) {
-		let rhs = Box::new(self.living.pop().unwrap());
+		let rhs = Box::new(self.stack.pop().unwrap());
 
-		self.living.push(Expression::AnyUnOp(AnyUnOp { op, rhs }));
+		self.stack.push(Expression::AnyUnOp(AnyUnOp { op, rhs }));
 	}
 
 	fn push_bin_op(&mut self, op: BinOp) {
-		let rhs = Box::new(self.living.pop().unwrap());
-		let lhs = Box::new(self.living.pop().unwrap());
+		let rhs = Box::new(self.stack.pop().unwrap());
+		let lhs = Box::new(self.stack.pop().unwrap());
 
-		self.living
+		self.stack
 			.push(Expression::AnyBinOp(AnyBinOp { op, lhs, rhs }));
 	}
 
@@ -243,7 +243,7 @@ impl<'a> Transformer<'a> {
 					stat.push(Statement::Backward(data));
 				}
 				Inst::If(t) => {
-					let cond = self.living.pop().unwrap();
+					let cond = self.stack.pop().unwrap();
 
 					self.gen_leak_pending(&mut stat);
 
@@ -258,7 +258,7 @@ impl<'a> Transformer<'a> {
 					break;
 				}
 				Inst::End => {
-					if list.is_empty() && !self.living.is_empty() {
+					if list.is_empty() && !self.stack.is_empty() {
 						self.gen_return(&mut stat);
 					} else {
 						self.gen_leak_pending(&mut stat);
@@ -271,13 +271,13 @@ impl<'a> Transformer<'a> {
 					stat.push(Statement::Br(Br { target: *i }));
 				}
 				Inst::BrIf(i) => {
-					let cond = self.living.pop().unwrap();
+					let cond = self.stack.pop().unwrap();
 
 					self.gen_leak_pending(&mut stat);
 					stat.push(Statement::BrIf(BrIf { cond, target: *i }));
 				}
 				Inst::BrTable(t) => {
-					let cond = self.living.pop().unwrap();
+					let cond = self.stack.pop().unwrap();
 
 					self.gen_leak_pending(&mut stat);
 					stat.push(Statement::BrTable(BrTable {
@@ -295,20 +295,20 @@ impl<'a> Transformer<'a> {
 					self.gen_call_indirect(*i, *t, &mut stat);
 				}
 				Inst::Drop => {
-					self.living.pop().unwrap();
+					self.stack.pop().unwrap();
 				}
 				Inst::Select => {
-					let cond = Box::new(self.living.pop().unwrap());
-					let b = Box::new(self.living.pop().unwrap());
-					let a = Box::new(self.living.pop().unwrap());
+					let cond = Box::new(self.stack.pop().unwrap());
+					let b = Box::new(self.stack.pop().unwrap());
+					let a = Box::new(self.stack.pop().unwrap());
 
-					self.living.push(Expression::Select(Select { cond, a, b }));
+					self.stack.push(Expression::Select(Select { cond, a, b }));
 				}
 				Inst::GetLocal(i) => {
-					self.living.push(Expression::GetLocal(GetLocal { var: *i }));
+					self.stack.push(Expression::GetLocal(GetLocal { var: *i }));
 				}
 				Inst::SetLocal(i) => {
-					let value = self.living.pop().unwrap();
+					let value = self.stack.pop().unwrap();
 
 					self.gen_leak_pending(&mut stat);
 					stat.push(Statement::SetLocal(SetLocal { var: *i, value }));
@@ -316,16 +316,16 @@ impl<'a> Transformer<'a> {
 				Inst::TeeLocal(i) => {
 					self.gen_leak_pending(&mut stat);
 
-					let value = self.living.last().unwrap().clone();
+					let value = self.stack.last().unwrap().clone();
 
 					stat.push(Statement::SetLocal(SetLocal { var: *i, value }));
 				}
 				Inst::GetGlobal(i) => {
-					self.living
+					self.stack
 						.push(Expression::GetGlobal(GetGlobal { var: *i }));
 				}
 				Inst::SetGlobal(i) => {
-					let value = self.living.pop().unwrap();
+					let value = self.stack.pop().unwrap();
 
 					stat.push(Statement::SetGlobal(SetGlobal { var: *i, value }));
 				}
@@ -353,14 +353,14 @@ impl<'a> Transformer<'a> {
 				Inst::I64Store16(_, o) => self.gen_store(Store::I64_N16, *o, &mut stat),
 				Inst::I64Store32(_, o) => self.gen_store(Store::I64_N32, *o, &mut stat),
 				Inst::CurrentMemory(i) => {
-					self.living
+					self.stack
 						.push(Expression::MemorySize(MemorySize { memory: *i }));
 				}
 				Inst::GrowMemory(i) => {
-					let value = Box::new(self.living.pop().unwrap());
+					let value = Box::new(self.stack.pop().unwrap());
 
 					// `MemoryGrow` is an expression *but* it has side effects
-					self.living
+					self.stack
 						.push(Expression::MemoryGrow(MemoryGrow { memory: *i, value }));
 
 					self.gen_leak_pending(&mut stat);
