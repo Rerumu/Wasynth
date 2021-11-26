@@ -360,9 +360,10 @@ impl<'a> Transformer<'a> {
 					let value = Box::new(self.living.pop().unwrap());
 
 					// `MemoryGrow` is an expression *but* it has side effects
-					self.gen_leak_pending(&mut stat);
 					self.living
 						.push(Expression::MemoryGrow(MemoryGrow { memory: *i, value }));
+
+					self.gen_leak_pending(&mut stat);
 				}
 				Inst::I32Const(v) => self.push_constant(Value::I32(*v)),
 				Inst::I64Const(v) => self.push_constant(Value::I64(*v)),
