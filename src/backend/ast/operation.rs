@@ -345,9 +345,9 @@ pub enum BinOp {
 impl BinOp {
 	pub fn as_operator(self) -> Option<&'static str> {
 		let op = match self {
-			Self::Add_I32 | Self::Add_I64 | Self::Add_FN => "+",
-			Self::Sub_I32 | Self::Sub_I64 | Self::Sub_FN => "-",
-			Self::Mul_I32 | Self::Mul_I64 | Self::Mul_FN => "*",
+			Self::Add_FN => "+",
+			Self::Sub_FN => "-",
+			Self::Mul_FN => "*",
 			Self::Div_FN => "/",
 			Self::RemS_I32 | Self::RemU_I32 | Self::RemS_I64 | Self::RemU_I64 => "%",
 			_ => return None,

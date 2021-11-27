@@ -5,8 +5,6 @@ local ffi = require('ffi')
 
 local module = {}
 
-local to_signed = bit.tobit
-
 local vla_u8 = ffi.typeof('uint8_t[?]')
 
 local u32 = ffi.typeof('uint32_t')
@@ -31,9 +29,26 @@ local function truncate(num)
 end
 
 do
+	local add = {}
+	local sub = {}
+	local mul = {}
 	local div = {}
 
+	local to_signed = bit.tobit
+
+	module.add = add
+	module.sub = sub
+	module.mul = mul
 	module.div = div
+
+	function add.i32(a, b) return to_signed(a + b) end
+	function add.i64(a, b) return a + b end
+
+	function sub.i32(a, b) return to_signed(a - b) end
+	function sub.i64(a, b) return a - b end
+
+	function mul.i32(a, b) return to_signed(a * b) end
+	function mul.i64(a, b) return a * b end
 
 	function div.i32(lhs, rhs)
 		if rhs == 0 then error('division by zero') end
