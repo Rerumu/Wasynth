@@ -22,6 +22,14 @@ typedef union {
 } Reinterpret;
 ]]
 
+local function truncate(num)
+	if num >= 0 then
+		return math.floor(num)
+	else
+		return math.ceil(num)
+	end
+end
+
 do
 	local div = {}
 
@@ -30,7 +38,7 @@ do
 	function div.i32(lhs, rhs)
 		if rhs == 0 then error('division by zero') end
 
-		return math.floor(lhs / rhs)
+		return truncate(lhs / rhs)
 	end
 
 	function div.u32(lhs, rhs)
@@ -198,8 +206,9 @@ do
 end
 
 do
-	local extend = {}
 	local wrap = {}
+	local trunc = {}
+	local extend = {}
 	local convert = {}
 	local reinterpret = {}
 
@@ -207,21 +216,33 @@ do
 	-- ... thankfully this isn't one.
 	local RE_INSTANCE = ffi.new('Reinterpret')
 
-	module.extend = extend
+	local function truncate_i64(num) return i64(truncate(num)) end
+
 	module.wrap = wrap
+	module.trunc = trunc
+	module.extend = extend
 	module.convert = convert
 	module.reinterpret = reinterpret
-
-	function extend.u64_i32(num)
-		RE_INSTANCE.i32 = num
-
-		return RE_INSTANCE.i64
-	end
 
 	function wrap.i32_i64(num)
 		RE_INSTANCE.i64 = num
 
 		return RE_INSTANCE.i32
+	end
+
+	trunc.i32_f32 = truncate
+	trunc.i32_f64 = truncate
+	trunc.u32_f32 = truncate
+	trunc.u32_f64 = truncate
+	trunc.i64_f32 = truncate_i64
+	trunc.i64_f64 = truncate_i64
+	trunc.u64_f32 = truncate_i64
+	trunc.u64_f64 = truncate_i64
+
+	function extend.u64_i32(num)
+		RE_INSTANCE.i32 = num
+
+		return RE_INSTANCE.i64
 	end
 
 	function convert.f32_i32(num) return num end
