@@ -21,26 +21,25 @@ fn aux_internal_index(internal: Internal) -> u32 {
 	}
 }
 
-fn gen_table_init(limit: &ResizableLimits, w: &mut dyn Write) -> Result<()> {
-	write!(w, "{{ min = {}", limit.initial())?;
-
-	if let Some(max) = limit.maximum() {
-		write!(w, ", max = {}", max)?;
+fn new_limit_max(limits: &ResizableLimits) -> String {
+	match limits.maximum() {
+		Some(v) => v.to_string(),
+		None => "math.huge".to_string(),
 	}
+}
 
-	write!(w, ", data = {{}} }}")
+fn gen_table_init(limit: &ResizableLimits, w: &mut dyn Write) -> Result<()> {
+	let a = limit.initial();
+	let b = new_limit_max(limit);
+
+	write!(w, "{{ min = {}, max = {}, data = {{}} }}", a, b)
 }
 
 fn gen_memory_init(limit: &ResizableLimits, w: &mut dyn Write) -> Result<()> {
-	write!(w, "rt.memory.new({}, ", limit.initial())?;
+	let a = limit.initial();
+	let b = new_limit_max(limit);
 
-	if let Some(max) = limit.maximum() {
-		write!(w, "{}", max)?;
-	} else {
-		write!(w, "nil")?;
-	}
-
-	write!(w, ")")
+	write!(w, "rt.memory.new({}, {})", a, b)
 }
 
 fn gen_nil_array(name: &str, len: usize, w: &mut dyn Write) -> Result<()> {

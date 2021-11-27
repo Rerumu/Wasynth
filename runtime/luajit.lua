@@ -327,7 +327,7 @@ do
 
 		memory.min = min
 		memory.max = max
-		memory.data = ffi.new(vla_u8, min * WASM_PAGE_SIZE)
+		memory.data = vla_u8(min * WASM_PAGE_SIZE, 0)
 
 		return memory
 	end
@@ -340,7 +340,7 @@ do
 		local old = memory.min
 		local new = old + num
 
-		if memory.max and new > memory.max then
+		if new > memory.max then
 			return -1
 		else
 			grow_unchecked(memory, old, new)

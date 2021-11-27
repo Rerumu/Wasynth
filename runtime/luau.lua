@@ -273,7 +273,7 @@ do
 		local old = memory.min
 		local new = old + num
 
-		if memory.max and new > memory.max then
+		if new > memory.max then
 			return -1
 		else
 			memory.min = new
