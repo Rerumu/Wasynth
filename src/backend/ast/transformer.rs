@@ -387,11 +387,11 @@ impl<'a> Transformer<'a> {
 	}
 
 	fn new_if(&mut self, cond: Expression, list: &mut &[Instruction]) -> If {
-		let copied = list.clone();
+		let copied = <&[Instruction]>::clone(list);
 		let truthy = self.new_stored_body(list);
 
-		let last = copied.len() - list.len() - 1;
-		let falsey = is_else_stat(&copied[last]).then(|| self.new_stored_body(list));
+		let end = copied.len() - list.len() - 1;
+		let falsey = is_else_stat(&copied[end]).then(|| self.new_stored_body(list));
 
 		If {
 			cond,

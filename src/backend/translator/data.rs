@@ -267,7 +267,7 @@ impl<'a> Module<'a> {
 		write!(w, "}} end ")
 	}
 
-	fn gen_localize(&self, func_list: &[Function], w: &mut dyn Write) -> Result<()> {
+	fn gen_localize(func_list: &[Function], w: &mut dyn Write) -> Result<()> {
 		let mut loc_set = BTreeSet::new();
 
 		for func in func_list {
@@ -286,7 +286,7 @@ impl<'a> Module<'a> {
 			.map(|i| Transformer::new(self.wasm, &self.arity, i).consume())
 			.collect();
 
-		self.gen_localize(&func_list, w)?;
+		Self::gen_localize(&func_list, w)?;
 
 		gen_nil_array("FUNC_LIST", self.wasm.functions_space(), w)?;
 		gen_nil_array("TABLE_LIST", self.wasm.table_space(), w)?;
