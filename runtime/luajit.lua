@@ -1,11 +1,7 @@
-local WASM_PAGE_SIZE = 65536
+local module = {}
 
 local bit = require('bit')
 local ffi = require('ffi')
-
-local module = {}
-
-local vla_u8 = ffi.typeof('uint8_t[?]')
 
 local u32 = ffi.typeof('uint32_t')
 local u64 = ffi.typeof('uint64_t')
@@ -347,6 +343,10 @@ end
 
 do
 	local memory = {}
+
+	local vla_u8 = ffi.typeof('uint8_t[?]')
+
+	local WASM_PAGE_SIZE = 65536
 
 	module.memory = memory
 
