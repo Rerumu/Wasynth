@@ -51,18 +51,23 @@ fn gen_nil_array(name: &str, len: usize, w: &mut dyn Write) -> Result<()> {
 }
 
 pub fn gen_expression(code: &[Instruction], w: &mut dyn Write) -> Result<()> {
-	assert!(code.len() == 2);
+	// FIXME: Badly generated WASM will produce the wrong constant.
+	for inst in code {
+		let result = match *inst {
+			Instruction::I32Const(v) => write!(w, "{} ", v),
+			Instruction::I64Const(v) => write!(w, "{} ", v),
+			Instruction::F32Const(v) => write!(w, "{} ", f32::from_bits(v)),
+			Instruction::F64Const(v) => write!(w, "{} ", f64::from_bits(v)),
+			Instruction::GetGlobal(i) => write!(w, "GLOBAL_LIST[{}].value ", i),
+			_ => {
+				continue;
+			}
+		};
 
-	let inst = code.first().unwrap();
-
-	match *inst {
-		Instruction::I32Const(v) => write!(w, "{} ", v),
-		Instruction::I64Const(v) => write!(w, "{} ", v),
-		Instruction::F32Const(v) => write!(w, "{} ", f32::from_bits(v)),
-		Instruction::F64Const(v) => write!(w, "{} ", f64::from_bits(v)),
-		Instruction::GetGlobal(i) => write!(w, "GLOBAL_LIST[{}].value ", i),
-		_ => unreachable!(),
+		return result;
 	}
+
+	unreachable!();
 }
 
 pub struct Module<'a> {
