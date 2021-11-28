@@ -298,7 +298,7 @@ impl<'a> Module<'a> {
 		for (i, v) in func_list.into_iter().enumerate() {
 			write!(w, "FUNC_LIST[{}] =", i + offset)?;
 
-			v.output(&mut Data::new(v.num_param, ed), w)?;
+			v.output(&mut Data::new(ed), w)?;
 		}
 
 		self.gen_start_point(w)

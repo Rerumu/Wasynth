@@ -66,10 +66,10 @@ pub struct Data<'a> {
 }
 
 impl<'a> Data<'a> {
-	pub fn new(num_param: u32, edition: &'a dyn Edition) -> Self {
+	pub fn new(edition: &'a dyn Edition) -> Self {
 		Self {
 			label_list: Vec::new(),
-			num_param,
+			num_param: 0,
 			edition,
 		}
 	}
@@ -489,6 +489,8 @@ impl Function {
 		write_in_order("param", self.num_param, w)?;
 
 		write!(w, ")")?;
+
+		d.num_param = self.num_param;
 
 		for v in memory::visit(self) {
 			write!(w, "local memory_at_{0} = MEMORY_LIST[{0}]", v)?;
