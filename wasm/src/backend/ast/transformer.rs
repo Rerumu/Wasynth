@@ -61,6 +61,12 @@ impl<'a> Transformer<'a> {
 		}
 	}
 
+	fn get_type_of(&self, index: u32) -> Arity {
+		let types = self.wasm.type_section().unwrap().types();
+
+		Arity::from_index(types, index)
+	}
+
 	fn push_recall(&mut self, num: u32) {
 		let len = self.stack.len();
 
@@ -70,11 +76,15 @@ impl<'a> Transformer<'a> {
 	}
 
 	fn push_block_result(&mut self, typ: BlockType) {
-		if matches!(typ, BlockType::NoResult) {
-			return;
-		}
+		let num = match typ {
+			BlockType::NoResult => {
+				return;
+			}
+			BlockType::Value(_) => 1,
+			BlockType::TypeIndex(i) => self.get_type_of(i).num_result,
+		};
 
-		self.push_recall(1);
+		self.push_recall(num);
 	}
 
 	// If any expressions are still pending at the start of
@@ -138,8 +148,7 @@ impl<'a> Transformer<'a> {
 	}
 
 	fn gen_call_indirect(&mut self, typ: u32, table: u8, stat: &mut Vec<Statement>) {
-		let types = self.wasm.type_section().unwrap().types();
-		let arity = Arity::from_index(types, typ);
+		let arity = self.get_type_of(typ);
 
 		let index = self.stack.pop().unwrap();
 		let param_list = self
