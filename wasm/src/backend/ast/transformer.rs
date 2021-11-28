@@ -35,6 +35,13 @@ fn is_else_stat(inst: &Instruction) -> bool {
 	inst == &Instruction::Else
 }
 
+fn is_dead_precursor(inst: &Instruction) -> bool {
+	matches!(
+		inst,
+		Instruction::Unreachable | Instruction::Br(_) | Instruction::Return
+	)
+}
+
 impl<'a> Transformer<'a> {
 	pub fn new(wasm: &'a Module, other: &'a ArityList) -> Transformer<'a> {
 		Transformer {
@@ -211,6 +218,37 @@ impl<'a> Transformer<'a> {
 			.push(Expression::AnyBinOp(AnyBinOp { op, lhs, rhs }));
 	}
 
+	fn drop_unreachable(&mut self, list: &mut &[Instruction]) {
+		use Instruction as Inst;
+
+		let mut level = 1;
+
+		loop {
+			let inst = &list[0];
+
+			*list = &list[1..];
+
+			match inst {
+				Inst::Block(_) | Inst::Loop(_) | Inst::If(_) => {
+					level += 1;
+				}
+				Inst::Else => {
+					if level == 1 {
+						break;
+					}
+				}
+				Inst::End => {
+					level -= 1;
+
+					if level == 0 {
+						break;
+					}
+				}
+				_ => {}
+			}
+		}
+	}
+
 	fn new_body(&mut self, list: &mut &[Instruction]) -> Vec<Statement> {
 		use Instruction as Inst;
 
@@ -234,7 +272,6 @@ impl<'a> Transformer<'a> {
 			match inst {
 				Inst::Nop => {}
 				Inst::Unreachable => {
-					self.gen_leak_pending(&mut stat);
 					stat.push(Statement::Unreachable);
 				}
 				Inst::Block(t) => {
@@ -269,7 +306,7 @@ impl<'a> Transformer<'a> {
 					break;
 				}
 				Inst::End => {
-					if list.is_empty() && !self.stack.is_empty() {
+					if list.is_empty() && self.num_result != 0 {
 						self.gen_return(&mut stat);
 					} else {
 						self.gen_leak_pending(&mut stat);
@@ -381,6 +418,12 @@ impl<'a> Transformer<'a> {
 				Inst::F32Const(v) => self.push_constant(Value::F32(f32::from_bits(*v))),
 				Inst::F64Const(v) => self.push_constant(Value::F64(f64::from_bits(*v))),
 				_ => unreachable!(),
+			}
+
+			if is_dead_precursor(inst) {
+				self.drop_unreachable(list);
+
+				break;
 			}
 		}
 
