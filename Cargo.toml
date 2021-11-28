@@ -1,2 +1,2 @@
 [workspace]
-members = ["wasm"]
+members = ["fuzz", "wasm"]

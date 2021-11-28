@@ -1,0 +1,25 @@
+[package]
+name = "fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+wasm-smith = "0.8.0"
+
+[dependencies.parity-wasm]
+git = "https://github.com/paritytech/parity-wasm.git"
+features = ["multi_value", "sign_ext"]
+
+[dependencies.wasm]
+path = "../wasm"
+
+[[bin]]
+name = "translator"
+path = "fuzz_targets/translator.rs"
+test = false
+doc = false
