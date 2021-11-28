@@ -18,8 +18,8 @@ use super::{
 pub struct Transformer<'a> {
 	// target state
 	wasm: &'a Module,
-	arity: &'a ArityList,
-	name: usize,
+	other: &'a ArityList,
+	num_result: u32,
 
 	// translation state
 	pending: Vec<Vec<Expression>>,
@@ -36,25 +36,27 @@ fn is_else_stat(inst: &Instruction) -> bool {
 }
 
 impl<'a> Transformer<'a> {
-	pub fn new(wasm: &'a Module, arity: &'a ArityList, name: usize) -> Transformer<'a> {
+	pub fn new(wasm: &'a Module, other: &'a ArityList) -> Transformer<'a> {
 		Transformer {
 			wasm,
-			arity,
-			name,
+			other,
+			num_result: 0,
 			pending: Vec::new(),
 			stack: Vec::new(),
 			last_stack: 0,
 		}
 	}
 
-	pub fn consume(mut self) -> Function {
-		debug_assert!(self.name != usize::MAX, "Not an indexed value");
+	pub fn consume(mut self, name: usize) -> Function {
+		let arity = &self.other.in_arity[name];
 
-		let func = &self.wasm.code_section().unwrap().bodies()[self.name];
+		self.num_result = arity.num_result;
+
+		let func = &self.wasm.code_section().unwrap().bodies()[name];
 		let body = self.new_forward(&mut func.code().elements());
 
 		Function {
-			num_param: self.arity.in_arity[self.name].num_param,
+			num_param: arity.num_param,
 			num_local: local_sum(func.locals()),
 			num_stack: u32::try_from(self.last_stack).unwrap(),
 			body,
@@ -121,7 +123,7 @@ impl<'a> Transformer<'a> {
 	}
 
 	fn gen_return(&mut self, stat: &mut Vec<Statement>) {
-		let num = self.arity.in_arity[self.name].num_result as usize;
+		let num = self.num_result as usize;
 		let list = self.stack.split_off(self.stack.len() - num);
 
 		self.gen_leak_pending(stat);
@@ -129,7 +131,7 @@ impl<'a> Transformer<'a> {
 	}
 
 	fn gen_call(&mut self, func: u32, stat: &mut Vec<Statement>) {
-		let arity = self.arity.arity_of(func as usize);
+		let arity = self.other.arity_of(func as usize);
 
 		let param_list = self
 			.stack

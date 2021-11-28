@@ -283,7 +283,7 @@ impl<'a> Module<'a> {
 		write!(w, "local rt = require({})", ed.runtime())?;
 
 		let func_list: Vec<_> = (0..self.arity.in_arity.len())
-			.map(|i| Transformer::new(self.wasm, &self.arity, i).consume())
+			.map(|i| Transformer::new(self.wasm, &self.arity).consume(i))
 			.collect();
 
 		Self::gen_localize(&func_list, w)?;
