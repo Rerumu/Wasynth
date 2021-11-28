@@ -19,7 +19,19 @@ features = ["multi_value", "sign_ext"]
 path = "../wasm"
 
 [[bin]]
-name = "translator"
-path = "fuzz_targets/translator.rs"
+name = "full_translate"
+path = "fuzz_targets/full_translate.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "just_writer"
+path = "fuzz_targets/just_writer.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "just_transformer"
+path = "fuzz_targets/just_transformer.rs"
 test = false
 doc = false
