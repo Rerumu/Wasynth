@@ -67,7 +67,7 @@ pub fn gen_expression(code: &[Instruction], w: &mut dyn Write) -> Result<()> {
 		return result;
 	}
 
-	unreachable!();
+	write!(w, "error(\"mundane expression\")")
 }
 
 pub struct Module<'a> {
