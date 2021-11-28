@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies.parity-wasm]
 git = "https://github.com/paritytech/parity-wasm.git"
-features = ["multi_value"]
+features = ["multi_value", "sign_ext"]

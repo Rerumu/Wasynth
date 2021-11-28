@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use parity_wasm::elements::Instruction;
+use parity_wasm::elements::{Instruction, SignExtInstruction};
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
@@ -144,6 +144,10 @@ pub enum UnOp {
 	Trunc_U32_F32,
 	Trunc_I32_F64,
 	Trunc_U32_F64,
+	Extend_I32_I8,
+	Extend_I32_I16,
+	Extend_I64_I8,
+	Extend_I64_I16,
 	Extend_I64_I32,
 	Extend_U64_I32,
 	Trunc_I64_F32,
@@ -198,6 +202,10 @@ impl UnOp {
 			Self::Trunc_U32_F32 => ("trunc", "u32_f32"),
 			Self::Trunc_I32_F64 => ("trunc", "i32_f64"),
 			Self::Trunc_U32_F64 => ("trunc", "u32_f64"),
+			Self::Extend_I32_I8 => ("extend", "i32_i8"),
+			Self::Extend_I32_I16 => ("extend", "i32_i16"),
+			Self::Extend_I64_I8 => ("extend", "i64_i8"),
+			Self::Extend_I64_I16 => ("extend", "i64_i16"),
 			Self::Extend_I64_I32 => ("extend", "i64_i32"),
 			Self::Extend_U64_I32 => ("extend", "u64_i32"),
 			Self::Trunc_I64_F32 => ("trunc", "i64_f32"),
@@ -227,6 +235,13 @@ impl TryFrom<&Instruction> for UnOp {
 
 	fn try_from(inst: &Instruction) -> Result<Self, Self::Error> {
 		let result = match inst {
+			Instruction::SignExt(ext) => match ext {
+				SignExtInstruction::I32Extend8S => Self::Extend_I32_I8,
+				SignExtInstruction::I32Extend16S => Self::Extend_I32_I16,
+				SignExtInstruction::I64Extend8S => Self::Extend_I64_I8,
+				SignExtInstruction::I64Extend16S => Self::Extend_I64_I16,
+				SignExtInstruction::I64Extend32S => Self::Extend_I64_I32,
+			},
 			Instruction::I32Eqz => Self::Eqz_I32,
 			Instruction::I64Eqz => Self::Eqz_I64,
 			Instruction::I32Clz => Self::Clz_I32,
