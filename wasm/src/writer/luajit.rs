@@ -253,12 +253,9 @@ impl Driver for Forward {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		let label = v.push_label();
 
-		write!(w, "do ")?;
-
 		self.body.iter().try_for_each(|s| s.visit(v, w))?;
 
 		write!(w, "::continue_at_{}::", label)?;
-		write!(w, "end ")?;
 
 		v.pop_label();
 
@@ -270,12 +267,9 @@ impl Driver for Backward {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		let label = v.push_label();
 
-		write!(w, "do ")?;
 		write!(w, "::continue_at_{}::", label)?;
 
 		self.body.iter().try_for_each(|s| s.visit(v, w))?;
-
-		write!(w, "end ")?;
 
 		v.pop_label();
 
@@ -340,7 +334,7 @@ impl Driver for BrIf {
 
 impl Driver for BrTable {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		write!(w, "local temp = ")?;
+		write!(w, "temp = ")?;
 		self.cond.visit(v, w)?;
 		write!(w, " ")?;
 
@@ -466,6 +460,7 @@ impl Driver for Function {
 			write!(w, "local memory_at_{0} = MEMORY_LIST[{0}]", v)?;
 		}
 
+		write!(w, "local temp ")?;
 		write_variable_list(self, w)?;
 
 		self.body.visit(v, w)?;
