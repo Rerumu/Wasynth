@@ -349,6 +349,7 @@ impl Driver for BrIf {
 
 impl Driver for BrTable {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
+		write!(w, "do ")?;
 		write!(w, "local temp = {{")?;
 
 		for d in self.data.table.iter() {
@@ -360,7 +361,8 @@ impl Driver for BrTable {
 		write!(w, "desired = temp[")?;
 		self.cond.visit(v, w)?;
 		write!(w, "] or {} ", self.data.default)?;
-		write!(w, "break ")
+		write!(w, "break ")?;
+		write!(w, "end ")
 	}
 }
 
