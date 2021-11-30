@@ -449,9 +449,7 @@ impl Driver for Statement {
 impl Driver for Function {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		write!(w, "function(")?;
-
 		write_in_order("param", self.num_param, w)?;
-
 		write!(w, ")")?;
 
 		v.num_param = self.num_param;
