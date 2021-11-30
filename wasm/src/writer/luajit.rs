@@ -65,17 +65,30 @@ fn condense_jump_table(list: &[u32]) -> Vec<(usize, usize, u32)> {
 	result
 }
 
-#[derive(PartialEq, Eq)]
-enum Label {
-	Forward,
-	Backward,
-	If,
-}
-
 #[derive(Default)]
 struct Visitor {
-	label_list: Vec<Label>,
+	label_list: Vec<usize>,
+	num_label: usize,
 	num_param: u32,
+}
+
+impl Visitor {
+	fn push_label(&mut self) -> usize {
+		self.label_list.push(self.num_label);
+		self.num_label += 1;
+
+		self.num_label - 1
+	}
+
+	fn pop_label(&mut self) {
+		self.label_list.pop().unwrap();
+	}
+
+	fn get_label(&self, up: u32) -> usize {
+		let last = self.label_list.len() - 1;
+
+		self.label_list[last - up as usize]
+	}
 }
 
 trait Driver {
@@ -238,18 +251,16 @@ impl Driver for Memorize {
 
 impl Driver for Forward {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		let rem = v.label_list.len();
-
-		v.label_list.push(Label::Forward);
+		let label = v.push_label();
 
 		write!(w, "do ")?;
 
 		self.body.iter().try_for_each(|s| s.visit(v, w))?;
 
-		write!(w, "::continue_at_{}::", rem)?;
+		write!(w, "::continue_at_{}::", label)?;
 		write!(w, "end ")?;
 
-		v.label_list.pop().unwrap();
+		v.pop_label();
 
 		Ok(())
 	}
@@ -257,18 +268,16 @@ impl Driver for Forward {
 
 impl Driver for Backward {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		let rem = v.label_list.len();
-
-		v.label_list.push(Label::Backward);
+		let label = v.push_label();
 
 		write!(w, "do ")?;
-		write!(w, "::continue_at_{}::", rem)?;
+		write!(w, "::continue_at_{}::", label)?;
 
 		self.body.iter().try_for_each(|s| s.visit(v, w))?;
 
 		write!(w, "end ")?;
 
-		v.label_list.pop().unwrap();
+		v.pop_label();
 
 		Ok(())
 	}
@@ -284,9 +293,7 @@ impl Driver for Else {
 
 impl Driver for If {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		let rem = v.label_list.len();
-
-		v.label_list.push(Label::If);
+		let label = v.push_label();
 
 		write!(w, "if ")?;
 		self.cond.visit(v, w)?;
@@ -298,20 +305,19 @@ impl Driver for If {
 			s.visit(v, w)?;
 		}
 
-		write!(w, "::continue_at_{}::", rem)?;
+		write!(w, "::continue_at_{}::", label)?;
 		write!(w, "end ")?;
 
-		v.label_list.pop().unwrap();
+		v.pop_label();
 
 		Ok(())
 	}
 }
 
 fn write_br_at(up: u32, v: &Visitor, w: Writer) -> Result<()> {
-	let up = up as usize;
-	let level = v.label_list.len() - 1;
+	let level = v.get_label(up);
 
-	write!(w, "goto continue_at_{} ", level - up)
+	write!(w, "goto continue_at_{} ", level)
 }
 
 impl Driver for Br {
