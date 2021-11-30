@@ -50,13 +50,13 @@ do
 	function mul.i64(a, b) return a * b end
 
 	function div.i32(lhs, rhs)
-		if rhs == 0 then error('division by zero') end
+		assert(rhs ~= 0, 'division by zero')
 
 		return truncate(lhs / rhs)
 	end
 
 	function div.u32(lhs, rhs)
-		if rhs == 0 then error('division by zero') end
+		assert(rhs ~= 0, 'division by zero')
 
 		lhs = tonumber(u32(lhs))
 		rhs = tonumber(u32(rhs))
@@ -65,7 +65,7 @@ do
 	end
 
 	function div.u64(lhs, rhs)
-		if rhs == 0 then error('division by zero') end
+		assert(rhs ~= 0, 'division by zero')
 
 		return i64(u64(lhs) / u64(rhs))
 	end

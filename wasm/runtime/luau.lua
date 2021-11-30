@@ -8,7 +8,7 @@ do
 	module.div = div
 
 	function div.i32(lhs, rhs)
-		if rhs == 0 then error('division by zero') end
+		assert(rhs ~= 0, 'division by zero')
 
 		return math.floor(lhs / rhs)
 	end
