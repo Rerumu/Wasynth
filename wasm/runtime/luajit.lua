@@ -142,10 +142,12 @@ do
 
 	function eq.i32(lhs, rhs) return to_boolean(lhs == rhs) end
 	function eq.i64(lhs, rhs) return to_boolean(lhs == rhs) end
+	function eq.num(lhs, rhs) return to_boolean(lhs == rhs) end
 	function eqz.i32(lhs) return to_boolean(lhs == 0) end
 	function eqz.i64(lhs) return to_boolean(lhs == 0) end
 	function ne.i32(lhs, rhs) return to_boolean(lhs ~= rhs) end
 	function ne.i64(lhs, rhs) return to_boolean(lhs ~= rhs) end
+	function ne.num(lhs, rhs) return to_boolean(lhs ~= rhs) end
 
 	function ge.i32(lhs, rhs) return to_boolean(lhs >= rhs) end
 	function ge.i64(lhs, rhs) return to_boolean(lhs >= rhs) end
