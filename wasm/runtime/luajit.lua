@@ -253,6 +253,8 @@ do
 	trunc.u64_f32 = truncate_i64
 	trunc.u64_f64 = truncate_i64
 
+	extend.i64_i32 = i64
+
 	function extend.u64_i32(num)
 		RE_INSTANCE.i64 = 0
 		RE_INSTANCE.i32 = num
