@@ -3,14 +3,11 @@
 use parity_wasm::elements::Module as WasmModule;
 use wasm_smith::Module as SmModule;
 
-use wasm::backend::{ast::transformer::Transformer, translator::arity::List};
+use wasm::writer::{luajit::LuaJIT, visit::Transpiler};
 
 fn fuzz_transformer(wasm: &WasmModule) {
-	let arity = List::new(wasm);
-
-	for i in 0..arity.in_arity.len() {
-		let _ = Transformer::new(wasm, &arity).consume(i);
-	}
+	let trans = LuaJIT::new(wasm);
+	let _func = trans.build_func_list();
 }
 
 libfuzzer_sys::fuzz_target!(|module: SmModule| {

@@ -1,24 +1,106 @@
-use parity_wasm::elements::{BlockType, Instruction, Local, Module};
-
-use crate::backend::translator::arity::{Arity, List as ArityList};
-
-use super::{
-	data::Memorize,
-	operation::{BinOp, UnOp},
-	{
-		data::{
-			AnyBinOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call, CallIndirect,
-			Expression, Forward, Function, GetGlobal, GetLocal, If, MemoryGrow, MemorySize, Return,
-			Select, SetGlobal, SetLocal, Statement, Value,
-		},
-		operation::{Load, Store},
-	},
+use parity_wasm::elements::{
+	BlockType, External, FunctionType, ImportEntry, Instruction, Local, Module, Type,
 };
 
-pub struct Transformer<'a> {
+use super::{
+	node::{
+		AnyBinOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call, CallIndirect,
+		Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize, MemoryGrow,
+		MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
+	},
+	tag::{BinOp, Load, Store, UnOp},
+};
+
+struct Arity {
+	num_param: u32,
+	num_result: u32,
+}
+
+impl Arity {
+	fn from_type(typ: &FunctionType) -> Self {
+		let num_param = typ.params().len().try_into().unwrap();
+		let num_result = typ.results().len().try_into().unwrap();
+
+		Self {
+			num_param,
+			num_result,
+		}
+	}
+
+	fn from_index(types: &[Type], index: u32) -> Self {
+		let Type::Function(typ) = &types[index as usize];
+
+		Self::from_type(typ)
+	}
+
+	fn new_arity_ext(types: &[Type], import: &ImportEntry) -> Option<Arity> {
+		if let External::Function(i) = import.external() {
+			Some(Arity::from_index(types, *i))
+		} else {
+			None
+		}
+	}
+
+	fn new_in_list(wasm: &Module) -> Vec<Self> {
+		let (types, funcs) = match (wasm.type_section(), wasm.function_section()) {
+			(Some(t), Some(f)) => (t.types(), f.entries()),
+			_ => return Vec::new(),
+		};
+
+		funcs
+			.iter()
+			.map(|i| Self::from_index(types, i.type_ref()))
+			.collect()
+	}
+
+	fn new_ex_list(wasm: &Module) -> Vec<Self> {
+		let (types, imports) = match (wasm.type_section(), wasm.import_section()) {
+			(Some(t), Some(i)) => (t.types(), i.entries()),
+			_ => return Vec::new(),
+		};
+
+		imports
+			.iter()
+			.filter_map(|i| Self::new_arity_ext(types, i))
+			.collect()
+	}
+}
+
+pub struct Arities {
+	ex_arity: Vec<Arity>,
+	in_arity: Vec<Arity>,
+}
+
+impl Arities {
+	pub fn new(parent: &Module) -> Self {
+		Self {
+			ex_arity: Arity::new_ex_list(parent),
+			in_arity: Arity::new_in_list(parent),
+		}
+	}
+
+	pub fn len_in(&self) -> usize {
+		self.in_arity.len()
+	}
+
+	pub fn len_ex(&self) -> usize {
+		self.ex_arity.len()
+	}
+
+	fn arity_of(&self, index: usize) -> &Arity {
+		let offset = self.ex_arity.len();
+
+		self.ex_arity
+			.get(index)
+			.or_else(|| self.in_arity.get(index - offset))
+			.unwrap()
+	}
+}
+
+pub struct Builder<'a> {
 	// target state
 	wasm: &'a Module,
-	other: &'a ArityList,
+	other: &'a Arities,
 	num_result: u32,
 
 	// translation state
@@ -42,9 +124,9 @@ fn is_dead_precursor(inst: &Instruction) -> bool {
 	)
 }
 
-impl<'a> Transformer<'a> {
-	pub fn new(wasm: &'a Module, other: &'a ArityList) -> Transformer<'a> {
-		Transformer {
+impl<'a> Builder<'a> {
+	pub fn new(wasm: &'a Module, other: &'a Arities) -> Builder<'a> {
+		Builder {
 			wasm,
 			other,
 			num_result: 0,
@@ -79,9 +161,9 @@ impl<'a> Transformer<'a> {
 	fn push_recall(&mut self, num: u32) {
 		let len = self.stack.len();
 
-		(len..len + num as usize)
-			.map(Expression::Recall)
-			.for_each(|v| self.stack.push(v));
+		for var in len..len + num as usize {
+			self.stack.push(Expression::Recall(Recall { var }));
+		}
 	}
 
 	fn push_block_result(&mut self, typ: BlockType) {
@@ -109,7 +191,7 @@ impl<'a> Transformer<'a> {
 			.enumerate()
 			.filter(|v| !v.1.is_recalling(v.0))
 		{
-			let new = Expression::Recall(i);
+			let new = Expression::Recall(Recall { var: i });
 			let mem = Memorize {
 				var: i,
 				value: std::mem::replace(v, new),
@@ -218,7 +300,7 @@ impl<'a> Transformer<'a> {
 			.push(Expression::AnyBinOp(AnyBinOp { op, lhs, rhs }));
 	}
 
-	fn drop_unreachable(&mut self, list: &mut &[Instruction]) {
+	fn drop_unreachable(list: &mut &[Instruction]) {
 		use Instruction as Inst;
 
 		let mut level = 1;
@@ -421,7 +503,7 @@ impl<'a> Transformer<'a> {
 			}
 
 			if is_dead_precursor(inst) {
-				self.drop_unreachable(list);
+				Self::drop_unreachable(list);
 
 				break;
 			}
@@ -440,12 +522,18 @@ impl<'a> Transformer<'a> {
 		body
 	}
 
+	fn new_else(&mut self, list: &mut &[Instruction]) -> Else {
+		Else {
+			body: self.new_stored_body(list),
+		}
+	}
+
 	fn new_if(&mut self, cond: Expression, list: &mut &[Instruction]) -> If {
 		let copied = <&[Instruction]>::clone(list);
 		let truthy = self.new_stored_body(list);
 
 		let end = copied.len() - list.len() - 1;
-		let falsey = is_else_stat(&copied[end]).then(|| self.new_stored_body(list));
+		let falsey = is_else_stat(&copied[end]).then(|| self.new_else(list));
 
 		If {
 			cond,

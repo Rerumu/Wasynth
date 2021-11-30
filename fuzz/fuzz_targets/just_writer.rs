@@ -5,23 +5,13 @@ use std::io::Result;
 use parity_wasm::elements::Module as WasmModule;
 use wasm_smith::Module as SmModule;
 
-use wasm::backend::{
-	ast::transformer::Transformer,
-	edition::{data::Edition, luajit::LuaJIT},
-	translator::{arity::List, writer::Data},
-};
+use wasm::writer::{luajit::LuaJIT, visit::Transpiler};
 
-fn fuzz_writer(wasm: &WasmModule, ed: &dyn Edition) -> Result<()> {
-	let mut sink = std::io::sink();
-	let arity = List::new(wasm);
+fn fuzz_writer(wasm: &WasmModule) -> Result<()> {
+	let trans = LuaJIT::new(wasm);
+	let list = trans.build_func_list();
 
-	for i in 0..arity.in_arity.len() {
-		let func = Transformer::new(wasm, &arity).consume(i);
-
-		func.output(&mut Data::new(ed), &mut sink)?;
-	}
-
-	Ok(())
+	trans.gen_func_list(&list, &mut std::io::sink())
 }
 
 libfuzzer_sys::fuzz_target!(|module: SmModule| {
@@ -31,5 +21,5 @@ libfuzzer_sys::fuzz_target!(|module: SmModule| {
 		Err(_) => return,
 	};
 
-	fuzz_writer(&wasm, &LuaJIT).expect("LuaJIT should succeed");
+	fuzz_writer(&wasm).expect("LuaJIT should succeed");
 });
