@@ -8,15 +8,6 @@ local u32 = ffi.typeof('uint32_t')
 local u64 = ffi.typeof('uint64_t')
 local i64 = ffi.typeof('int64_t')
 
-ffi.cdef [[
-typedef union {
-	int32_t i32;
-	int64_t i64;
-	float f32;
-	double f64;
-} Reinterpret;
-]]
-
 if jit and jit.opt then jit.opt.start("maxsnap=1000", "loopunroll=500", "maxmcode=2048") end
 
 local function truncate(num)
@@ -230,7 +221,12 @@ do
 
 	-- This would surely be an issue in a multi-thread environment...
 	-- ... thankfully this isn't one.
-	local RE_INSTANCE = ffi.new('Reinterpret')
+	local RE_INSTANCE = ffi.new [[union {
+		int32_t i32;
+		int64_t i64;
+		float f32;
+		double f64;
+	}]]
 
 	local function truncate_i64(num) return i64(truncate(num)) end
 
