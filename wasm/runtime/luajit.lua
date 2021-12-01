@@ -26,11 +26,6 @@ do
 
 	local to_signed = bit.tobit
 
-	module.add = add
-	module.sub = sub
-	module.mul = mul
-	module.div = div
-
 	function add.i32(a, b) return to_signed(a + b) end
 	function add.i64(a, b) return a + b end
 
@@ -60,6 +55,11 @@ do
 
 		return i64(u64(lhs) / u64(rhs))
 	end
+
+	module.add = add
+	module.sub = sub
+	module.mul = mul
+	module.div = div
 end
 
 do
@@ -69,10 +69,6 @@ do
 
 	local lj_band = bit.band
 	local lj_lshift = bit.lshift
-
-	module.clz = clz
-	module.ctz = ctz
-	module.popcnt = popcnt
 
 	function clz.i32(num)
 		for i = 0, 31 do
@@ -104,6 +100,10 @@ do
 
 		return count
 	end
+
+	module.clz = clz
+	module.ctz = ctz
+	module.popcnt = popcnt
 end
 
 do
@@ -114,14 +114,6 @@ do
 	local lt = {}
 	local ge = {}
 	local gt = {}
-
-	module.eqz = eqz
-	module.eq = eq
-	module.ne = ne
-	module.le = le
-	module.lt = lt
-	module.ge = ge
-	module.gt = gt
 
 	local function to_boolean(cond)
 		if cond then
@@ -159,6 +151,14 @@ do
 	function lt.i64(lhs, rhs) return to_boolean(lhs < rhs) end
 	function lt.u32(lhs, rhs) return to_boolean(u32(lhs) < u32(rhs)) end
 	function lt.u64(lhs, rhs) return to_boolean(u64(lhs) < u64(rhs)) end
+
+	module.eqz = eqz
+	module.eq = eq
+	module.ne = ne
+	module.le = le
+	module.lt = lt
+	module.ge = ge
+	module.gt = gt
 end
 
 do
@@ -166,11 +166,6 @@ do
 	local bor = {}
 	local bxor = {}
 	local bnot = {}
-
-	module.band = band
-	module.bor = bor
-	module.bxor = bxor
-	module.bnot = bnot
 
 	band.i32 = bit.band
 	band.i64 = bit.band
@@ -180,6 +175,11 @@ do
 	bor.i64 = bit.bor
 	bxor.i32 = bit.bxor
 	bxor.i64 = bit.bxor
+
+	module.band = band
+	module.bor = bor
+	module.bxor = bxor
+	module.bnot = bnot
 end
 
 do
@@ -191,11 +191,6 @@ do
 	local lj_lshift = bit.lshift
 	local lj_rshift = bit.rshift
 	local lj_arshift = bit.arshift
-
-	module.shl = shl
-	module.shr = shr
-	module.rotl = rotl
-	module.rotr = rotr
 
 	rotl.i32 = bit.rol
 	rotl.i64 = bit.rol
@@ -210,6 +205,11 @@ do
 	shr.i64 = lj_arshift
 	shr.u32 = lj_rshift
 	shr.u64 = lj_rshift
+
+	module.shl = shl
+	module.shr = shr
+	module.rotl = rotl
+	module.rotr = rotr
 end
 
 do
@@ -229,12 +229,6 @@ do
 	}]]
 
 	local function truncate_i64(num) return i64(truncate(num)) end
-
-	module.wrap = wrap
-	module.trunc = trunc
-	module.extend = extend
-	module.convert = convert
-	module.reinterpret = reinterpret
 
 	function wrap.i32_i64(num)
 		RE_INSTANCE.i64 = num
@@ -293,11 +287,18 @@ do
 
 		return RE_INSTANCE.f64
 	end
+
+	module.wrap = wrap
+	module.trunc = trunc
+	module.extend = extend
+	module.convert = convert
+	module.reinterpret = reinterpret
 end
 
 do
 	local load = {}
 	local store = {}
+
 	local cast = ffi.cast
 
 	local ptr_i8 = ffi.typeof('int8_t *')
@@ -310,9 +311,6 @@ do
 
 	local ptr_f32 = ffi.typeof('float *')
 	local ptr_f64 = ffi.typeof('double *')
-
-	module.load = load
-	module.store = store
 
 	function load.i32_i8(memory, addr) return cast(ptr_i8, memory.data)[addr] end
 	function load.i32_u8(memory, addr) return memory.data[addr] end
@@ -342,6 +340,9 @@ do
 
 	function store.f32(memory, addr, value) cast(ptr_f32, memory.data + addr)[0] = value end
 	function store.f64(memory, addr, value) cast(ptr_f64, memory.data + addr)[0] = value end
+
+	module.load = load
+	module.store = store
 end
 
 do
@@ -362,8 +363,6 @@ do
 	]]
 
 	local mem_t = ffi.typeof('struct Memory')
-
-	module.memory = memory
 
 	local function finalizer(mem) ffi.C.free(mem.data) end
 
@@ -401,6 +400,8 @@ do
 			return old
 		end
 	end
+
+	module.memory = memory
 end
 
 return module
