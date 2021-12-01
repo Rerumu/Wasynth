@@ -143,7 +143,7 @@ impl Driver for AnyLoad {
 
 impl Driver for MemorySize {
 	fn visit(&self, _: &mut Visitor, w: Writer) -> Result<()> {
-		write!(w, "rt.memory.size(memory_at_{})", self.memory)
+		write!(w, "memory_at_{}.min ", self.memory)
 	}
 }
 

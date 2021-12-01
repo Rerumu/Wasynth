@@ -374,8 +374,6 @@ do
 
 	function memory.init(memory, offset, data) ffi.copy(memory.data + offset, data) end
 
-	function memory.size(memory) return memory.min end
-
 	function memory.grow(memory, num)
 		local old = memory.min
 		local new = old + num
