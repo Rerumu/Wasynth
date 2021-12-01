@@ -347,29 +347,44 @@ end
 do
 	local memory = {}
 
-	local vla_u8 = ffi.typeof('uint8_t[?]')
-
 	local WASM_PAGE_SIZE = 65536
+
+	ffi.cdef [[
+	struct Memory {
+		uint32_t min;
+		uint32_t max;
+		uint8_t *data;
+	};
+
+	void *calloc(size_t num, size_t size);
+	void *realloc(void *ptr, size_t size);
+	void free(void *ptr);
+	]]
+
+	local mem_t = ffi.typeof('struct Memory')
 
 	module.memory = memory
 
+	local function finalizer(mem) ffi.C.free(mem.data) end
+
 	local function grow_unchecked(memory, old, new)
-		local data = vla_u8(new * WASM_PAGE_SIZE, 0)
-
-		ffi.copy(data, memory.data, old * WASM_PAGE_SIZE)
-
+		memory.data = ffi.C.realloc(memory.data, new * WASM_PAGE_SIZE)
 		memory.min = new
-		memory.data = data
+
+		assert(memory.data ~= nil, 'failed to reallocate')
+
+		local start = memory.data + old * WASM_PAGE_SIZE
+		local len = (new - old) * WASM_PAGE_SIZE
+
+		ffi.fill(start, len, 0)
 	end
 
 	function memory.new(min, max)
-		local memory = {}
+		local data = ffi.C.calloc(max, WASM_PAGE_SIZE)
 
-		memory.min = min
-		memory.max = max
-		memory.data = vla_u8(min * WASM_PAGE_SIZE, 0)
+		assert(data ~= nil, 'failed to allocate')
 
-		return memory
+		return ffi.gc(mem_t(min, max, data), finalizer)
 	end
 
 	function memory.init(memory, offset, data) ffi.copy(memory.data + offset, data) end
