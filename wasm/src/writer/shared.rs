@@ -15,7 +15,7 @@ pub fn aux_internal_index(internal: Internal) -> u32 {
 pub fn new_limit_max(limits: &ResizableLimits) -> String {
 	match limits.maximum() {
 		Some(v) => v.to_string(),
-		None => "math.huge".to_string(),
+		None => "0xFFFF".to_string(),
 	}
 }
 
