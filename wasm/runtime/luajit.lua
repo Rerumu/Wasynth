@@ -364,18 +364,14 @@ do
 
 	local mem_t = ffi.typeof('struct Memory')
 
-	local function finalizer(mem) ffi.C.free(mem.data) end
+	local function finalizer(memory) ffi.C.free(memory.data) end
 
 	local function grow_unchecked(memory, old, new)
-		memory.data = ffi.C.realloc(memory.data, new * WASM_PAGE_SIZE)
-		memory.min = new
+		memory.data = ffi.C.realloc(memory.data, new)
 
 		assert(memory.data ~= nil, 'failed to reallocate')
 
-		local start = memory.data + old * WASM_PAGE_SIZE
-		local len = (new - old) * WASM_PAGE_SIZE
-
-		ffi.fill(start, len, 0)
+		ffi.fill(memory.data + old, new - old, 0)
 	end
 
 	function memory.new(min, max)
@@ -395,7 +391,8 @@ do
 		if new > memory.max then
 			return -1
 		else
-			grow_unchecked(memory, old, new)
+			grow_unchecked(memory, old * WASM_PAGE_SIZE, new * WASM_PAGE_SIZE)
+			memory.min = new
 
 			return old
 		end
