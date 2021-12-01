@@ -299,47 +299,160 @@ do
 	local load = {}
 	local store = {}
 
-	local cast = ffi.cast
+	local copy = ffi.copy
 
-	local ptr_i8 = ffi.typeof('int8_t *')
-	local ptr_i16 = ffi.typeof('int16_t *')
-	local ptr_i32 = ffi.typeof('int32_t *')
-	local ptr_i64 = ffi.typeof('int64_t *')
+	local RE_INSTANCE = ffi.new [[union {
+		int8_t i8;
+		int16_t i16;
+		int32_t i32;
+		int64_t i64;
 
-	local ptr_u16 = ffi.typeof('uint16_t *')
-	local ptr_u32 = ffi.typeof('uint32_t *')
+		uint8_t u8;
+		uint16_t u16;
+		uint32_t u32;
+		uint64_t u64;
 
-	local ptr_f32 = ffi.typeof('float *')
-	local ptr_f64 = ffi.typeof('double *')
+		float f32;
+		double f64;
+	}]]
 
-	function load.i32_i8(memory, addr) return cast(ptr_i8, memory.data)[addr] end
-	function load.i32_u8(memory, addr) return memory.data[addr] end
-	function load.i32_i16(memory, addr) return cast(ptr_i16, memory.data + addr)[0] end
-	function load.i32_u16(memory, addr) return cast(ptr_u16, memory.data + addr)[0] end
-	function load.i32(memory, addr) return cast(ptr_i32, memory.data + addr)[0] end
+	function load.i32_i8(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 1)
 
-	function load.i64_i8(memory, addr) return i64(cast(ptr_i8, memory.data)[addr]) end
-	function load.i64_u8(memory, addr) return i64(memory.data[addr]) end
-	function load.i64_i16(memory, addr) return i64(cast(ptr_i16, memory.data + addr)[0]) end
-	function load.i64_u16(memory, addr) return i64(cast(ptr_u16, memory.data + addr)[0]) end
-	function load.i64_i32(memory, addr) return i64(cast(ptr_i32, memory.data + addr)[0]) end
-	function load.i64_u32(memory, addr) return i64(cast(ptr_u32, memory.data + addr)[0]) end
-	function load.i64(memory, addr) return cast(ptr_i64, memory.data + addr)[0] end
+		return RE_INSTANCE.i8
+	end
 
-	function load.f32(memory, addr) return cast(ptr_f32, memory.data + addr)[0] end
-	function load.f64(memory, addr) return cast(ptr_f64, memory.data + addr)[0] end
+	function load.i32_u8(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 1)
 
-	function store.i32_n8(memory, addr, value) memory.data[addr] = value end
-	function store.i32_n16(memory, addr, value) cast(ptr_i16, memory.data + addr)[0] = value end
-	function store.i32(memory, addr, value) cast(ptr_i32, memory.data + addr)[0] = value end
+		return RE_INSTANCE.u8
+	end
 
-	function store.i64_n8(memory, addr, value) memory.data[addr] = value end
-	function store.i64_n16(memory, addr, value) cast(ptr_i16, memory.data + addr)[0] = value end
-	function store.i64_n32(memory, addr, value) cast(ptr_i32, memory.data + addr)[0] = value end
-	function store.i64(memory, addr, value) cast(ptr_i64, memory.data + addr)[0] = value end
+	function load.i32_i16(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 2)
 
-	function store.f32(memory, addr, value) cast(ptr_f32, memory.data + addr)[0] = value end
-	function store.f64(memory, addr, value) cast(ptr_f64, memory.data + addr)[0] = value end
+		return RE_INSTANCE.i16
+	end
+
+	function load.i32_u16(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 2)
+
+		return RE_INSTANCE.u16
+	end
+
+	function load.i32(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 4)
+
+		return RE_INSTANCE.i32
+	end
+
+	function load.i64_i8(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 1)
+
+		return i64(RE_INSTANCE.i8)
+	end
+
+	function load.i64_u8(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 1)
+
+		return i64(RE_INSTANCE.u8)
+	end
+
+	function load.i64_i16(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 2)
+
+		return i64(RE_INSTANCE.i16)
+	end
+
+	function load.i64_u16(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 2)
+
+		return i64(RE_INSTANCE.u16)
+	end
+
+	function load.i64_i32(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 4)
+
+		return i64(RE_INSTANCE.i32)
+	end
+
+	function load.i64_u32(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 4)
+
+		return i64(RE_INSTANCE.u32)
+	end
+
+	function load.i64(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 8)
+
+		return RE_INSTANCE.i64
+	end
+
+	function load.f32(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 4)
+
+		return RE_INSTANCE.f32
+	end
+
+	function load.f64(memory, addr)
+		copy(RE_INSTANCE, memory.data + addr, 8)
+
+		return RE_INSTANCE.f64
+	end
+
+	function store.i32_n8(memory, addr, value)
+		RE_INSTANCE.i32 = value
+
+		copy(memory.data + addr, RE_INSTANCE, 1)
+	end
+
+	function store.i32_n16(memory, addr, value)
+		RE_INSTANCE.i32 = value
+
+		copy(memory.data + addr, RE_INSTANCE, 2)
+	end
+
+	function store.i32(memory, addr, value)
+		RE_INSTANCE.i32 = value
+
+		copy(memory.data + addr, RE_INSTANCE, 4)
+	end
+
+	function store.i64_n8(memory, addr, value)
+		RE_INSTANCE.i64 = value
+
+		copy(memory.data + addr, RE_INSTANCE, 1)
+	end
+
+	function store.i64_n16(memory, addr, value)
+		RE_INSTANCE.i64 = value
+
+		copy(memory.data + addr, RE_INSTANCE, 2)
+	end
+
+	function store.i64_n32(memory, addr, value)
+		RE_INSTANCE.i64 = value
+
+		copy(memory.data + addr, RE_INSTANCE, 4)
+	end
+
+	function store.i64(memory, addr, value)
+		RE_INSTANCE.i64 = value
+
+		copy(memory.data + addr, RE_INSTANCE, 8)
+	end
+
+	function store.f32(memory, addr, value)
+		RE_INSTANCE.f32 = value
+
+		copy(memory.data + addr, RE_INSTANCE, 4)
+	end
+
+	function store.f64(memory, addr, value)
+		RE_INSTANCE.f64 = value
+
+		copy(memory.data + addr, RE_INSTANCE, 8)
+	end
 
 	module.load = load
 	module.store = store
@@ -362,8 +475,6 @@ do
 	void free(void *ptr);
 	]]
 
-	local mem_t = ffi.typeof('struct Memory')
-
 	local function finalizer(memory) ffi.C.free(memory.data) end
 
 	local function grow_unchecked(memory, old, new)
@@ -379,7 +490,9 @@ do
 
 		assert(data ~= nil, 'failed to allocate')
 
-		return ffi.gc(mem_t(min, max, data), finalizer)
+		local memory = ffi.new('struct Memory', min, max, data)
+
+		return ffi.gc(memory, finalizer)
 	end
 
 	function memory.init(memory, offset, data) ffi.copy(memory.data + offset, data) end
