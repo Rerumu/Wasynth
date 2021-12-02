@@ -1,6 +1,6 @@
 use std::{io::Result, ops::Range};
 
-use parity_wasm::elements::{Internal, Module, ResizableLimits};
+use parity_wasm::elements::{Internal, Module, NameSection, ResizableLimits};
 
 use crate::ast::node::Function;
 
@@ -36,7 +36,7 @@ pub fn write_memory_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
 pub fn write_func_name(wasm: &Module, index: u32, offset: u32, w: Writer) -> Result<()> {
 	let opt = wasm
 		.names_section()
-		.and_then(|v| v.functions())
+		.and_then(NameSection::functions)
 		.and_then(|v| v.names().get(index));
 
 	write!(w, "FUNC_LIST")?;

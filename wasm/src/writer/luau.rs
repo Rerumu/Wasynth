@@ -694,7 +694,7 @@ impl<'a> Luau<'a> {
 		let o = self.arity.len_ex();
 
 		func_list.iter().enumerate().try_for_each(|(i, v)| {
-			write_func_name(self.wasm, i as u32, o as u32, w)?;
+			write_func_name(self.wasm, i.try_into().unwrap(), o.try_into().unwrap(), w)?;
 
 			v.visit(&mut Visitor::default(), w)
 		})
