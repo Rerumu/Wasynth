@@ -1,5 +1,5 @@
 use parity_wasm::elements::{
-	BlockType, External, FunctionType, ImportEntry, Instruction, Local, Module, Type,
+	BlockType, External, FuncBody, FunctionType, ImportEntry, Instruction, Local, Module, Type,
 };
 
 use super::{
@@ -109,10 +109,6 @@ pub struct Builder<'a> {
 	last_stack: usize,
 }
 
-fn local_sum(list: &[Local]) -> u32 {
-	list.iter().map(Local::count).sum()
-}
-
 fn is_else_stat(inst: &Instruction) -> bool {
 	inst == &Instruction::Else
 }
@@ -122,6 +118,14 @@ fn is_dead_precursor(inst: &Instruction) -> bool {
 		inst,
 		Instruction::Unreachable | Instruction::Br(_) | Instruction::Return
 	)
+}
+
+fn local_sum(body: &FuncBody) -> u32 {
+	body.locals().iter().map(Local::count).sum()
+}
+
+fn load_func_at(wasm: &Module, index: usize) -> &FuncBody {
+	&wasm.code_section().unwrap().bodies()[index]
 }
 
 impl<'a> Builder<'a> {
@@ -136,18 +140,22 @@ impl<'a> Builder<'a> {
 		}
 	}
 
-	pub fn consume(mut self, name: usize) -> Function {
-		let arity = &self.other.in_arity[name];
+	pub fn consume(mut self, index: usize) -> Function {
+		let func = load_func_at(self.wasm, index);
+		let arity = &self.other.in_arity[index];
+
+		let num_param = arity.num_param;
+		let num_local = local_sum(func);
 
 		self.num_result = arity.num_result;
 
-		let func = &self.wasm.code_section().unwrap().bodies()[name];
 		let body = self.new_forward(&mut func.code().elements());
+		let num_stack = self.last_stack.try_into().unwrap();
 
 		Function {
-			num_param: arity.num_param,
-			num_local: local_sum(func.locals()),
-			num_stack: u32::try_from(self.last_stack).unwrap(),
+			num_param,
+			num_local,
+			num_stack,
 			body,
 		}
 	}
@@ -331,10 +339,12 @@ impl<'a> Builder<'a> {
 		}
 	}
 
-	fn new_body(&mut self, list: &mut &[Instruction]) -> Vec<Statement> {
+	fn new_stored_body(&mut self, list: &mut &[Instruction]) -> Vec<Statement> {
 		use Instruction as Inst;
 
 		let mut stat = Vec::new();
+
+		self.save_pending();
 
 		loop {
 			let inst = &list[0];
@@ -509,17 +519,9 @@ impl<'a> Builder<'a> {
 			}
 		}
 
-		stat
-	}
-
-	fn new_stored_body(&mut self, list: &mut &[Instruction]) -> Vec<Statement> {
-		self.save_pending();
-
-		let body = self.new_body(list);
-
 		self.load_pending();
 
-		body
+		stat
 	}
 
 	fn new_else(&mut self, list: &mut &[Instruction]) -> Else {

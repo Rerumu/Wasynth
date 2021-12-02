@@ -12,13 +12,12 @@ use crate::{
 			MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
 		},
 	},
-	writer::shared::write_result_list,
 };
 
 use super::{
 	shared::{
-		aux_internal_index, write_f32, write_f64, write_in_order, write_memory_init,
-		write_nil_array, write_table_init, write_variable_list,
+		aux_internal_index, write_f32, write_f64, write_func_name, write_memory_init,
+		write_parameter_list, write_result_list, write_table_init, write_variable_list,
 	},
 	visit::{Transpiler, Writer},
 };
@@ -448,11 +447,7 @@ impl Driver for Statement {
 
 impl Driver for Function {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		write!(w, "function(")?;
-		write_in_order("param", self.num_param, w)?;
-		write!(w, ")")?;
-
-		v.num_param = self.num_param;
+		write_parameter_list(self, w)?;
 
 		for v in memory::visit(self) {
 			write!(w, "local memory_at_{0} = MEMORY_LIST[{0}]", v)?;
@@ -461,6 +456,7 @@ impl Driver for Function {
 		write!(w, "local temp ")?;
 		write_variable_list(self, w)?;
 
+		v.num_param = self.num_param;
 		self.body.visit(v, w)?;
 
 		write!(w, "end ")
@@ -688,14 +684,22 @@ impl<'a> LuaJIT<'a> {
 	/// # Errors
 	/// Returns `Err` if writing to `Writer` failed.
 	pub fn gen_func_list(&self, func_list: &[Function], w: Writer) -> Result<()> {
-		let offset = self.arity.len_ex();
+		let o = self.arity.len_ex();
 
 		func_list.iter().enumerate().try_for_each(|(i, v)| {
-			write!(w, "FUNC_LIST[{}] =", i + offset)?;
+			write_func_name(self.wasm, i as u32, o as u32, w)?;
 
 			v.visit(&mut Visitor::default(), w)
 		})
 	}
+}
+
+fn write_list(name: &str, len: usize, w: Writer) -> Result<()> {
+	if len == 0 {
+		return Ok(());
+	}
+
+	write!(w, "local {} = {{[0] = {}}}", name, "nil, ".repeat(len))
 }
 
 impl<'a> Transpiler<'a> for LuaJIT<'a> {
@@ -712,10 +716,10 @@ impl<'a> Transpiler<'a> for LuaJIT<'a> {
 
 		Self::gen_localize(&func_list, w)?;
 
-		write_nil_array("FUNC_LIST", self.wasm.functions_space(), w)?;
-		write_nil_array("TABLE_LIST", self.wasm.table_space(), w)?;
-		write_nil_array("MEMORY_LIST", self.wasm.memory_space(), w)?;
-		write_nil_array("GLOBAL_LIST", self.wasm.globals_space(), w)?;
+		write_list("FUNC_LIST", self.wasm.functions_space(), w)?;
+		write_list("TABLE_LIST", self.wasm.table_space(), w)?;
+		write_list("MEMORY_LIST", self.wasm.memory_space(), w)?;
+		write_list("GLOBAL_LIST", self.wasm.globals_space(), w)?;
 
 		self.gen_func_list(&func_list, w)?;
 		self.gen_start_point(w)

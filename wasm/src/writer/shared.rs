@@ -1,6 +1,6 @@
 use std::{io::Result, ops::Range};
 
-use parity_wasm::elements::{Internal, ResizableLimits};
+use parity_wasm::elements::{Internal, Module, ResizableLimits};
 
 use crate::ast::node::Function;
 
@@ -12,7 +12,7 @@ pub fn aux_internal_index(internal: Internal) -> u32 {
 	}
 }
 
-pub fn new_limit_max(limits: &ResizableLimits) -> String {
+fn new_limit_max(limits: &ResizableLimits) -> String {
 	match limits.maximum() {
 		Some(v) => v.to_string(),
 		None => "0xFFFF".to_string(),
@@ -33,12 +33,19 @@ pub fn write_memory_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
 	write!(w, "rt.memory.new({}, {})", a, b)
 }
 
-pub fn write_nil_array(name: &str, len: usize, w: Writer) -> Result<()> {
-	if len == 0 {
-		return Ok(());
+pub fn write_func_name(wasm: &Module, index: u32, offset: u32, w: Writer) -> Result<()> {
+	let opt = wasm
+		.names_section()
+		.and_then(|v| v.functions())
+		.and_then(|v| v.names().get(index));
+
+	write!(w, "FUNC_LIST")?;
+
+	if let Some(name) = opt {
+		write!(w, "--[[{}]]", name)?;
 	}
 
-	write!(w, "local {} = {{[0] = {}}}", name, "nil, ".repeat(len))
+	write!(w, "[{}] =", index + offset)
 }
 
 pub fn write_in_order(prefix: &str, len: u32, w: Writer) -> Result<()> {
@@ -72,6 +79,12 @@ pub fn write_f64(f: f64, w: Writer) -> Result<()> {
 	} else {
 		write!(w, "{:e} ", f)
 	}
+}
+
+pub fn write_parameter_list(func: &Function, w: Writer) -> Result<()> {
+	write!(w, "function(")?;
+	write_in_order("param", func.num_param, w)?;
+	write!(w, ")")
 }
 
 pub fn write_result_list(range: Range<u32>, w: Writer) -> Result<()> {
