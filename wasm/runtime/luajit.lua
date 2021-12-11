@@ -8,7 +8,7 @@ local u32 = ffi.typeof('uint32_t')
 local u64 = ffi.typeof('uint64_t')
 local i64 = ffi.typeof('int64_t')
 
-if jit and jit.opt then jit.opt.start("maxsnap=1000", "loopunroll=500", "maxmcode=2048") end
+if jit and jit.opt then jit.opt.start('maxsnap=1000', 'loopunroll=500', 'maxmcode=2048') end
 
 local function truncate(num)
 	if num >= 0 then
