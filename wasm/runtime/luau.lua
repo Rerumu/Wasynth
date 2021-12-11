@@ -30,7 +30,7 @@ do
 		local count = 0
 
 		while num ~= 0 do
-			num = bit.band(num, num - 1)
+			num = bit32.band(num, num - 1)
 			count = count + 1
 		end
 
