@@ -186,23 +186,19 @@ do
 	local rotl = {}
 	local rotr = {}
 
-	local lj_lshift = bit.lshift
-	local lj_rshift = bit.rshift
-	local lj_arshift = bit.arshift
-
 	rotl.i32 = bit.rol
 	rotl.i64 = bit.rol
 	rotr.i32 = bit.ror
 	rotr.i64 = bit.ror
 
-	shl.i32 = lj_lshift
-	shl.i64 = lj_lshift
-	shl.u32 = lj_lshift
-	shl.u64 = lj_lshift
-	shr.i32 = lj_arshift
-	shr.i64 = lj_arshift
-	shr.u32 = lj_rshift
-	shr.u64 = lj_rshift
+	shl.i32 = bit.lshift
+	shl.i64 = bit.lshift
+	shl.u32 = bit.lshift
+	shl.u64 = bit.lshift
+	shr.i32 = bit.arshift
+	shr.i64 = bit.arshift
+	shr.u32 = bit.rshift
+	shr.u64 = bit.rshift
 
 	module.shl = shl
 	module.shr = shr
