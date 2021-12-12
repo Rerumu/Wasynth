@@ -8,13 +8,11 @@ local u32 = ffi.typeof('uint32_t')
 local u64 = ffi.typeof('uint64_t')
 local i64 = ffi.typeof('int64_t')
 
-if jit and jit.opt then jit.opt.start('maxsnap=1000', 'loopunroll=500', 'maxmcode=2048') end
-
 local function truncate(num)
 	if num >= 0 then
-		return math.floor(num)
+		return (math.floor(num))
 	else
-		return math.ceil(num)
+		return (math.ceil(num))
 	end
 end
 
@@ -26,19 +24,19 @@ do
 
 	local to_signed = bit.tobit
 
-	function add.i32(a, b) return to_signed(a + b) end
+	function add.i32(a, b) return (to_signed(a + b)) end
 	function add.i64(a, b) return a + b end
 
-	function sub.i32(a, b) return to_signed(a - b) end
+	function sub.i32(a, b) return (to_signed(a - b)) end
 	function sub.i64(a, b) return a - b end
 
-	function mul.i32(a, b) return to_signed(a * b) end
+	function mul.i32(a, b) return (to_signed(a * b)) end
 	function mul.i64(a, b) return a * b end
 
 	function div.i32(lhs, rhs)
 		assert(rhs ~= 0, 'division by zero')
 
-		return truncate(lhs / rhs)
+		return (truncate(lhs / rhs))
 	end
 
 	function div.u32(lhs, rhs)
@@ -47,13 +45,13 @@ do
 		lhs = tonumber(u32(lhs))
 		rhs = tonumber(u32(rhs))
 
-		return to_signed(math.floor(lhs / rhs))
+		return (to_signed(math.floor(lhs / rhs)))
 	end
 
 	function div.u64(lhs, rhs)
 		assert(rhs ~= 0, 'division by zero')
 
-		return i64(u64(lhs) / u64(rhs))
+		return (i64(u64(lhs) / u64(rhs)))
 	end
 
 	module.add = add
@@ -123,34 +121,34 @@ do
 		end
 	end
 
-	function eq.i32(lhs, rhs) return to_boolean(lhs == rhs) end
-	function eq.i64(lhs, rhs) return to_boolean(lhs == rhs) end
-	function eq.num(lhs, rhs) return to_boolean(lhs == rhs) end
-	function eqz.i32(lhs) return to_boolean(lhs == 0) end
-	function eqz.i64(lhs) return to_boolean(lhs == 0) end
-	function ne.i32(lhs, rhs) return to_boolean(lhs ~= rhs) end
-	function ne.i64(lhs, rhs) return to_boolean(lhs ~= rhs) end
-	function ne.num(lhs, rhs) return to_boolean(lhs ~= rhs) end
+	function eq.i32(lhs, rhs) return (to_boolean(lhs == rhs)) end
+	function eq.i64(lhs, rhs) return (to_boolean(lhs == rhs)) end
+	function eq.num(lhs, rhs) return (to_boolean(lhs == rhs)) end
+	function eqz.i32(lhs) return (to_boolean(lhs == 0)) end
+	function eqz.i64(lhs) return (to_boolean(lhs == 0)) end
+	function ne.i32(lhs, rhs) return (to_boolean(lhs ~= rhs)) end
+	function ne.i64(lhs, rhs) return (to_boolean(lhs ~= rhs)) end
+	function ne.num(lhs, rhs) return (to_boolean(lhs ~= rhs)) end
 
-	function ge.i32(lhs, rhs) return to_boolean(lhs >= rhs) end
-	function ge.i64(lhs, rhs) return to_boolean(lhs >= rhs) end
-	function ge.u32(lhs, rhs) return to_boolean(u32(lhs) >= u32(rhs)) end
-	function ge.u64(lhs, rhs) return to_boolean(u64(lhs) >= u64(rhs)) end
+	function ge.i32(lhs, rhs) return (to_boolean(lhs >= rhs)) end
+	function ge.i64(lhs, rhs) return (to_boolean(lhs >= rhs)) end
+	function ge.u32(lhs, rhs) return (to_boolean(u32(lhs) >= u32(rhs))) end
+	function ge.u64(lhs, rhs) return (to_boolean(u64(lhs) >= u64(rhs))) end
 
-	function gt.i32(lhs, rhs) return to_boolean(lhs > rhs) end
-	function gt.i64(lhs, rhs) return to_boolean(lhs > rhs) end
-	function gt.u32(lhs, rhs) return to_boolean(u32(lhs) > u32(rhs)) end
-	function gt.u64(lhs, rhs) return to_boolean(u64(lhs) > u64(rhs)) end
+	function gt.i32(lhs, rhs) return (to_boolean(lhs > rhs)) end
+	function gt.i64(lhs, rhs) return (to_boolean(lhs > rhs)) end
+	function gt.u32(lhs, rhs) return (to_boolean(u32(lhs) > u32(rhs))) end
+	function gt.u64(lhs, rhs) return (to_boolean(u64(lhs) > u64(rhs))) end
 
-	function le.i32(lhs, rhs) return to_boolean(lhs <= rhs) end
-	function le.i64(lhs, rhs) return to_boolean(lhs <= rhs) end
-	function le.u32(lhs, rhs) return to_boolean(u32(lhs) <= u32(rhs)) end
-	function le.u64(lhs, rhs) return to_boolean(u64(lhs) <= u64(rhs)) end
+	function le.i32(lhs, rhs) return (to_boolean(lhs <= rhs)) end
+	function le.i64(lhs, rhs) return (to_boolean(lhs <= rhs)) end
+	function le.u32(lhs, rhs) return (to_boolean(u32(lhs) <= u32(rhs))) end
+	function le.u64(lhs, rhs) return (to_boolean(u64(lhs) <= u64(rhs))) end
 
-	function lt.i32(lhs, rhs) return to_boolean(lhs < rhs) end
-	function lt.i64(lhs, rhs) return to_boolean(lhs < rhs) end
-	function lt.u32(lhs, rhs) return to_boolean(u32(lhs) < u32(rhs)) end
-	function lt.u64(lhs, rhs) return to_boolean(u64(lhs) < u64(rhs)) end
+	function lt.i32(lhs, rhs) return (to_boolean(lhs < rhs)) end
+	function lt.i64(lhs, rhs) return (to_boolean(lhs < rhs)) end
+	function lt.u32(lhs, rhs) return (to_boolean(u32(lhs) < u32(rhs))) end
+	function lt.u64(lhs, rhs) return (to_boolean(u64(lhs) < u64(rhs))) end
 
 	module.eqz = eqz
 	module.eq = eq
@@ -228,7 +226,7 @@ do
 		double f64;
 	}]]
 
-	local function truncate_i64(num) return i64(truncate(num)) end
+	local function truncate_i64(num) return (i64(truncate(num))) end
 
 	function wrap.i32_i64(num)
 		RE_INSTANCE.i64 = num
@@ -255,14 +253,14 @@ do
 	end
 
 	function convert.f32_i32(num) return num end
-	function convert.f32_u32(num) return tonumber(u32(num)) end
-	function convert.f32_i64(num) return tonumber(num) end
-	function convert.f32_u64(num) return tonumber(u64(num)) end
+	function convert.f32_u32(num) return (tonumber(u32(num))) end
+	function convert.f32_i64(num) return (tonumber(num)) end
+	function convert.f32_u64(num) return (tonumber(u64(num))) end
 
 	function convert.f64_i32(num) return num end
-	function convert.f64_u32(num) return tonumber(u32(num)) end
-	function convert.f64_i64(num) return tonumber(num) end
-	function convert.f64_u64(num) return tonumber(u64(num)) end
+	function convert.f64_u32(num) return (tonumber(u32(num))) end
+	function convert.f64_i64(num) return (tonumber(num)) end
+	function convert.f64_u64(num) return (tonumber(u64(num))) end
 
 	function reinterpret.i32_f32(num)
 		RE_INSTANCE.f32 = num
@@ -347,17 +345,17 @@ do
 
 	function load.i32(memory, addr) return by_offset(memory.data, addr).i32 end
 
-	function load.i64_i8(memory, addr) return i64(by_offset(memory.data, addr).i8) end
+	function load.i64_i8(memory, addr) return (i64(by_offset(memory.data, addr).i8)) end
 
-	function load.i64_u8(memory, addr) return i64(by_offset(memory.data, addr).u8) end
+	function load.i64_u8(memory, addr) return (i64(by_offset(memory.data, addr).u8)) end
 
-	function load.i64_i16(memory, addr) return i64(by_offset(memory.data, addr).i16) end
+	function load.i64_i16(memory, addr) return (i64(by_offset(memory.data, addr).i16)) end
 
-	function load.i64_u16(memory, addr) return i64(by_offset(memory.data, addr).u16) end
+	function load.i64_u16(memory, addr) return (i64(by_offset(memory.data, addr).u16)) end
 
-	function load.i64_i32(memory, addr) return i64(by_offset(memory.data, addr).i32) end
+	function load.i64_i32(memory, addr) return (i64(by_offset(memory.data, addr).i32)) end
 
-	function load.i64_u32(memory, addr) return i64(by_offset(memory.data, addr).u32) end
+	function load.i64_u32(memory, addr) return (i64(by_offset(memory.data, addr).u32)) end
 
 	function load.i64(memory, addr) return by_offset(memory.data, addr).i64 end
 
