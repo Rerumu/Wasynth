@@ -298,10 +298,10 @@ end
 do
 	local load = {}
 	local store = {}
+	local memory = {}
 
-	local copy = ffi.copy
-
-	local RE_INSTANCE = ffi.new [[union {
+	ffi.cdef [[
+	union Any {
 		int8_t i8;
 		int16_t i16;
 		int32_t i32;
@@ -314,166 +314,76 @@ do
 
 		float f32;
 		double f64;
-	}]]
+	};
 
-	function load.i32_i8(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 1)
-
-		return RE_INSTANCE.i8
-	end
-
-	function load.i32_u8(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 1)
-
-		return RE_INSTANCE.u8
-	end
-
-	function load.i32_i16(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 2)
-
-		return RE_INSTANCE.i16
-	end
-
-	function load.i32_u16(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 2)
-
-		return RE_INSTANCE.u16
-	end
-
-	function load.i32(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 4)
-
-		return RE_INSTANCE.i32
-	end
-
-	function load.i64_i8(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 1)
-
-		return i64(RE_INSTANCE.i8)
-	end
-
-	function load.i64_u8(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 1)
-
-		return i64(RE_INSTANCE.u8)
-	end
-
-	function load.i64_i16(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 2)
-
-		return i64(RE_INSTANCE.i16)
-	end
-
-	function load.i64_u16(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 2)
-
-		return i64(RE_INSTANCE.u16)
-	end
-
-	function load.i64_i32(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 4)
-
-		return i64(RE_INSTANCE.i32)
-	end
-
-	function load.i64_u32(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 4)
-
-		return i64(RE_INSTANCE.u32)
-	end
-
-	function load.i64(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 8)
-
-		return RE_INSTANCE.i64
-	end
-
-	function load.f32(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 4)
-
-		return RE_INSTANCE.f32
-	end
-
-	function load.f64(memory, addr)
-		copy(RE_INSTANCE, memory.data + addr, 8)
-
-		return RE_INSTANCE.f64
-	end
-
-	function store.i32_n8(memory, addr, value)
-		RE_INSTANCE.i32 = value
-
-		copy(memory.data + addr, RE_INSTANCE, 1)
-	end
-
-	function store.i32_n16(memory, addr, value)
-		RE_INSTANCE.i32 = value
-
-		copy(memory.data + addr, RE_INSTANCE, 2)
-	end
-
-	function store.i32(memory, addr, value)
-		RE_INSTANCE.i32 = value
-
-		copy(memory.data + addr, RE_INSTANCE, 4)
-	end
-
-	function store.i64_n8(memory, addr, value)
-		RE_INSTANCE.i64 = value
-
-		copy(memory.data + addr, RE_INSTANCE, 1)
-	end
-
-	function store.i64_n16(memory, addr, value)
-		RE_INSTANCE.i64 = value
-
-		copy(memory.data + addr, RE_INSTANCE, 2)
-	end
-
-	function store.i64_n32(memory, addr, value)
-		RE_INSTANCE.i64 = value
-
-		copy(memory.data + addr, RE_INSTANCE, 4)
-	end
-
-	function store.i64(memory, addr, value)
-		RE_INSTANCE.i64 = value
-
-		copy(memory.data + addr, RE_INSTANCE, 8)
-	end
-
-	function store.f32(memory, addr, value)
-		RE_INSTANCE.f32 = value
-
-		copy(memory.data + addr, RE_INSTANCE, 4)
-	end
-
-	function store.f64(memory, addr, value)
-		RE_INSTANCE.f64 = value
-
-		copy(memory.data + addr, RE_INSTANCE, 8)
-	end
-
-	module.load = load
-	module.store = store
-end
-
-do
-	local memory = {}
-
-	local WASM_PAGE_SIZE = 65536
-
-	ffi.cdef [[
 	struct Memory {
 		uint32_t min;
 		uint32_t max;
-		uint8_t *data;
+		union Any *data;
 	};
 
 	void *calloc(size_t num, size_t size);
 	void *realloc(void *ptr, size_t size);
 	void free(void *ptr);
 	]]
+
+	local alias_t = ffi.typeof('uint8_t *')
+	local any_t = ffi.typeof('union Any *')
+	local cast = ffi.cast
+
+	local function by_offset(pointer, offset)
+		local aliased = cast(alias_t, pointer)
+
+		return cast(any_t, aliased + offset)
+	end
+
+	function load.i32_i8(memory, addr) return by_offset(memory.data, addr).i8 end
+
+	function load.i32_u8(memory, addr) return by_offset(memory.data, addr).u8 end
+
+	function load.i32_i16(memory, addr) return by_offset(memory.data, addr).i16 end
+
+	function load.i32_u16(memory, addr) return by_offset(memory.data, addr).u16 end
+
+	function load.i32(memory, addr) return by_offset(memory.data, addr).i32 end
+
+	function load.i64_i8(memory, addr) return i64(by_offset(memory.data, addr).i8) end
+
+	function load.i64_u8(memory, addr) return i64(by_offset(memory.data, addr).u8) end
+
+	function load.i64_i16(memory, addr) return i64(by_offset(memory.data, addr).i16) end
+
+	function load.i64_u16(memory, addr) return i64(by_offset(memory.data, addr).u16) end
+
+	function load.i64_i32(memory, addr) return i64(by_offset(memory.data, addr).i32) end
+
+	function load.i64_u32(memory, addr) return i64(by_offset(memory.data, addr).u32) end
+
+	function load.i64(memory, addr) return by_offset(memory.data, addr).i64 end
+
+	function load.f32(memory, addr) return by_offset(memory.data, addr).f32 end
+
+	function load.f64(memory, addr) return by_offset(memory.data, addr).f64 end
+
+	function store.i32_n8(memory, addr, value) by_offset(memory.data, addr).i8 = value end
+
+	function store.i32_n16(memory, addr, value) by_offset(memory.data, addr).i16 = value end
+
+	function store.i32(memory, addr, value) by_offset(memory.data, addr).i32 = value end
+
+	function store.i64_n8(memory, addr, value) by_offset(memory.data, addr).i8 = value end
+
+	function store.i64_n16(memory, addr, value) by_offset(memory.data, addr).i16 = value end
+
+	function store.i64_n32(memory, addr, value) by_offset(memory.data, addr).i32 = value end
+
+	function store.i64(memory, addr, value) by_offset(memory.data, addr).i64 = value end
+
+	function store.f32(memory, addr, value) by_offset(memory.data, addr).f32 = value end
+
+	function store.f64(memory, addr, value) by_offset(memory.data, addr).f64 = value end
+
+	local WASM_PAGE_SIZE = 65536
 
 	local function finalizer(memory) ffi.C.free(memory.data) end
 
@@ -482,7 +392,7 @@ do
 
 		assert(memory.data ~= nil, 'failed to reallocate')
 
-		ffi.fill(memory.data + old, new - old, 0)
+		ffi.fill(by_offset(memory.data, old), new - old, 0)
 	end
 
 	function memory.new(min, max)
@@ -495,7 +405,7 @@ do
 		return ffi.gc(memory, finalizer)
 	end
 
-	function memory.init(memory, offset, data) ffi.copy(memory.data + offset, data) end
+	function memory.init(memory, addr, data) ffi.copy(by_offset(memory.data, addr), data) end
 
 	function memory.grow(memory, num)
 		local old = memory.min
@@ -511,6 +421,8 @@ do
 		end
 	end
 
+	module.load = load
+	module.store = store
 	module.memory = memory
 end
 
