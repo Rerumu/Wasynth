@@ -103,8 +103,8 @@ impl Driver for Recall {
 impl Driver for Select {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		write!(w, "(")?;
-		self.cond.visit(v, w)?;
-		write!(w, "~= 0 and ")?;
+		write_as_condition(&self.cond, v, w)?;
+		write!(w, "and ")?;
 		self.a.visit(v, w)?;
 		write!(w, "or ")?;
 		self.b.visit(v, w)?;
@@ -165,51 +165,75 @@ impl Driver for Value {
 	}
 }
 
-fn write_un_op_call(un_op: &AnyUnOp, v: &mut Visitor, w: Writer) -> Result<()> {
-	let (a, b) = un_op.op.as_name();
+fn write_un_op(un_op: &AnyUnOp, v: &mut Visitor, w: Writer) -> Result<()> {
+	if let Some(op) = un_op.op.as_operator() {
+		write!(w, "{} ", op)?;
+		un_op.rhs.visit(v, w)
+	} else {
+		let (a, b) = un_op.op.as_name();
 
-	write!(w, "{}_{}(", a, b)?;
-	un_op.rhs.visit(v, w)?;
-	write!(w, ")")
+		write!(w, "{}_{}(", a, b)?;
+		un_op.rhs.visit(v, w)?;
+		write!(w, ")")
+	}
 }
 
 impl Driver for AnyUnOp {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		if let Some(op) = self.op.as_operator() {
-			write!(w, "{}", op)?;
-			self.rhs.visit(v, w)
-		} else {
-			write_un_op_call(self, v, w)
+		if self.op.is_compare() {
+			write!(w, "(")?;
 		}
+
+		write_un_op(self, v, w)?;
+
+		if self.op.is_compare() {
+			write!(w, "and 1 or 0)")?;
+		}
+
+		Ok(())
 	}
 }
 
 fn write_bin_op(bin_op: &AnyBinOp, v: &mut Visitor, w: Writer) -> Result<()> {
-	let op = bin_op.op.as_operator().unwrap();
+	if let Some(op) = bin_op.op.as_operator() {
+		bin_op.lhs.visit(v, w)?;
+		write!(w, "{} ", op)?;
+		bin_op.rhs.visit(v, w)
+	} else {
+		let (a, b) = bin_op.op.as_name();
 
-	write!(w, "(")?;
-	bin_op.lhs.visit(v, w)?;
-	write!(w, "{} ", op)?;
-	bin_op.rhs.visit(v, w)?;
-	write!(w, ")")
-}
-
-fn write_bin_op_call(bin_op: &AnyBinOp, v: &mut Visitor, w: Writer) -> Result<()> {
-	let (a, b) = bin_op.op.as_name();
-
-	write!(w, "{}_{}(", a, b)?;
-	bin_op.lhs.visit(v, w)?;
-	write!(w, ", ")?;
-	bin_op.rhs.visit(v, w)?;
-	write!(w, ")")
+		write!(w, "{}_{}(", a, b)?;
+		bin_op.lhs.visit(v, w)?;
+		write!(w, ", ")?;
+		bin_op.rhs.visit(v, w)?;
+		write!(w, ")")
+	}
 }
 
 impl Driver for AnyBinOp {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		if self.op.as_operator().is_some() {
-			write_bin_op(self, v, w)
-		} else {
-			write_bin_op_call(self, v, w)
+		if self.op.is_compare() {
+			write!(w, "(")?;
+		}
+
+		write_bin_op(self, v, w)?;
+
+		if self.op.is_compare() {
+			write!(w, "and 1 or 0)")?;
+		}
+
+		Ok(())
+	}
+}
+
+// Removes the boolean to integer conversion
+fn write_as_condition(data: &Expression, v: &mut Visitor, w: Writer) -> Result<()> {
+	match data {
+		Expression::AnyUnOp(o) if o.op.is_compare() => write_un_op(o, v, w),
+		Expression::AnyBinOp(o) if o.op.is_compare() => write_bin_op(o, v, w),
+		_ => {
+			data.visit(v, w)?;
+			write!(w, "~= 0 ")
 		}
 	}
 }
@@ -289,8 +313,8 @@ impl Driver for If {
 		let label = v.push_label();
 
 		write!(w, "if ")?;
-		self.cond.visit(v, w)?;
-		write!(w, "~= 0 then ")?;
+		write_as_condition(&self.cond, v, w)?;
+		write!(w, "then ")?;
 
 		self.truthy.iter().try_for_each(|s| s.visit(v, w))?;
 
@@ -322,8 +346,8 @@ impl Driver for Br {
 impl Driver for BrIf {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		write!(w, "if ")?;
-		self.cond.visit(v, w)?;
-		write!(w, "~= 0 then ")?;
+		write_as_condition(&self.cond, v, w)?;
+		write!(w, "then ")?;
 
 		write_br_at(self.target, v, w)?;
 

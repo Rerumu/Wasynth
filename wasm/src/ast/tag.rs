@@ -175,6 +175,10 @@ pub enum UnOp {
 }
 
 impl UnOp {
+	pub fn is_compare(&self) -> bool {
+		matches!(self, Self::Eqz_I32 | Self::Eqz_I64)
+	}
+
 	pub fn as_operator(self) -> Option<&'static str> {
 		let op = match self {
 			Self::Neg_FN => "-",
@@ -364,6 +368,26 @@ pub enum BinOp {
 }
 
 impl BinOp {
+	pub fn is_compare(&self) -> bool {
+		matches!(
+			self,
+			Self::Eq_I32
+				| Self::Ne_I32 | Self::LtS_I32
+				| Self::LtU_I32 | Self::GtS_I32
+				| Self::GtU_I32 | Self::LeS_I32
+				| Self::LeU_I32 | Self::GeS_I32
+				| Self::GeU_I32 | Self::Eq_I64
+				| Self::Ne_I64 | Self::LtS_I64
+				| Self::LtU_I64 | Self::GtS_I64
+				| Self::GtU_I64 | Self::LeS_I64
+				| Self::LeU_I64 | Self::GeS_I64
+				| Self::GeU_I64 | Self::Eq_FN
+				| Self::Ne_FN | Self::Lt_FN
+				| Self::Gt_FN | Self::Le_FN
+				| Self::Ge_FN
+		)
+	}
+
 	pub fn as_operator(self) -> Option<&'static str> {
 		let op = match self {
 			Self::Add_FN => "+",
@@ -371,6 +395,12 @@ impl BinOp {
 			Self::Mul_FN => "*",
 			Self::Div_FN => "/",
 			Self::RemS_I32 | Self::RemU_I32 | Self::RemS_I64 | Self::RemU_I64 => "%",
+			Self::Eq_I32 | Self::Eq_I64 | Self::Eq_FN => "==",
+			Self::Ne_I32 | Self::Ne_I64 | Self::Ne_FN => "~=",
+			Self::LtS_I32 | Self::LtS_I64 | Self::Lt_FN => "<",
+			Self::GtS_I32 | Self::GtS_I64 | Self::Gt_FN => ">",
+			Self::LeS_I32 | Self::LeS_I64 | Self::Le_FN => "<=",
+			Self::GeS_I32 | Self::GeS_I64 | Self::Ge_FN => ">=",
 			_ => return None,
 		};
 
