@@ -212,7 +212,9 @@ impl<'a> Builder<'a> {
 	// Pending expressions are put to sleep before entering
 	// a control structure so that they are not lost.
 	fn save_pending(&mut self) {
-		self.pending.push(self.stack.clone());
+		let cloned = self.stack.iter().map(Expression::clone_recall).collect();
+
+		self.pending.push(cloned);
 	}
 
 	fn load_pending(&mut self) {
@@ -456,7 +458,7 @@ impl<'a> Builder<'a> {
 				Inst::TeeLocal(i) => {
 					self.gen_leak_pending(&mut stat);
 
-					let value = self.stack.last().unwrap().clone();
+					let value = self.stack.last().unwrap().clone_recall();
 
 					stat.push(Statement::SetLocal(SetLocal { var: *i, value }));
 				}

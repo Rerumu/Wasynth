@@ -9,36 +9,30 @@ pub struct Recall {
 	pub var: usize,
 }
 
-#[derive(Clone)]
 pub struct Select {
 	pub cond: Box<Expression>,
 	pub a: Box<Expression>,
 	pub b: Box<Expression>,
 }
 
-#[derive(Clone)]
 pub struct GetLocal {
 	pub var: u32,
 }
 
-#[derive(Clone)]
 pub struct GetGlobal {
 	pub var: u32,
 }
 
-#[derive(Clone)]
 pub struct AnyLoad {
 	pub op: Load,
 	pub offset: u32,
 	pub pointer: Box<Expression>,
 }
 
-#[derive(Clone)]
 pub struct MemorySize {
 	pub memory: u8,
 }
 
-#[derive(Clone)]
 pub struct MemoryGrow {
 	pub memory: u8,
 	pub value: Box<Expression>,
@@ -52,20 +46,17 @@ pub enum Value {
 	F64(f64),
 }
 
-#[derive(Clone)]
 pub struct AnyUnOp {
 	pub op: UnOp,
 	pub rhs: Box<Expression>,
 }
 
-#[derive(Clone)]
 pub struct AnyBinOp {
 	pub op: BinOp,
 	pub lhs: Box<Expression>,
 	pub rhs: Box<Expression>,
 }
 
-#[derive(Clone)]
 pub enum Expression {
 	Recall(Recall),
 	Select(Select),
@@ -84,6 +75,13 @@ impl Expression {
 		match self {
 			Expression::Recall(v) => v.var == wanted,
 			_ => false,
+		}
+	}
+
+	pub fn clone_recall(&self) -> Self {
+		match self {
+			Expression::Recall(v) => Expression::Recall(v.clone()),
+			_ => unreachable!("clone_recall called on non-recall"),
 		}
 	}
 }
