@@ -124,8 +124,10 @@ do
 	function eq.i32(lhs, rhs) return (to_boolean(lhs == rhs)) end
 	function eq.i64(lhs, rhs) return (to_boolean(lhs == rhs)) end
 	function eq.num(lhs, rhs) return (to_boolean(lhs == rhs)) end
+
 	function eqz.i32(lhs) return (to_boolean(lhs == 0)) end
 	function eqz.i64(lhs) return (to_boolean(lhs == 0)) end
+
 	function ne.i32(lhs, rhs) return (to_boolean(lhs ~= rhs)) end
 	function ne.i64(lhs, rhs) return (to_boolean(lhs ~= rhs)) end
 	function ne.num(lhs, rhs) return (to_boolean(lhs ~= rhs)) end
@@ -167,10 +169,13 @@ do
 
 	band.i32 = bit.band
 	band.i64 = bit.band
+
 	bnot.i32 = bit.bnot
 	bnot.i64 = bit.bnot
+
 	bor.i32 = bit.bor
 	bor.i64 = bit.bor
+
 	bxor.i32 = bit.bxor
 	bxor.i64 = bit.bxor
 
@@ -188,6 +193,7 @@ do
 
 	rotl.i32 = bit.rol
 	rotl.i64 = bit.rol
+
 	rotr.i32 = bit.ror
 	rotr.i64 = bit.ror
 
@@ -195,6 +201,7 @@ do
 	shl.i64 = bit.lshift
 	shl.u32 = bit.lshift
 	shl.u64 = bit.lshift
+
 	shr.i32 = bit.arshift
 	shr.i64 = bit.arshift
 	shr.u32 = bit.rshift
