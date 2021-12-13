@@ -698,11 +698,10 @@ impl<'a> LuaJIT<'a> {
 }
 
 fn write_list(name: &str, len: usize, w: Writer) -> Result<()> {
-	if len == 0 {
-		return Ok(());
-	}
+	let hash = len.min(1);
+	let len = len.saturating_sub(1);
 
-	write!(w, "local {} = {{[0] = {}}}", name, "nil, ".repeat(len))
+	write!(w, "local {} = table_new({}, {})", name, len, hash)
 }
 
 impl<'a> Transpiler<'a> for LuaJIT<'a> {
@@ -719,6 +718,7 @@ impl<'a> Transpiler<'a> for LuaJIT<'a> {
 
 		Self::gen_localize(&func_list, w)?;
 
+		write!(w, "local table_new = require(\"table.new\")")?;
 		write_list("FUNC_LIST", self.wasm.functions_space(), w)?;
 		write_list("TABLE_LIST", self.wasm.table_space(), w)?;
 		write_list("MEMORY_LIST", self.wasm.memory_space(), w)?;
