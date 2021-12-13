@@ -399,7 +399,7 @@ do
 		return ffi.gc(memory, finalizer)
 	end
 
-	function memory.init(memory, addr, data) ffi.copy(by_offset(memory.data, addr), data) end
+	function memory.init(memory, addr, data) ffi.copy(by_offset(memory.data, addr), data, #data - 1) end
 
 	function memory.grow(memory, num)
 		local old = memory.min
