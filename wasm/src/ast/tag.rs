@@ -175,7 +175,7 @@ pub enum UnOp {
 }
 
 impl UnOp {
-	pub fn is_compare(&self) -> bool {
+	pub fn is_compare(self) -> bool {
 		matches!(self, Self::Eqz_I32 | Self::Eqz_I64)
 	}
 
@@ -368,7 +368,7 @@ pub enum BinOp {
 }
 
 impl BinOp {
-	pub fn is_compare(&self) -> bool {
+	pub fn is_compare(self) -> bool {
 		matches!(
 			self,
 			Self::Eq_I32
