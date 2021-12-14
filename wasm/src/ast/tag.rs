@@ -128,8 +128,6 @@ impl TryFrom<&Instruction> for Store {
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
 pub enum UnOp {
-	Eqz_I32,
-	Eqz_I64,
 	Clz_I32,
 	Ctz_I32,
 	Popcnt_I32,
@@ -175,23 +173,8 @@ pub enum UnOp {
 }
 
 impl UnOp {
-	pub fn is_compare(self) -> bool {
-		matches!(self, Self::Eqz_I32 | Self::Eqz_I64)
-	}
-
-	pub fn as_operator(self) -> Option<&'static str> {
-		let op = match self {
-			Self::Neg_FN => "-",
-			_ => return None,
-		};
-
-		Some(op)
-	}
-
 	pub fn as_name(self) -> (&'static str, &'static str) {
 		match self {
-			Self::Eqz_I32 => ("eqz", "i32"),
-			Self::Eqz_I64 => ("eqz", "i64"),
 			Self::Clz_I32 => ("clz", "i32"),
 			Self::Ctz_I32 => ("ctz", "i32"),
 			Self::Popcnt_I32 => ("popcnt", "i32"),
@@ -252,8 +235,6 @@ impl TryFrom<&Instruction> for UnOp {
 				SignExtInstruction::I64Extend16S => Self::Extend_I64_I16,
 				SignExtInstruction::I64Extend32S => Self::Extend_I64_I32,
 			},
-			Inst::I32Eqz => Self::Eqz_I32,
-			Inst::I64Eqz => Self::Eqz_I64,
 			Inst::I32Clz => Self::Clz_I32,
 			Inst::I32Ctz => Self::Ctz_I32,
 			Inst::I32Popcnt => Self::Popcnt_I32,
@@ -302,26 +283,6 @@ impl TryFrom<&Instruction> for UnOp {
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
 pub enum BinOp {
-	Eq_I32,
-	Ne_I32,
-	LtS_I32,
-	LtU_I32,
-	GtS_I32,
-	GtU_I32,
-	LeS_I32,
-	LeU_I32,
-	GeS_I32,
-	GeU_I32,
-	Eq_I64,
-	Ne_I64,
-	LtS_I64,
-	LtU_I64,
-	GtS_I64,
-	GtU_I64,
-	LeS_I64,
-	LeU_I64,
-	GeS_I64,
-	GeU_I64,
 	Add_I32,
 	Sub_I32,
 	Mul_I32,
@@ -352,12 +313,6 @@ pub enum BinOp {
 	ShrU_I64,
 	Rotl_I64,
 	Rotr_I64,
-	Eq_FN,
-	Ne_FN,
-	Lt_FN,
-	Gt_FN,
-	Le_FN,
-	Ge_FN,
 	Add_FN,
 	Sub_FN,
 	Mul_FN,
@@ -368,26 +323,6 @@ pub enum BinOp {
 }
 
 impl BinOp {
-	pub fn is_compare(self) -> bool {
-		matches!(
-			self,
-			Self::Eq_I32
-				| Self::Ne_I32 | Self::LtS_I32
-				| Self::LtU_I32 | Self::GtS_I32
-				| Self::GtU_I32 | Self::LeS_I32
-				| Self::LeU_I32 | Self::GeS_I32
-				| Self::GeU_I32 | Self::Eq_I64
-				| Self::Ne_I64 | Self::LtS_I64
-				| Self::LtU_I64 | Self::GtS_I64
-				| Self::GtU_I64 | Self::LeS_I64
-				| Self::LeU_I64 | Self::GeS_I64
-				| Self::GeU_I64 | Self::Eq_FN
-				| Self::Ne_FN | Self::Lt_FN
-				| Self::Gt_FN | Self::Le_FN
-				| Self::Ge_FN
-		)
-	}
-
 	pub fn as_operator(self) -> Option<&'static str> {
 		let op = match self {
 			Self::Add_FN => "+",
@@ -395,6 +330,142 @@ impl BinOp {
 			Self::Mul_FN => "*",
 			Self::Div_FN => "/",
 			Self::RemS_I32 | Self::RemU_I32 | Self::RemS_I64 | Self::RemU_I64 => "%",
+			_ => return None,
+		};
+
+		Some(op)
+	}
+
+	pub fn as_name(self) -> (&'static str, &'static str) {
+		match self {
+			Self::Add_I32 => ("add", "i32"),
+			Self::Sub_I32 => ("sub", "i32"),
+			Self::Mul_I32 => ("mul", "i32"),
+			Self::DivS_I32 => ("div", "i32"),
+			Self::DivU_I32 => ("div", "u32"),
+			Self::RemS_I32 => ("rem", "i32"),
+			Self::RemU_I32 => ("rem", "u32"),
+			Self::And_I32 => ("band", "i32"),
+			Self::Or_I32 => ("bor", "i32"),
+			Self::Xor_I32 => ("bxor", "i32"),
+			Self::Shl_I32 => ("shl", "i32"),
+			Self::ShrS_I32 => ("shr", "i32"),
+			Self::ShrU_I32 => ("shr", "u32"),
+			Self::Rotl_I32 => ("rotl", "i32"),
+			Self::Rotr_I32 => ("rotr", "i32"),
+			Self::Add_I64 => ("add", "i64"),
+			Self::Sub_I64 => ("sub", "i64"),
+			Self::Mul_I64 => ("mul", "i64"),
+			Self::DivS_I64 => ("div", "i64"),
+			Self::DivU_I64 => ("div", "u64"),
+			Self::RemS_I64 => ("rem", "i64"),
+			Self::RemU_I64 => ("rem", "u64"),
+			Self::And_I64 => ("band", "i64"),
+			Self::Or_I64 => ("bor", "i64"),
+			Self::Xor_I64 => ("bxor", "i64"),
+			Self::Shl_I64 => ("shl", "i64"),
+			Self::ShrS_I64 => ("shr", "i64"),
+			Self::ShrU_I64 => ("shr", "u64"),
+			Self::Rotl_I64 => ("rotl", "i64"),
+			Self::Rotr_I64 => ("rotr", "i64"),
+			Self::Add_FN => ("add", "num"),
+			Self::Sub_FN => ("sub", "num"),
+			Self::Mul_FN => ("mul", "num"),
+			Self::Div_FN => ("div", "num"),
+			Self::Min_FN => ("math", "min"),
+			Self::Max_FN => ("math", "max"),
+			Self::Copysign_FN => ("copysign", "num"),
+		}
+	}
+}
+
+impl TryFrom<&Instruction> for BinOp {
+	type Error = ();
+
+	fn try_from(inst: &Instruction) -> Result<Self, Self::Error> {
+		use Instruction as Inst;
+
+		let result = match inst {
+			Inst::I32Add => Self::Add_I32,
+			Inst::I32Sub => Self::Sub_I32,
+			Inst::I32Mul => Self::Mul_I32,
+			Inst::I32DivS => Self::DivS_I32,
+			Inst::I32DivU => Self::DivU_I32,
+			Inst::I32RemS => Self::RemS_I32,
+			Inst::I32RemU => Self::RemU_I32,
+			Inst::I32And => Self::And_I32,
+			Inst::I32Or => Self::Or_I32,
+			Inst::I32Xor => Self::Xor_I32,
+			Inst::I32Shl => Self::Shl_I32,
+			Inst::I32ShrS => Self::ShrS_I32,
+			Inst::I32ShrU => Self::ShrU_I32,
+			Inst::I32Rotl => Self::Rotl_I32,
+			Inst::I32Rotr => Self::Rotr_I32,
+			Inst::I64Add => Self::Add_I64,
+			Inst::I64Sub => Self::Sub_I64,
+			Inst::I64Mul => Self::Mul_I64,
+			Inst::I64DivS => Self::DivS_I64,
+			Inst::I64DivU => Self::DivU_I64,
+			Inst::I64RemS => Self::RemS_I64,
+			Inst::I64RemU => Self::RemU_I64,
+			Inst::I64And => Self::And_I64,
+			Inst::I64Or => Self::Or_I64,
+			Inst::I64Xor => Self::Xor_I64,
+			Inst::I64Shl => Self::Shl_I64,
+			Inst::I64ShrS => Self::ShrS_I64,
+			Inst::I64ShrU => Self::ShrU_I64,
+			Inst::I64Rotl => Self::Rotl_I64,
+			Inst::I64Rotr => Self::Rotr_I64,
+			Inst::F32Add | Inst::F64Add => Self::Add_FN,
+			Inst::F32Sub | Inst::F64Sub => Self::Sub_FN,
+			Inst::F32Mul | Inst::F64Mul => Self::Mul_FN,
+			Inst::F32Div | Inst::F64Div => Self::Div_FN,
+			Inst::F32Min | Inst::F64Min => Self::Min_FN,
+			Inst::F32Max | Inst::F64Max => Self::Max_FN,
+			Inst::F32Copysign | Inst::F64Copysign => Self::Copysign_FN,
+			_ => {
+				return Err(());
+			}
+		};
+
+		Ok(result)
+	}
+}
+
+#[allow(non_camel_case_types)]
+#[derive(Clone, Copy)]
+pub enum CmpOp {
+	Eq_I32,
+	Ne_I32,
+	LtS_I32,
+	LtU_I32,
+	GtS_I32,
+	GtU_I32,
+	LeS_I32,
+	LeU_I32,
+	GeS_I32,
+	GeU_I32,
+	Eq_I64,
+	Ne_I64,
+	LtS_I64,
+	LtU_I64,
+	GtS_I64,
+	GtU_I64,
+	LeS_I64,
+	LeU_I64,
+	GeS_I64,
+	GeU_I64,
+	Eq_FN,
+	Ne_FN,
+	Lt_FN,
+	Gt_FN,
+	Le_FN,
+	Ge_FN,
+}
+
+impl CmpOp {
+	pub fn as_operator(self) -> Option<&'static str> {
+		let op = match self {
 			Self::Eq_I32 | Self::Eq_I64 | Self::Eq_FN => "==",
 			Self::Ne_I32 | Self::Ne_I64 | Self::Ne_FN => "~=",
 			Self::LtS_I32 | Self::LtS_I64 | Self::Lt_FN => "<",
@@ -429,54 +500,17 @@ impl BinOp {
 			Self::LeU_I64 => ("le", "u64"),
 			Self::GeS_I64 => ("ge", "i64"),
 			Self::GeU_I64 => ("ge", "u64"),
-			Self::Add_I32 => ("add", "i32"),
-			Self::Sub_I32 => ("sub", "i32"),
-			Self::Mul_I32 => ("mul", "i32"),
-			Self::DivS_I32 => ("div", "i32"),
-			Self::DivU_I32 => ("div", "u32"),
-			Self::RemS_I32 => ("rem", "i32"),
-			Self::RemU_I32 => ("rem", "u32"),
-			Self::And_I32 => ("band", "i32"),
-			Self::Or_I32 => ("bor", "i32"),
-			Self::Xor_I32 => ("bxor", "i32"),
-			Self::Shl_I32 => ("shl", "i32"),
-			Self::ShrS_I32 => ("shr", "i32"),
-			Self::ShrU_I32 => ("shr", "u32"),
-			Self::Rotl_I32 => ("rotl", "i32"),
-			Self::Rotr_I32 => ("rotr", "i32"),
-			Self::Add_I64 => ("add", "i64"),
-			Self::Sub_I64 => ("sub", "i64"),
-			Self::Mul_I64 => ("mul", "i64"),
-			Self::DivS_I64 => ("div", "i64"),
-			Self::DivU_I64 => ("div", "u64"),
-			Self::RemS_I64 => ("rem", "i64"),
-			Self::RemU_I64 => ("rem", "u64"),
-			Self::And_I64 => ("band", "i64"),
-			Self::Or_I64 => ("bor", "i64"),
-			Self::Xor_I64 => ("bxor", "i64"),
-			Self::Shl_I64 => ("shl", "i64"),
-			Self::ShrS_I64 => ("shr", "i64"),
-			Self::ShrU_I64 => ("shr", "u64"),
-			Self::Rotl_I64 => ("rotl", "i64"),
-			Self::Rotr_I64 => ("rotr", "i64"),
 			Self::Eq_FN => ("eq", "num"),
 			Self::Ne_FN => ("ne", "num"),
 			Self::Lt_FN => ("lt", "num"),
 			Self::Gt_FN => ("gt", "num"),
 			Self::Le_FN => ("le", "num"),
 			Self::Ge_FN => ("ge", "num"),
-			Self::Add_FN => ("add", "num"),
-			Self::Sub_FN => ("sub", "num"),
-			Self::Mul_FN => ("mul", "num"),
-			Self::Div_FN => ("div", "num"),
-			Self::Min_FN => ("math", "min"),
-			Self::Max_FN => ("math", "max"),
-			Self::Copysign_FN => ("copysign", "num"),
 		}
 	}
 }
 
-impl TryFrom<&Instruction> for BinOp {
+impl TryFrom<&Instruction> for CmpOp {
 	type Error = ();
 
 	fn try_from(inst: &Instruction) -> Result<Self, Self::Error> {
@@ -503,49 +537,12 @@ impl TryFrom<&Instruction> for BinOp {
 			Inst::I64LeU => Self::LeU_I64,
 			Inst::I64GeS => Self::GeS_I64,
 			Inst::I64GeU => Self::GeU_I64,
-			Inst::I32Add => Self::Add_I32,
-			Inst::I32Sub => Self::Sub_I32,
-			Inst::I32Mul => Self::Mul_I32,
-			Inst::I32DivS => Self::DivS_I32,
-			Inst::I32DivU => Self::DivU_I32,
-			Inst::I32RemS => Self::RemS_I32,
-			Inst::I32RemU => Self::RemU_I32,
-			Inst::I32And => Self::And_I32,
-			Inst::I32Or => Self::Or_I32,
-			Inst::I32Xor => Self::Xor_I32,
-			Inst::I32Shl => Self::Shl_I32,
-			Inst::I32ShrS => Self::ShrS_I32,
-			Inst::I32ShrU => Self::ShrU_I32,
-			Inst::I32Rotl => Self::Rotl_I32,
-			Inst::I32Rotr => Self::Rotr_I32,
-			Inst::I64Add => Self::Add_I64,
-			Inst::I64Sub => Self::Sub_I64,
-			Inst::I64Mul => Self::Mul_I64,
-			Inst::I64DivS => Self::DivS_I64,
-			Inst::I64DivU => Self::DivU_I64,
-			Inst::I64RemS => Self::RemS_I64,
-			Inst::I64RemU => Self::RemU_I64,
-			Inst::I64And => Self::And_I64,
-			Inst::I64Or => Self::Or_I64,
-			Inst::I64Xor => Self::Xor_I64,
-			Inst::I64Shl => Self::Shl_I64,
-			Inst::I64ShrS => Self::ShrS_I64,
-			Inst::I64ShrU => Self::ShrU_I64,
-			Inst::I64Rotl => Self::Rotl_I64,
-			Inst::I64Rotr => Self::Rotr_I64,
 			Inst::F32Eq | Inst::F64Eq => Self::Eq_FN,
 			Inst::F32Ne | Inst::F64Ne => Self::Ne_FN,
 			Inst::F32Lt | Inst::F64Lt => Self::Lt_FN,
 			Inst::F32Gt | Inst::F64Gt => Self::Gt_FN,
 			Inst::F32Le | Inst::F64Le => Self::Le_FN,
 			Inst::F32Ge | Inst::F64Ge => Self::Ge_FN,
-			Inst::F32Add | Inst::F64Add => Self::Add_FN,
-			Inst::F32Sub | Inst::F64Sub => Self::Sub_FN,
-			Inst::F32Mul | Inst::F64Mul => Self::Mul_FN,
-			Inst::F32Div | Inst::F64Div => Self::Div_FN,
-			Inst::F32Min | Inst::F64Min => Self::Min_FN,
-			Inst::F32Max | Inst::F64Max => Self::Max_FN,
-			Inst::F32Copysign | Inst::F64Copysign => Self::Copysign_FN,
 			_ => {
 				return Err(());
 			}

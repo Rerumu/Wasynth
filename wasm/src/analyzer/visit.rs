@@ -1,7 +1,7 @@
 use crate::ast::node::{
-	AnyBinOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call, CallIndirect, Else,
-	Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize, MemoryGrow, MemorySize,
-	Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
+	AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call,
+	CallIndirect, Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize,
+	MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
 };
 
 pub trait Visitor {
@@ -24,6 +24,8 @@ pub trait Visitor {
 	fn visit_any_unop(&mut self, _: &AnyUnOp) {}
 
 	fn visit_any_binop(&mut self, _: &AnyBinOp) {}
+
+	fn visit_any_cmpop(&mut self, _: &AnyCmpOp) {}
 
 	fn visit_expression(&mut self, _: &Expression) {}
 
@@ -137,19 +139,29 @@ impl<T: Visitor> Driver<T> for AnyBinOp {
 	}
 }
 
+impl<T: Visitor> Driver<T> for AnyCmpOp {
+	fn accept(&self, visitor: &mut T) {
+		self.lhs.accept(visitor);
+		self.rhs.accept(visitor);
+
+		visitor.visit_any_cmpop(self);
+	}
+}
+
 impl<T: Visitor> Driver<T> for Expression {
 	fn accept(&self, visitor: &mut T) {
 		match self {
-			Expression::Recall(v) => v.accept(visitor),
-			Expression::Select(v) => v.accept(visitor),
-			Expression::GetLocal(v) => v.accept(visitor),
-			Expression::GetGlobal(v) => v.accept(visitor),
-			Expression::AnyLoad(v) => v.accept(visitor),
-			Expression::MemorySize(v) => v.accept(visitor),
-			Expression::MemoryGrow(v) => v.accept(visitor),
-			Expression::Value(v) => v.accept(visitor),
-			Expression::AnyUnOp(v) => v.accept(visitor),
-			Expression::AnyBinOp(v) => v.accept(visitor),
+			Self::Recall(v) => v.accept(visitor),
+			Self::Select(v) => v.accept(visitor),
+			Self::GetLocal(v) => v.accept(visitor),
+			Self::GetGlobal(v) => v.accept(visitor),
+			Self::AnyLoad(v) => v.accept(visitor),
+			Self::MemorySize(v) => v.accept(visitor),
+			Self::MemoryGrow(v) => v.accept(visitor),
+			Self::Value(v) => v.accept(visitor),
+			Self::AnyUnOp(v) => v.accept(visitor),
+			Self::AnyBinOp(v) => v.accept(visitor),
+			Self::AnyCmpOp(v) => v.accept(visitor),
 		}
 
 		visitor.visit_expression(self);
@@ -292,20 +304,20 @@ impl<T: Visitor> Driver<T> for AnyStore {
 impl<T: Visitor> Driver<T> for Statement {
 	fn accept(&self, visitor: &mut T) {
 		match self {
-			Statement::Unreachable => visitor.visit_unreachable(),
-			Statement::Memorize(v) => v.accept(visitor),
-			Statement::Forward(v) => v.accept(visitor),
-			Statement::Backward(v) => v.accept(visitor),
-			Statement::If(v) => v.accept(visitor),
-			Statement::Br(v) => v.accept(visitor),
-			Statement::BrIf(v) => v.accept(visitor),
-			Statement::BrTable(v) => v.accept(visitor),
-			Statement::Return(v) => v.accept(visitor),
-			Statement::Call(v) => v.accept(visitor),
-			Statement::CallIndirect(v) => v.accept(visitor),
-			Statement::SetLocal(v) => v.accept(visitor),
-			Statement::SetGlobal(v) => v.accept(visitor),
-			Statement::AnyStore(v) => v.accept(visitor),
+			Self::Unreachable => visitor.visit_unreachable(),
+			Self::Memorize(v) => v.accept(visitor),
+			Self::Forward(v) => v.accept(visitor),
+			Self::Backward(v) => v.accept(visitor),
+			Self::If(v) => v.accept(visitor),
+			Self::Br(v) => v.accept(visitor),
+			Self::BrIf(v) => v.accept(visitor),
+			Self::BrTable(v) => v.accept(visitor),
+			Self::Return(v) => v.accept(visitor),
+			Self::Call(v) => v.accept(visitor),
+			Self::CallIndirect(v) => v.accept(visitor),
+			Self::SetLocal(v) => v.accept(visitor),
+			Self::SetGlobal(v) => v.accept(visitor),
+			Self::AnyStore(v) => v.accept(visitor),
 		}
 	}
 }

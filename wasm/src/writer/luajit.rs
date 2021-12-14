@@ -7,9 +7,9 @@ use crate::{
 	ast::{
 		builder::{Arities, Builder},
 		node::{
-			AnyBinOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call, CallIndirect,
-			Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize, MemoryGrow,
-			MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
+			AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call,
+			CallIndirect, Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize,
+			MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
 		},
 	},
 };
@@ -165,76 +165,69 @@ impl Driver for Value {
 	}
 }
 
-fn write_un_op(un_op: &AnyUnOp, v: &mut Visitor, w: Writer) -> Result<()> {
-	if let Some(op) = un_op.op.as_operator() {
-		write!(w, "{} ", op)?;
-		un_op.rhs.visit(v, w)
-	} else {
-		let (a, b) = un_op.op.as_name();
-
-		write!(w, "{}_{}(", a, b)?;
-		un_op.rhs.visit(v, w)?;
-		write!(w, ")")
-	}
-}
-
 impl Driver for AnyUnOp {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		if self.op.is_compare() {
-			write!(w, "(")?;
-		}
+		let (a, b) = self.op.as_name();
 
-		write_un_op(self, v, w)?;
-
-		if self.op.is_compare() {
-			write!(w, "and 1 or 0)")?;
-		}
-
-		Ok(())
+		write!(w, "{}_{}(", a, b)?;
+		self.rhs.visit(v, w)?;
+		write!(w, ")")
 	}
 }
 
-fn write_bin_op(bin_op: &AnyBinOp, v: &mut Visitor, w: Writer) -> Result<()> {
-	if let Some(op) = bin_op.op.as_operator() {
-		bin_op.lhs.visit(v, w)?;
-		write!(w, "{} ", op)?;
-		bin_op.rhs.visit(v, w)
-	} else {
-		let (a, b) = bin_op.op.as_name();
-
-		write!(w, "{}_{}(", a, b)?;
-		bin_op.lhs.visit(v, w)?;
-		write!(w, ", ")?;
-		bin_op.rhs.visit(v, w)?;
-		write!(w, ")")
-	}
+fn write_bin_call(
+	op: (&str, &str),
+	lhs: &Expression,
+	rhs: &Expression,
+	v: &mut Visitor,
+	w: Writer,
+) -> Result<()> {
+	write!(w, "{}_{}(", op.0, op.1)?;
+	lhs.visit(v, w)?;
+	write!(w, ", ")?;
+	rhs.visit(v, w)?;
+	write!(w, ")")
 }
 
 impl Driver for AnyBinOp {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		if self.op.is_compare() {
+		if let Some(op) = self.op.as_operator() {
 			write!(w, "(")?;
+			self.lhs.visit(v, w)?;
+			write!(w, "{} ", op)?;
+			self.rhs.visit(v, w)?;
+			write!(w, ")")
+		} else {
+			write_bin_call(self.op.as_name(), &self.lhs, &self.rhs, v, w)
 		}
+	}
+}
 
-		write_bin_op(self, v, w)?;
+fn write_any_cmp(cmp: &AnyCmpOp, v: &mut Visitor, w: Writer) -> Result<()> {
+	if let Some(op) = cmp.op.as_operator() {
+		cmp.lhs.visit(v, w)?;
+		write!(w, "{} ", op)?;
+		cmp.rhs.visit(v, w)
+	} else {
+		write_bin_call(cmp.op.as_name(), &cmp.lhs, &cmp.rhs, v, w)
+	}
+}
 
-		if self.op.is_compare() {
-			write!(w, "and 1 or 0)")?;
-		}
-
-		Ok(())
+impl Driver for AnyCmpOp {
+	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
+		write!(w, "(")?;
+		write_any_cmp(self, v, w)?;
+		write!(w, "and 1 or 0)")
 	}
 }
 
 // Removes the boolean to integer conversion
 fn write_as_condition(data: &Expression, v: &mut Visitor, w: Writer) -> Result<()> {
-	match data {
-		Expression::AnyUnOp(o) if o.op.is_compare() => write_un_op(o, v, w),
-		Expression::AnyBinOp(o) if o.op.is_compare() => write_bin_op(o, v, w),
-		_ => {
-			data.visit(v, w)?;
-			write!(w, "~= 0 ")
-		}
+	if let Expression::AnyCmpOp(o) = data {
+		write_any_cmp(o, v, w)
+	} else {
+		data.visit(v, w)?;
+		write!(w, "~= 0 ")
 	}
 }
 
@@ -261,6 +254,7 @@ impl Driver for Expression {
 			Self::Value(e) => e.visit(v, w),
 			Self::AnyUnOp(e) => e.visit(v, w),
 			Self::AnyBinOp(e) => e.visit(v, w),
+			Self::AnyCmpOp(e) => e.visit(v, w),
 		}
 	}
 }

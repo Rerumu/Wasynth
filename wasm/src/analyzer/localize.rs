@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::ast::node::{AnyBinOp, AnyLoad, AnyStore, AnyUnOp, Function};
+use crate::ast::node::{AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Function};
 
 use super::visit::{Driver, Visitor};
 
@@ -22,6 +22,12 @@ impl Visitor for Visit {
 	}
 
 	fn visit_any_unop(&mut self, v: &AnyUnOp) {
+		let name = v.op.as_name();
+
+		self.result.insert(name);
+	}
+
+	fn visit_any_binop(&mut self, v: &AnyBinOp) {
 		if v.op.as_operator().is_some() {
 			return;
 		}
@@ -31,7 +37,7 @@ impl Visitor for Visit {
 		self.result.insert(name);
 	}
 
-	fn visit_any_binop(&mut self, v: &AnyBinOp) {
+	fn visit_any_cmpop(&mut self, v: &AnyCmpOp) {
 		if v.op.as_operator().is_some() {
 			return;
 		}

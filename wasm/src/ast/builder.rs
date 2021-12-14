@@ -4,11 +4,11 @@ use parity_wasm::elements::{
 
 use super::{
 	node::{
-		AnyBinOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call, CallIndirect,
-		Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize, MemoryGrow,
-		MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
+		AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call,
+		CallIndirect, Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize,
+		MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
 	},
-	tag::{BinOp, Load, Store, UnOp},
+	tag::{BinOp, CmpOp, Load, Store, UnOp},
 };
 
 struct Arity {
@@ -310,6 +310,52 @@ impl<'a> Builder<'a> {
 			.push(Expression::AnyBinOp(AnyBinOp { op, lhs, rhs }));
 	}
 
+	fn push_cmp_op(&mut self, op: CmpOp) {
+		let rhs = Box::new(self.stack.pop().unwrap());
+		let lhs = Box::new(self.stack.pop().unwrap());
+
+		self.stack
+			.push(Expression::AnyCmpOp(AnyCmpOp { op, lhs, rhs }));
+	}
+
+	// Since Eqz is the only unary comparison it's cleaner to
+	// generate a simple CmpOp
+	fn from_equal_zero(&mut self, inst: &Instruction) -> bool {
+		match inst {
+			Instruction::I32Eqz => {
+				self.push_constant(Value::I32(0));
+				self.push_cmp_op(CmpOp::Eq_I32);
+
+				true
+			}
+			Instruction::I64Eqz => {
+				self.push_constant(Value::I64(0));
+				self.push_cmp_op(CmpOp::Eq_I64);
+
+				true
+			}
+			_ => false,
+		}
+	}
+
+	fn from_operation(&mut self, inst: &Instruction) -> bool {
+		if let Ok(op) = UnOp::try_from(inst) {
+			self.push_un_op(op);
+
+			true
+		} else if let Ok(op) = BinOp::try_from(inst) {
+			self.push_bin_op(op);
+
+			true
+		} else if let Ok(op) = CmpOp::try_from(inst) {
+			self.push_cmp_op(op);
+
+			true
+		} else {
+			self.from_equal_zero(inst)
+		}
+	}
+
 	fn drop_unreachable(list: &mut &[Instruction]) {
 		use Instruction as Inst;
 
@@ -353,13 +399,7 @@ impl<'a> Builder<'a> {
 
 			*list = &list[1..];
 
-			if let Ok(op) = UnOp::try_from(inst) {
-				self.push_un_op(op);
-
-				continue;
-			} else if let Ok(op) = BinOp::try_from(inst) {
-				self.push_bin_op(op);
-
+			if self.from_operation(inst) {
 				continue;
 			}
 

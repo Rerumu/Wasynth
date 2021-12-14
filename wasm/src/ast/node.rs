@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use parity_wasm::elements::BrTableData;
 
-use super::tag::{BinOp, Load, Store, UnOp};
+use super::tag::{BinOp, CmpOp, Load, Store, UnOp};
 
 #[derive(Clone)]
 pub struct Recall {
@@ -57,6 +57,12 @@ pub struct AnyBinOp {
 	pub rhs: Box<Expression>,
 }
 
+pub struct AnyCmpOp {
+	pub op: CmpOp,
+	pub lhs: Box<Expression>,
+	pub rhs: Box<Expression>,
+}
+
 pub enum Expression {
 	Recall(Recall),
 	Select(Select),
@@ -68,6 +74,7 @@ pub enum Expression {
 	Value(Value),
 	AnyUnOp(AnyUnOp),
 	AnyBinOp(AnyBinOp),
+	AnyCmpOp(AnyCmpOp),
 }
 
 impl Expression {

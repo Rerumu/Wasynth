@@ -105,14 +105,10 @@ do
 end
 
 do
-	local eqz = {}
 	local le = {}
 	local lt = {}
 	local ge = {}
 	local gt = {}
-
-	function eqz.i32(lhs) return lhs == 0 end
-	function eqz.i64(lhs) return lhs == 0 end
 
 	function ge.u32(lhs, rhs) return u32(lhs) >= u32(rhs) end
 	function ge.u64(lhs, rhs) return u64(lhs) >= u64(rhs) end
@@ -126,7 +122,6 @@ do
 	function lt.u32(lhs, rhs) return u32(lhs) < u32(rhs) end
 	function lt.u64(lhs, rhs) return u64(lhs) < u64(rhs) end
 
-	module.eqz = eqz
 	module.le = le
 	module.lt = lt
 	module.ge = ge

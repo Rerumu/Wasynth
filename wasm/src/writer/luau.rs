@@ -7,9 +7,9 @@ use crate::{
 	ast::{
 		builder::{Arities, Builder},
 		node::{
-			AnyBinOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call, CallIndirect,
-			Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize, MemoryGrow,
-			MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
+			AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call,
+			CallIndirect, Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize,
+			MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
 		},
 	},
 };
@@ -154,22 +154,13 @@ impl Driver for Value {
 	}
 }
 
-fn write_un_op_call(un_op: &AnyUnOp, v: &mut Visitor, w: Writer) -> Result<()> {
-	let (a, b) = un_op.op.as_name();
-
-	write!(w, "{}_{}(", a, b)?;
-	un_op.rhs.visit(v, w)?;
-	write!(w, ")")
-}
-
 impl Driver for AnyUnOp {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		if let Some(op) = self.op.as_operator() {
-			write!(w, "{}", op)?;
-			self.rhs.visit(v, w)
-		} else {
-			write_un_op_call(self, v, w)
-		}
+		let (a, b) = self.op.as_name();
+
+		write!(w, "{}_{}(", a, b)?;
+		self.rhs.visit(v, w)?;
+		write!(w, ")")
 	}
 }
 
@@ -203,6 +194,18 @@ impl Driver for AnyBinOp {
 	}
 }
 
+impl Driver for AnyCmpOp {
+	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
+		let (a, b) = self.op.as_name();
+
+		write!(w, "{}_{}(", a, b)?;
+		self.lhs.visit(v, w)?;
+		write!(w, ", ")?;
+		self.rhs.visit(v, w)?;
+		write!(w, ")")
+	}
+}
+
 fn write_expr_list(list: &[Expression], v: &mut Visitor, w: Writer) -> Result<()> {
 	list.iter().enumerate().try_for_each(|(i, e)| {
 		if i != 0 {
@@ -226,6 +229,7 @@ impl Driver for Expression {
 			Self::Value(e) => e.visit(v, w),
 			Self::AnyUnOp(e) => e.visit(v, w),
 			Self::AnyBinOp(e) => e.visit(v, w),
+			Self::AnyCmpOp(e) => e.visit(v, w),
 		}
 	}
 }
