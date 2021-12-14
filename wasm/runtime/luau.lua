@@ -2,26 +2,61 @@ local module = {}
 
 local function no_op(x) return x end
 
+local function to_u32(x) return bit32.band(x, 0xFFFFFFFF) end
+
+local function to_i32(x)
+	if x > 0x7FFFFFFF then x = x - 0x100000000 end
+
+	return x
+end
+
+local function wrap_i32(x) return to_i32(to_u32(x) % 0x100000000) end
+
+local function truncate(num)
+	if num >= 0 then
+		return math.floor(num)
+	else
+		return math.ceil(num)
+	end
+end
+
 do
+	local add = {}
+	local sub = {}
+	local mul = {}
 	local div = {}
 
-	module.div = div
+	function add.i32(a, b) return wrap_i32(a + b) end
+
+	function sub.i32(a, b) return wrap_i32(a - b) end
+
+	function mul.i32(a, b) return wrap_i32(a * b) end
 
 	function div.i32(lhs, rhs)
 		assert(rhs ~= 0, 'division by zero')
 
-		return math.floor(lhs / rhs)
+		return truncate(lhs / rhs)
 	end
+
+	function div.u32(lhs, rhs)
+		assert(rhs ~= 0, 'division by zero')
+
+		lhs = to_u32(lhs)
+		rhs = to_u32(rhs)
+
+		return to_i32(math.floor(lhs / rhs))
+	end
+
+	module.add = add
+	module.sub = sub
+	module.mul = mul
+	module.div = div
 end
 
 do
 	local clz = {}
 	local ctz = {}
 	local popcnt = {}
-
-	module.clz = clz
-	module.ctz = ctz
-	module.popcnt = popcnt
 
 	clz.i32 = bit32.countlz
 	ctz.i32 = bit32.countrz
@@ -36,6 +71,10 @@ do
 
 		return count
 	end
+
+	module.clz = clz
+	module.ctz = ctz
+	module.popcnt = popcnt
 end
 
 do
@@ -47,6 +86,34 @@ do
 	local ge = {}
 	local gt = {}
 
+	local function to_boolean(cond)
+		if cond then
+			return 1
+		else
+			return 0
+		end
+	end
+
+	function eq.i32(lhs, rhs) return to_boolean(lhs == rhs) end
+	function eq.num(lhs, rhs) return to_boolean(lhs == rhs) end
+
+	function eqz.i32(lhs) return to_boolean(lhs == 0) end
+
+	function ne.i32(lhs, rhs) return to_boolean(lhs ~= rhs) end
+	function ne.num(lhs, rhs) return to_boolean(lhs ~= rhs) end
+
+	function ge.i32(lhs, rhs) return to_boolean(lhs >= rhs) end
+	function ge.u32(lhs, rhs) return to_boolean(to_u32(lhs) >= to_u32(rhs)) end
+
+	function gt.i32(lhs, rhs) return to_boolean(lhs > rhs) end
+	function gt.u32(lhs, rhs) return to_boolean(to_u32(lhs) > to_u32(rhs)) end
+
+	function le.i32(lhs, rhs) return to_boolean(lhs <= rhs) end
+	function le.u32(lhs, rhs) return to_boolean(to_u32(lhs) <= to_u32(rhs)) end
+
+	function lt.i32(lhs, rhs) return to_boolean(lhs < rhs) end
+	function lt.u32(lhs, rhs) return to_boolean(to_u32(lhs) < to_u32(rhs)) end
+
 	module.eqz = eqz
 	module.eq = eq
 	module.ne = ne
@@ -54,45 +121,6 @@ do
 	module.lt = lt
 	module.ge = ge
 	module.gt = gt
-
-	local function unsign_i32(x)
-		if x < 0 then x = x + 0x100000000 end
-
-		return x
-	end
-
-	local function unsign_i64(x)
-		if x < 0 then x = x + 0x10000000000000000 end
-
-		return x
-	end
-
-	function eq.i32(lhs, rhs) return lhs == rhs and 1 or 0 end
-	function eq.i64(lhs, rhs) return lhs == rhs and 1 or 0 end
-	function eqz.i32(lhs) return lhs == 0 and 1 or 0 end
-	function eqz.i64(lhs) return lhs == 0 and 1 or 0 end
-	function ne.i32(lhs, rhs) return lhs ~= rhs and 1 or 0 end
-	function ne.i64(lhs, rhs) return lhs ~= rhs and 1 or 0 end
-
-	function ge.i32(lhs, rhs) return lhs >= rhs and 1 or 0 end
-	function ge.i64(lhs, rhs) return lhs >= rhs and 1 or 0 end
-	function ge.u32(lhs, rhs) return unsign_i32(lhs) >= unsign_i32(rhs) and 1 or 0 end
-	function ge.u64(lhs, rhs) return unsign_i64(lhs) >= unsign_i64(rhs) and 1 or 0 end
-
-	function gt.i32(lhs, rhs) return lhs > rhs and 1 or 0 end
-	function gt.i64(lhs, rhs) return lhs > rhs and 1 or 0 end
-	function gt.u32(lhs, rhs) return unsign_i32(lhs) > unsign_i32(rhs) and 1 or 0 end
-	function gt.u64(lhs, rhs) return unsign_i64(lhs) > unsign_i64(rhs) and 1 or 0 end
-
-	function le.i32(lhs, rhs) return lhs <= rhs and 1 or 0 end
-	function le.i64(lhs, rhs) return lhs <= rhs and 1 or 0 end
-	function le.u32(lhs, rhs) return unsign_i32(lhs) <= unsign_i32(rhs) and 1 or 0 end
-	function le.u64(lhs, rhs) return unsign_i64(lhs) <= unsign_i64(rhs) and 1 or 0 end
-
-	function lt.i32(lhs, rhs) return lhs < rhs and 1 or 0 end
-	function lt.i64(lhs, rhs) return lhs < rhs and 1 or 0 end
-	function lt.u32(lhs, rhs) return unsign_i32(lhs) < unsign_i32(rhs) and 1 or 0 end
-	function lt.u64(lhs, rhs) return unsign_i64(lhs) < unsign_i64(rhs) and 1 or 0 end
 end
 
 do
@@ -101,19 +129,18 @@ do
 	local bxor = {}
 	local bnot = {}
 
+	band.i32 = bit32.band
+
+	bnot.i32 = bit32.bnot
+
+	bor.i32 = bit32.bor
+
+	bxor.i32 = bit32.bxor
+
 	module.band = band
 	module.bor = bor
 	module.bxor = bxor
 	module.bnot = bnot
-
-	band.i32 = bit32.band
-	band.i64 = bit32.band
-	bnot.i32 = bit32.bnot
-	bnot.i64 = bit32.bnot
-	bor.i32 = bit32.bor
-	bor.i64 = bit32.bor
-	bxor.i32 = bit32.bxor
-	bxor.i64 = bit32.bxor
 end
 
 do
@@ -122,42 +149,51 @@ do
 	local rotl = {}
 	local rotr = {}
 
+	rotl.i32 = bit32.lrotate
+
+	rotr.i32 = bit32.rrotate
+
+	shl.i32 = bit32.lshift
+	shl.u32 = bit32.lshift
+
+	shr.i32 = bit32.arshift
+	shr.u32 = bit32.rshift
+
 	module.shl = shl
 	module.shr = shr
 	module.rotl = rotl
 	module.rotr = rotr
-
-	rotl.i32 = bit32.lrotate
-	rotr.i32 = bit32.rrotate
-
-	shl.i32 = bit32.lshift
-	shl.i64 = bit32.lshift
-	shl.u32 = bit32.lshift
-	shl.u64 = bit32.lshift
-	shr.i32 = bit32.rshift
-	shr.i64 = bit32.rshift
-	shr.u32 = bit32.rshift
-	shr.u64 = bit32.rshift
 end
 
 do
-	local extend = {}
 	local wrap = {}
+	local trunc = {}
+	local extend = {}
+	local convert = {}
+	local reinterpret = {}
 
-	module.extend = extend
+	trunc.i32_f32 = truncate
+	trunc.i32_f64 = truncate
+	trunc.u32_f32 = truncate
+	trunc.u32_f64 = truncate
+
+	extend.i64_i32 = no_op
+
+	function convert.f32_i32(num) return num end
+
+	function convert.f64_i32(num) return num end
+
 	module.wrap = wrap
-
-	extend.i32_u64 = no_op
-
-	function wrap.i64_i32(i) return i % 2 ^ 32 end
+	module.trunc = trunc
+	module.extend = extend
+	module.convert = convert
+	module.reinterpret = reinterpret
 end
 
 do
 	local load = {}
 	local store = {}
-
-	module.load = load
-	module.store = store
+	local memory = {}
 
 	local function rip_u64(x) return math.floor(x / 0x100000000), x % 0x100000000 end
 
@@ -238,12 +274,6 @@ do
 		store.i32(memory, addr, lo)
 		store.i32(memory, addr + 4, hi)
 	end
-end
-
-do
-	local memory = {}
-
-	module.memory = memory
 
 	function memory.new(min, max) return {min = min, max = max, data = {}} end
 
@@ -279,6 +309,10 @@ do
 			return old
 		end
 	end
+
+	module.load = load
+	module.store = store
+	module.memory = memory
 end
 
 return module
