@@ -285,8 +285,12 @@ impl Driver for Backward {
 		let label = v.push_label();
 
 		write!(w, "::continue_at_{}::", label)?;
+		write!(w, "while true do ")?;
 
 		self.body.iter().try_for_each(|s| s.visit(v, w))?;
+
+		write!(w, "break ")?;
+		write!(w, "end ")?;
 
 		v.pop_label();
 
