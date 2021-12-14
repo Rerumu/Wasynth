@@ -106,55 +106,27 @@ end
 
 do
 	local eqz = {}
-	local eq = {}
-	local ne = {}
 	local le = {}
 	local lt = {}
 	local ge = {}
 	local gt = {}
 
-	local function to_boolean(cond)
-		if cond then
-			return 1
-		else
-			return 0
-		end
-	end
+	function eqz.i32(lhs) return lhs == 0 end
+	function eqz.i64(lhs) return lhs == 0 end
 
-	function eq.i32(lhs, rhs) return (to_boolean(lhs == rhs)) end
-	function eq.i64(lhs, rhs) return (to_boolean(lhs == rhs)) end
-	function eq.num(lhs, rhs) return (to_boolean(lhs == rhs)) end
+	function ge.u32(lhs, rhs) return u32(lhs) >= u32(rhs) end
+	function ge.u64(lhs, rhs) return u64(lhs) >= u64(rhs) end
 
-	function eqz.i32(lhs) return (to_boolean(lhs == 0)) end
-	function eqz.i64(lhs) return (to_boolean(lhs == 0)) end
+	function gt.u32(lhs, rhs) return u32(lhs) > u32(rhs) end
+	function gt.u64(lhs, rhs) return u64(lhs) > u64(rhs) end
 
-	function ne.i32(lhs, rhs) return (to_boolean(lhs ~= rhs)) end
-	function ne.i64(lhs, rhs) return (to_boolean(lhs ~= rhs)) end
-	function ne.num(lhs, rhs) return (to_boolean(lhs ~= rhs)) end
+	function le.u32(lhs, rhs) return u32(lhs) <= u32(rhs) end
+	function le.u64(lhs, rhs) return u64(lhs) <= u64(rhs) end
 
-	function ge.i32(lhs, rhs) return (to_boolean(lhs >= rhs)) end
-	function ge.i64(lhs, rhs) return (to_boolean(lhs >= rhs)) end
-	function ge.u32(lhs, rhs) return (to_boolean(u32(lhs) >= u32(rhs))) end
-	function ge.u64(lhs, rhs) return (to_boolean(u64(lhs) >= u64(rhs))) end
-
-	function gt.i32(lhs, rhs) return (to_boolean(lhs > rhs)) end
-	function gt.i64(lhs, rhs) return (to_boolean(lhs > rhs)) end
-	function gt.u32(lhs, rhs) return (to_boolean(u32(lhs) > u32(rhs))) end
-	function gt.u64(lhs, rhs) return (to_boolean(u64(lhs) > u64(rhs))) end
-
-	function le.i32(lhs, rhs) return (to_boolean(lhs <= rhs)) end
-	function le.i64(lhs, rhs) return (to_boolean(lhs <= rhs)) end
-	function le.u32(lhs, rhs) return (to_boolean(u32(lhs) <= u32(rhs))) end
-	function le.u64(lhs, rhs) return (to_boolean(u64(lhs) <= u64(rhs))) end
-
-	function lt.i32(lhs, rhs) return (to_boolean(lhs < rhs)) end
-	function lt.i64(lhs, rhs) return (to_boolean(lhs < rhs)) end
-	function lt.u32(lhs, rhs) return (to_boolean(u32(lhs) < u32(rhs))) end
-	function lt.u64(lhs, rhs) return (to_boolean(u64(lhs) < u64(rhs))) end
+	function lt.u32(lhs, rhs) return u32(lhs) < u32(rhs) end
+	function lt.u64(lhs, rhs) return u64(lhs) < u64(rhs) end
 
 	module.eqz = eqz
-	module.eq = eq
-	module.ne = ne
 	module.le = le
 	module.lt = lt
 	module.ge = ge
