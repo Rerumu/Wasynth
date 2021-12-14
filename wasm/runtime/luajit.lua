@@ -2,7 +2,6 @@ local module = {}
 
 local bit = require('bit')
 local ffi = require('ffi')
-local jit = require('jit')
 
 local u32 = ffi.typeof('uint32_t')
 local u64 = ffi.typeof('uint64_t')
