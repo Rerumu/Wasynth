@@ -1,3 +1,9 @@
-This is a WIP (read: absolutely not ready for serious work) tool for translating WebAssembly into Lua. Support is specifically for LuaJIT, with the secondary objective being Lua 5.4 and Roblox's Luau.
+This is a WebAssembly to Lua translation tool. The generated code is designed to run without any dependencies past the bundled runtime.
 
-The instructions are minimal; run the program as `program <edition> <file...>` to generate the translations into stdout. Editions currently supported are `LuaJIT` and `Luau`.
+You can run the tool via `program help` to list command line instructions.
+
+|          |                 |                       |
+|----------|-----------------|-----------------------|
+| LuaJIT   | :green_circle:  | Minimum version 2.1.0 |
+| Luau     | :yellow_circle: |                       |
+| Lua 5.4  | :red_circle:    |                       |

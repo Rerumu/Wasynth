@@ -5,13 +5,8 @@ mod analyzer;
 mod ast;
 mod writer;
 
-fn lang_from_string<'a>(name: &str, wasm: &'a Module) -> Box<dyn Transpiler<'a> + 'a> {
-	match name.to_lowercase().as_str() {
-		"luau" => Box::new(Luau::new(wasm)),
-		"luajit" => Box::new(LuaJIT::new(wasm)),
-		_ => panic!("Bad option: {}", name),
-	}
-}
+static LUAJIT_RUNTIME: &str = include_str!("../runtime/luajit.lua");
+static LUAU_RUNTIME: &str = include_str!("../runtime/luau.lua");
 
 fn parse_module(name: &str) -> Module {
 	let wasm = deserialize_file(name).expect("Failed to parse Wasm file");
@@ -22,16 +17,57 @@ fn parse_module(name: &str) -> Module {
 	}
 }
 
-fn main() {
-	let mut args = std::env::args().skip(1);
-	let name = args.next().expect("No language specified");
-
+fn run_translator<'a, T: Transpiler<'a>>(wasm: &'a Module) {
+	let module = T::new(wasm);
 	let output = std::io::stdout();
 
-	for v in args {
-		let wasm = parse_module(&v);
-		let module = lang_from_string(&name, &wasm);
+	module
+		.transpile(&mut output.lock())
+		.expect("Failed to transpile");
+}
 
-		module.transpile(&mut output.lock()).unwrap();
+fn do_translate(name: &str, file: &str) {
+	let wasm = &parse_module(file);
+
+	match name.to_lowercase().as_str() {
+		"luau" => run_translator::<Luau>(wasm),
+		"luajit" => run_translator::<LuaJIT>(wasm),
+		_ => panic!("Bad language: {}", name),
+	}
+}
+
+fn do_runtime(name: &str) {
+	match name.to_lowercase().as_str() {
+		"luajit" => println!("{}", LUAJIT_RUNTIME),
+		"luau" => println!("{}", LUAU_RUNTIME),
+		_ => panic!("Bad runtime: {}", name),
+	}
+}
+
+fn do_help() {
+	println!("usage: program translate <lang> <file>");
+	println!("  or:  program runtime <lang>");
+	println!("  or:  program help");
+}
+
+fn main() {
+	let mut args = std::env::args().skip(1);
+
+	match args.next().as_deref().unwrap_or("help") {
+		"help" => do_help(),
+		"runtime" => {
+			let lang = args.next().expect("No runtime specified");
+
+			do_runtime(&lang);
+		}
+		"translate" => {
+			let lang = args.next().expect("No language specified");
+			let file = args.next().expect("No file specified");
+
+			do_translate(&lang, &file);
+		}
+		bad => {
+			eprintln!("Bad action `{}`; try `help`", bad);
+		}
 	}
 }
