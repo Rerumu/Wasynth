@@ -7,11 +7,15 @@ local u32 = ffi.typeof('uint32_t')
 local u64 = ffi.typeof('uint64_t')
 local i64 = ffi.typeof('int64_t')
 
+local math_ceil = math.ceil
+local math_floor = math.floor
+local to_number = tonumber
+
 local function truncate(num)
 	if num >= 0 then
-		return (math.floor(num))
+		return (math_floor(num))
 	else
-		return (math.ceil(num))
+		return (math_ceil(num))
 	end
 end
 
@@ -41,10 +45,10 @@ do
 	function div.u32(lhs, rhs)
 		assert(rhs ~= 0, 'division by zero')
 
-		lhs = tonumber(u32(lhs))
-		rhs = tonumber(u32(rhs))
+		lhs = to_number(u32(lhs))
+		rhs = to_number(u32(rhs))
 
-		return (to_signed(math.floor(lhs / rhs)))
+		return (to_signed(math_floor(lhs / rhs)))
 	end
 
 	function div.u64(lhs, rhs)
@@ -222,14 +226,14 @@ do
 	end
 
 	function convert.f32_i32(num) return num end
-	function convert.f32_u32(num) return (tonumber(u32(num))) end
-	function convert.f32_i64(num) return (tonumber(num)) end
-	function convert.f32_u64(num) return (tonumber(u64(num))) end
+	function convert.f32_u32(num) return (to_number(u32(num))) end
+	function convert.f32_i64(num) return (to_number(num)) end
+	function convert.f32_u64(num) return (to_number(u64(num))) end
 
 	function convert.f64_i32(num) return num end
-	function convert.f64_u32(num) return (tonumber(u32(num))) end
-	function convert.f64_i64(num) return (tonumber(num)) end
-	function convert.f64_u64(num) return (tonumber(u64(num))) end
+	function convert.f64_u32(num) return (to_number(u32(num))) end
+	function convert.f64_i64(num) return (to_number(num)) end
+	function convert.f64_u64(num) return (to_number(u64(num))) end
 
 	function reinterpret.i32_f32(num)
 		RE_INSTANCE.f32 = num
