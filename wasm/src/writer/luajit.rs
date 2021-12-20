@@ -469,8 +469,8 @@ impl Driver for Function {
 			write!(w, "local memory_at_{0} = MEMORY_LIST[{0}]", v)?;
 		}
 
-		write!(w, "local temp ")?;
 		write_variable_list(self, w)?;
+		write!(w, "local temp ")?;
 
 		v.num_param = self.num_param;
 		self.body.visit(v, w)?;
