@@ -380,13 +380,7 @@ impl Driver for Return {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		write!(w, "do return ")?;
 
-		self.list.iter().enumerate().try_for_each(|(i, r)| {
-			if i > 0 {
-				write!(w, ", ")?;
-			}
-
-			r.visit(v, w)
-		})?;
+		write_expr_list(&self.list, v, w)?;
 
 		write!(w, "end ")
 	}
