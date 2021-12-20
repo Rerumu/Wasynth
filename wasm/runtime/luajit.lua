@@ -25,16 +25,17 @@ do
 	local mul = {}
 	local div = {}
 
+	local num_meta = debug.getmetatable(i64)
 	local to_signed = bit.tobit
 
 	function add.i32(a, b) return (to_signed(a + b)) end
-	function add.i64(a, b) return a + b end
+	add.i64 = num_meta.__add
 
 	function sub.i32(a, b) return (to_signed(a - b)) end
-	function sub.i64(a, b) return a - b end
+	sub.i64 = num_meta.__sub
 
 	function mul.i32(a, b) return (to_signed(a * b)) end
-	function mul.i64(a, b) return a * b end
+	mul.i64 = num_meta.__mul
 
 	function div.i32(lhs, rhs)
 		assert(rhs ~= 0, 'division by zero')
@@ -199,8 +200,6 @@ do
 		double f64;
 	}]]
 
-	local function truncate_i64(num) return (i64(truncate(num))) end
-
 	function wrap.i32_i64(num)
 		RE_INSTANCE.i64 = num
 
@@ -211,10 +210,10 @@ do
 	trunc.i32_f64 = truncate
 	trunc.u32_f32 = truncate
 	trunc.u32_f64 = truncate
-	trunc.i64_f32 = truncate_i64
-	trunc.i64_f64 = truncate_i64
-	trunc.u64_f32 = truncate_i64
-	trunc.u64_f64 = truncate_i64
+	trunc.i64_f32 = i64
+	trunc.i64_f64 = i64
+	trunc.u64_f32 = i64
+	trunc.u64_f64 = i64
 
 	extend.i64_i32 = i64
 
