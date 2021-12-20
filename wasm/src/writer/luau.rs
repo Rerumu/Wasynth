@@ -356,8 +356,12 @@ impl Driver for BrTable {
 		write!(w, "do ")?;
 		write!(w, "local temp = {{")?;
 
-		for d in self.data.table.iter() {
-			write!(w, "{}, ", d)?;
+		if !self.data.table.is_empty() {
+			write!(w, "[0] =")?;
+
+			for d in self.data.table.iter() {
+				write!(w, "{}, ", d)?;
+			}
 		}
 
 		write!(w, "}} ")?;
