@@ -723,6 +723,11 @@ impl<'a> Transpiler<'a> for Luau<'a> {
 
 		Self::gen_localize(&func_list, w)?;
 
+		write!(w, "local ZERO_i32 = 0 ")?;
+		write!(w, "local ZERO_i64 = 0 ")?;
+		write!(w, "local ZERO_f32 = 0.0 ")?;
+		write!(w, "local ZERO_f64 = 0.0 ")?;
+
 		write_list("FUNC_LIST", self.wasm.functions_space(), w)?;
 		write_list("TABLE_LIST", self.wasm.table_space(), w)?;
 		write_list("MEMORY_LIST", self.wasm.memory_space(), w)?;

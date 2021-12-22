@@ -104,12 +104,20 @@ pub fn write_result_list(range: Range<u32>, w: Writer) -> Result<()> {
 }
 
 pub fn write_variable_list(func: &Function, w: Writer) -> Result<()> {
-	if func.num_local != 0 {
-		let list = vec!["0"; func.num_local as usize].join(", ");
+	if !func.local_list.is_empty() {
+		let num_local = func.local_list.len().try_into().unwrap();
 
 		write!(w, "local ")?;
-		write_in_order("loc", func.num_local, w)?;
-		write!(w, " = {} ", list)?;
+		write_in_order("loc", num_local, w)?;
+		write!(w, " = ")?;
+
+		for (i, t) in func.local_list.iter().enumerate() {
+			if i != 0 {
+				write!(w, ", ")?;
+			}
+
+			write!(w, "ZERO_{} ", t)?;
+		}
 	}
 
 	if func.num_stack != 0 {

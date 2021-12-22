@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use parity_wasm::elements::BrTableData;
+use parity_wasm::elements::{BrTableData, ValueType};
 
 use super::tag::{BinOp, CmpOp, Load, Store, UnOp};
 
@@ -182,8 +182,8 @@ pub enum Statement {
 }
 
 pub struct Function {
+	pub local_list: Vec<ValueType>,
 	pub num_param: u32,
-	pub num_local: u32,
 	pub num_stack: u32,
 	pub body: Forward,
 }

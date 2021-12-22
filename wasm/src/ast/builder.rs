@@ -1,5 +1,5 @@
 use parity_wasm::elements::{
-	BlockType, External, FuncBody, FunctionType, ImportEntry, Instruction, Local, Module, Type,
+	BlockType, External, FuncBody, FunctionType, ImportEntry, Instruction, Module, Type, ValueType,
 };
 
 use super::{
@@ -120,8 +120,11 @@ fn is_dead_precursor(inst: &Instruction) -> bool {
 	)
 }
 
-fn local_sum(body: &FuncBody) -> u32 {
-	body.locals().iter().map(Local::count).sum()
+fn load_local_list(func: &FuncBody) -> Vec<ValueType> {
+	func.locals()
+		.iter()
+		.flat_map(|l| std::iter::repeat(l.value_type()).take(l.count().try_into().unwrap()))
+		.collect()
 }
 
 fn load_func_at(wasm: &Module, index: usize) -> &FuncBody {
@@ -144,8 +147,8 @@ impl<'a> Builder<'a> {
 		let func = load_func_at(self.wasm, index);
 		let arity = &self.other.in_arity[index];
 
+		let local_list = load_local_list(func);
 		let num_param = arity.num_param;
-		let num_local = local_sum(func);
 
 		self.num_result = arity.num_result;
 
@@ -153,8 +156,8 @@ impl<'a> Builder<'a> {
 		let num_stack = self.last_stack.try_into().unwrap();
 
 		Function {
+			local_list,
 			num_param,
-			num_local,
 			num_stack,
 			body,
 		}
