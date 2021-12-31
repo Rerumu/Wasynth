@@ -2,7 +2,7 @@
 
 use wasm_smith::Module;
 
-use wasm::writer::{luajit::LuaJIT, visit::Transpiler};
+use wasm::writer::{base::Transpiler, luajit::LuaJIT};
 
 // We are not interested in parity_wasm errors.
 // Only 1 edition should need to be tested too.

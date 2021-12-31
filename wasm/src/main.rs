@@ -1,5 +1,5 @@
 use parity_wasm::{deserialize_file, elements::Module};
-use writer::{luajit::LuaJIT, luau::Luau, visit::Transpiler};
+use writer::{base::Transpiler, luajit::LuaJIT, luau::Luau};
 
 mod analyzer;
 mod ast;

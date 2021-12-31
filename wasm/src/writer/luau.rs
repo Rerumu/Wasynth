@@ -15,11 +15,11 @@ use crate::{
 };
 
 use super::{
+	base::{Transpiler, Writer},
 	shared::{
 		aux_internal_index, write_f32, write_f64, write_func_name, write_memory_init,
 		write_parameter_list, write_result_list, write_table_init, write_variable_list,
 	},
-	visit::{Transpiler, Writer},
 };
 
 fn write_expression(code: &[Instruction], w: Writer) -> Result<()> {

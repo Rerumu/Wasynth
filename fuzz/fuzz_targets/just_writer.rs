@@ -5,7 +5,7 @@ use std::io::Result;
 use parity_wasm::elements::Module as WasmModule;
 use wasm_smith::Module as SmModule;
 
-use wasm::writer::{luajit::LuaJIT, visit::Transpiler};
+use wasm::writer::{base::Transpiler, luajit::LuaJIT};
 
 fn fuzz_writer(wasm: &WasmModule) -> Result<()> {
 	let trans = LuaJIT::new(wasm);

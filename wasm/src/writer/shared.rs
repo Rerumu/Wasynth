@@ -4,7 +4,7 @@ use parity_wasm::elements::{Internal, Module, NameSection, ResizableLimits};
 
 use crate::ast::node::Function;
 
-use super::visit::Writer;
+use super::base::Writer;
 
 pub fn aux_internal_index(internal: Internal) -> u32 {
 	match internal {
