@@ -5,9 +5,6 @@ mod analyzer;
 mod ast;
 mod writer;
 
-static LUAJIT_RUNTIME: &str = include_str!("../runtime/luajit.lua");
-static LUAU_RUNTIME: &str = include_str!("../runtime/luau.lua");
-
 fn parse_module(name: &str) -> Module {
 	let wasm = deserialize_file(name).expect("Failed to parse Wasm file");
 
@@ -26,6 +23,12 @@ fn run_translator<'a, T: Transpiler<'a>>(wasm: &'a Module) {
 		.expect("Failed to transpile");
 }
 
+fn run_runtime<'a, T: Transpiler<'a>>() {
+	let output = std::io::stdout();
+
+	T::runtime(&mut output.lock()).expect("Failed to fetch runtime");
+}
+
 fn do_translate(name: &str, file: &str) {
 	let wasm = &parse_module(file);
 
@@ -38,8 +41,8 @@ fn do_translate(name: &str, file: &str) {
 
 fn do_runtime(name: &str) {
 	match name.to_lowercase().as_str() {
-		"luajit" => println!("{}", LUAJIT_RUNTIME),
-		"luau" => println!("{}", LUAU_RUNTIME),
+		"luajit" => run_runtime::<LuaJIT>(),
+		"luau" => run_runtime::<Luau>(),
 		_ => panic!("Bad runtime: {}", name),
 	}
 }

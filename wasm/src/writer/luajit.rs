@@ -720,11 +720,17 @@ fn write_list(name: &str, len: usize, w: Writer) -> Result<()> {
 	write!(w, "local {} = table_new({}, {})", name, len, hash)
 }
 
+static LUAJIT_RUNTIME: &str = include_str!("../../runtime/luajit.lua");
+
 impl<'a> Transpiler<'a> for LuaJIT<'a> {
 	fn new(wasm: &'a Module) -> Self {
 		let arity = Arities::new(wasm);
 
 		Self { wasm, arity }
+	}
+
+	fn runtime(writer: Writer) -> Result<()> {
+		write!(writer, "{}", LUAJIT_RUNTIME)
 	}
 
 	fn transpile(&self, w: Writer) -> Result<()> {

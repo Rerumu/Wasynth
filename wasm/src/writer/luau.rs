@@ -709,11 +709,17 @@ fn write_list(name: &str, len: usize, w: Writer) -> Result<()> {
 	write!(w, "local {} = table.create({})", name, len)
 }
 
+static LUAU_RUNTIME: &str = include_str!("../../runtime/luau.lua");
+
 impl<'a> Transpiler<'a> for Luau<'a> {
 	fn new(wasm: &'a Module) -> Self {
 		let arity = Arities::new(wasm);
 
 		Self { wasm, arity }
+	}
+
+	fn runtime(writer: Writer) -> Result<()> {
+		write!(writer, "{}", LUAU_RUNTIME)
 	}
 
 	fn transpile(&self, w: Writer) -> Result<()> {

@@ -9,6 +9,8 @@ pub trait Transpiler<'a> {
 	where
 		Self: Sized;
 
+	fn runtime(writer: Writer) -> Result<()>;
+
 	/// # Errors
 	/// Returns `Err` if writing to `Writer` failed.
 	fn transpile(&self, writer: Writer) -> Result<()>;
