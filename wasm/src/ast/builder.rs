@@ -390,6 +390,7 @@ impl<'a> Builder<'a> {
 		}
 	}
 
+	#[allow(clippy::too_many_lines)]
 	fn new_stored_body(&mut self, list: &mut &[Instruction]) -> Vec<Statement> {
 		use Instruction as Inst;
 
