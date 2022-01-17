@@ -1,16 +1,26 @@
 local module = {}
 
-local function no_op(x) return x end
+local bit32 = bit32
 
-local function to_u32(x) return bit32.band(x, 0xFFFFFFFF) end
+local function no_op(x)
+	return x
+end
+
+local function to_u32(x)
+	return bit32.band(x, 0xFFFFFFFF)
+end
 
 local function to_i32(x)
-	if x > 0x7FFFFFFF then x = x - 0x100000000 end
+	if x > 0x7FFFFFFF then
+		x = x - 0x100000000
+	end
 
 	return x
 end
 
-local function wrap_i32(x) return to_i32(to_u32(x) % 0x100000000) end
+local function wrap_i32(x)
+	return to_i32(to_u32(x) % 0x100000000)
+end
 
 local function truncate(num)
 	if num >= 0 then
@@ -26,20 +36,26 @@ do
 	local mul = {}
 	local div = {}
 
-	function add.i32(a, b) return wrap_i32(a + b) end
+	function add.i32(a, b)
+		return wrap_i32(a + b)
+	end
 
-	function sub.i32(a, b) return wrap_i32(a - b) end
+	function sub.i32(a, b)
+		return wrap_i32(a - b)
+	end
 
-	function mul.i32(a, b) return wrap_i32(a * b) end
+	function mul.i32(a, b)
+		return wrap_i32(a * b)
+	end
 
 	function div.i32(lhs, rhs)
-		assert(rhs ~= 0, 'division by zero')
+		assert(rhs ~= 0, "division by zero")
 
 		return truncate(lhs / rhs)
 	end
 
 	function div.u32(lhs, rhs)
-		assert(rhs ~= 0, 'division by zero')
+		assert(rhs ~= 0, "division by zero")
 
 		lhs = to_u32(lhs)
 		rhs = to_u32(rhs)
@@ -94,25 +110,51 @@ do
 		end
 	end
 
-	function eq.i32(lhs, rhs) return to_boolean(lhs == rhs) end
-	function eq.num(lhs, rhs) return to_boolean(lhs == rhs) end
+	function eq.i32(lhs, rhs)
+		return to_boolean(lhs == rhs)
+	end
+	function eq.num(lhs, rhs)
+		return to_boolean(lhs == rhs)
+	end
 
-	function eqz.i32(lhs) return to_boolean(lhs == 0) end
+	function eqz.i32(lhs)
+		return to_boolean(lhs == 0)
+	end
 
-	function ne.i32(lhs, rhs) return to_boolean(lhs ~= rhs) end
-	function ne.num(lhs, rhs) return to_boolean(lhs ~= rhs) end
+	function ne.i32(lhs, rhs)
+		return to_boolean(lhs ~= rhs)
+	end
+	function ne.num(lhs, rhs)
+		return to_boolean(lhs ~= rhs)
+	end
 
-	function ge.i32(lhs, rhs) return to_boolean(lhs >= rhs) end
-	function ge.u32(lhs, rhs) return to_boolean(to_u32(lhs) >= to_u32(rhs)) end
+	function ge.i32(lhs, rhs)
+		return to_boolean(lhs >= rhs)
+	end
+	function ge.u32(lhs, rhs)
+		return to_boolean(to_u32(lhs) >= to_u32(rhs))
+	end
 
-	function gt.i32(lhs, rhs) return to_boolean(lhs > rhs) end
-	function gt.u32(lhs, rhs) return to_boolean(to_u32(lhs) > to_u32(rhs)) end
+	function gt.i32(lhs, rhs)
+		return to_boolean(lhs > rhs)
+	end
+	function gt.u32(lhs, rhs)
+		return to_boolean(to_u32(lhs) > to_u32(rhs))
+	end
 
-	function le.i32(lhs, rhs) return to_boolean(lhs <= rhs) end
-	function le.u32(lhs, rhs) return to_boolean(to_u32(lhs) <= to_u32(rhs)) end
+	function le.i32(lhs, rhs)
+		return to_boolean(lhs <= rhs)
+	end
+	function le.u32(lhs, rhs)
+		return to_boolean(to_u32(lhs) <= to_u32(rhs))
+	end
 
-	function lt.i32(lhs, rhs) return to_boolean(lhs < rhs) end
-	function lt.u32(lhs, rhs) return to_boolean(to_u32(lhs) < to_u32(rhs)) end
+	function lt.i32(lhs, rhs)
+		return to_boolean(lhs < rhs)
+	end
+	function lt.u32(lhs, rhs)
+		return to_boolean(to_u32(lhs) < to_u32(rhs))
+	end
 
 	module.eqz = eqz
 	module.eq = eq
@@ -179,9 +221,13 @@ do
 
 	extend.i64_i32 = no_op
 
-	function convert.f32_i32(num) return num end
+	function convert.f32_i32(num)
+		return num
+	end
 
-	function convert.f64_i32(num) return num end
+	function convert.f64_i32(num)
+		return num
+	end
 
 	module.wrap = wrap
 	module.trunc = trunc
@@ -195,9 +241,13 @@ do
 	local store = {}
 	local memory = {}
 
-	local function rip_u64(x) return math.floor(x / 0x100000000), x % 0x100000000 end
+	local function rip_u64(x)
+		return math.floor(x / 0x100000000), x % 0x100000000
+	end
 
-	local function merge_u64(hi, lo) return hi * 0x100000000 + lo end
+	local function merge_u64(hi, lo)
+		return hi * 0x100000000 + lo
+	end
 
 	local function black_mask_byte(value, offset)
 		local mask = bit32.lshift(0xFF, offset * 8)
@@ -224,7 +274,9 @@ do
 	function load.i32_i8(memory, addr)
 		local b = load_byte(memory, addr)
 
-		if b > 0x7F then b = b - 0x100 end
+		if b > 0x7F then
+			b = b - 0x100
+		end
 
 		return b
 	end
@@ -275,7 +327,9 @@ do
 		store.i32(memory, addr + 4, hi)
 	end
 
-	function memory.new(min, max) return {min = min, max = max, data = {}} end
+	function memory.new(min, max)
+		return { min = min, max = max, data = {} }
+	end
 
 	function memory.init(memory, offset, data)
 		local store_i8 = module.store.i32_n8
@@ -285,7 +339,7 @@ do
 		local rem = len % 4
 
 		for i = 1, len - rem, 4 do
-			local v = string.unpack('<I4', data, i)
+			local v = string.unpack("<I4", data, i)
 
 			store_i32(memory, offset + i - 1, v)
 		end

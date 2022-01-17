@@ -1,11 +1,11 @@
 local module = {}
 
-local bit = require('bit')
-local ffi = require('ffi')
+local bit = require("bit")
+local ffi = require("ffi")
 
-local u32 = ffi.typeof('uint32_t')
-local u64 = ffi.typeof('uint64_t')
-local i64 = ffi.typeof('int64_t')
+local u32 = ffi.typeof("uint32_t")
+local u64 = ffi.typeof("uint64_t")
+local i64 = ffi.typeof("int64_t")
 
 local math_ceil = math.ceil
 local math_floor = math.floor
@@ -28,23 +28,29 @@ do
 	local num_meta = debug.getmetatable(i64)
 	local to_signed = bit.tobit
 
-	function add.i32(a, b) return (to_signed(a + b)) end
+	function add.i32(a, b)
+		return (to_signed(a + b))
+	end
 	add.i64 = num_meta.__add
 
-	function sub.i32(a, b) return (to_signed(a - b)) end
+	function sub.i32(a, b)
+		return (to_signed(a - b))
+	end
 	sub.i64 = num_meta.__sub
 
-	function mul.i32(a, b) return (to_signed(a * b)) end
+	function mul.i32(a, b)
+		return (to_signed(a * b))
+	end
 	mul.i64 = num_meta.__mul
 
 	function div.i32(lhs, rhs)
-		assert(rhs ~= 0, 'division by zero')
+		assert(rhs ~= 0, "division by zero")
 
 		return (truncate(lhs / rhs))
 	end
 
 	function div.u32(lhs, rhs)
-		assert(rhs ~= 0, 'division by zero')
+		assert(rhs ~= 0, "division by zero")
 
 		lhs = to_number(u32(lhs))
 		rhs = to_number(u32(rhs))
@@ -53,7 +59,7 @@ do
 	end
 
 	function div.u64(lhs, rhs)
-		assert(rhs ~= 0, 'division by zero')
+		assert(rhs ~= 0, "division by zero")
 
 		return (i64(u64(lhs) / u64(rhs)))
 	end
@@ -76,7 +82,9 @@ do
 		for i = 0, 31 do
 			local mask = lj_lshift(1, 31 - i)
 
-			if lj_band(num, mask) ~= 0 then return i end
+			if lj_band(num, mask) ~= 0 then
+				return i
+			end
 		end
 
 		return 32
@@ -86,7 +94,9 @@ do
 		for i = 0, 31 do
 			local mask = lj_lshift(1, i)
 
-			if lj_band(num, mask) ~= 0 then return i end
+			if lj_band(num, mask) ~= 0 then
+				return i
+			end
 		end
 
 		return 32
@@ -114,17 +124,37 @@ do
 	local ge = {}
 	local gt = {}
 
-	function ge.u32(lhs, rhs) return u32(lhs) >= u32(rhs) end
-	function ge.u64(lhs, rhs) return u64(lhs) >= u64(rhs) end
+	function ge.u32(lhs, rhs)
+		return u32(lhs) >= u32(rhs)
+	end
 
-	function gt.u32(lhs, rhs) return u32(lhs) > u32(rhs) end
-	function gt.u64(lhs, rhs) return u64(lhs) > u64(rhs) end
+	function ge.u64(lhs, rhs)
+		return u64(lhs) >= u64(rhs)
+	end
 
-	function le.u32(lhs, rhs) return u32(lhs) <= u32(rhs) end
-	function le.u64(lhs, rhs) return u64(lhs) <= u64(rhs) end
+	function gt.u32(lhs, rhs)
+		return u32(lhs) > u32(rhs)
+	end
 
-	function lt.u32(lhs, rhs) return u32(lhs) < u32(rhs) end
-	function lt.u64(lhs, rhs) return u64(lhs) < u64(rhs) end
+	function gt.u64(lhs, rhs)
+		return u64(lhs) > u64(rhs)
+	end
+
+	function le.u32(lhs, rhs)
+		return u32(lhs) <= u32(rhs)
+	end
+
+	function le.u64(lhs, rhs)
+		return u64(lhs) <= u64(rhs)
+	end
+
+	function lt.u32(lhs, rhs)
+		return u32(lhs) < u32(rhs)
+	end
+
+	function lt.u64(lhs, rhs)
+		return u64(lhs) < u64(rhs)
+	end
 
 	module.le = le
 	module.lt = lt
@@ -193,12 +223,12 @@ do
 
 	-- This would surely be an issue in a multi-thread environment...
 	-- ... thankfully this isn't one.
-	local RE_INSTANCE = ffi.new [[union {
+	local RE_INSTANCE = ffi.new([[union {
 		int32_t i32;
 		int64_t i64;
 		float f32;
 		double f64;
-	}]]
+	}]])
 
 	function wrap.i32_i64(num)
 		RE_INSTANCE.i64 = num
@@ -224,15 +254,37 @@ do
 		return RE_INSTANCE.i64
 	end
 
-	function convert.f32_i32(num) return num end
-	function convert.f32_u32(num) return (to_number(u32(num))) end
-	function convert.f32_i64(num) return (to_number(num)) end
-	function convert.f32_u64(num) return (to_number(u64(num))) end
+	function convert.f32_i32(num)
+		return num
+	end
 
-	function convert.f64_i32(num) return num end
-	function convert.f64_u32(num) return (to_number(u32(num))) end
-	function convert.f64_i64(num) return (to_number(num)) end
-	function convert.f64_u64(num) return (to_number(u64(num))) end
+	function convert.f32_u32(num)
+		return (to_number(u32(num)))
+	end
+
+	function convert.f32_i64(num)
+		return (to_number(num))
+	end
+
+	function convert.f32_u64(num)
+		return (to_number(u64(num)))
+	end
+
+	function convert.f64_i32(num)
+		return num
+	end
+
+	function convert.f64_u32(num)
+		return (to_number(u32(num)))
+	end
+
+	function convert.f64_i64(num)
+		return (to_number(num))
+	end
+
+	function convert.f64_u64(num)
+		return (to_number(u64(num)))
+	end
 
 	function reinterpret.i32_f32(num)
 		RE_INSTANCE.f32 = num
@@ -270,7 +322,7 @@ do
 	local store = {}
 	local memory = {}
 
-	ffi.cdef [[
+	ffi.cdef([[
 	union Any {
 		int8_t i8;
 		int16_t i16;
@@ -295,10 +347,10 @@ do
 	void *calloc(size_t num, size_t size);
 	void *realloc(void *ptr, size_t size);
 	void free(void *ptr);
-	]]
+	]])
 
-	local alias_t = ffi.typeof('uint8_t *')
-	local any_t = ffi.typeof('union Any *')
+	local alias_t = ffi.typeof("uint8_t *")
+	local any_t = ffi.typeof("union Any *")
 	local cast = ffi.cast
 
 	local function by_offset(pointer, offset)
@@ -307,60 +359,108 @@ do
 		return cast(any_t, aliased + offset)
 	end
 
-	function load.i32_i8(memory, addr) return by_offset(memory.data, addr).i8 end
+	function load.i32_i8(memory, addr)
+		return by_offset(memory.data, addr).i8
+	end
 
-	function load.i32_u8(memory, addr) return by_offset(memory.data, addr).u8 end
+	function load.i32_u8(memory, addr)
+		return by_offset(memory.data, addr).u8
+	end
 
-	function load.i32_i16(memory, addr) return by_offset(memory.data, addr).i16 end
+	function load.i32_i16(memory, addr)
+		return by_offset(memory.data, addr).i16
+	end
 
-	function load.i32_u16(memory, addr) return by_offset(memory.data, addr).u16 end
+	function load.i32_u16(memory, addr)
+		return by_offset(memory.data, addr).u16
+	end
 
-	function load.i32(memory, addr) return by_offset(memory.data, addr).i32 end
+	function load.i32(memory, addr)
+		return by_offset(memory.data, addr).i32
+	end
 
-	function load.i64_i8(memory, addr) return (i64(by_offset(memory.data, addr).i8)) end
+	function load.i64_i8(memory, addr)
+		return (i64(by_offset(memory.data, addr).i8))
+	end
 
-	function load.i64_u8(memory, addr) return (i64(by_offset(memory.data, addr).u8)) end
+	function load.i64_u8(memory, addr)
+		return (i64(by_offset(memory.data, addr).u8))
+	end
 
-	function load.i64_i16(memory, addr) return (i64(by_offset(memory.data, addr).i16)) end
+	function load.i64_i16(memory, addr)
+		return (i64(by_offset(memory.data, addr).i16))
+	end
 
-	function load.i64_u16(memory, addr) return (i64(by_offset(memory.data, addr).u16)) end
+	function load.i64_u16(memory, addr)
+		return (i64(by_offset(memory.data, addr).u16))
+	end
 
-	function load.i64_i32(memory, addr) return (i64(by_offset(memory.data, addr).i32)) end
+	function load.i64_i32(memory, addr)
+		return (i64(by_offset(memory.data, addr).i32))
+	end
 
-	function load.i64_u32(memory, addr) return (i64(by_offset(memory.data, addr).u32)) end
+	function load.i64_u32(memory, addr)
+		return (i64(by_offset(memory.data, addr).u32))
+	end
 
-	function load.i64(memory, addr) return by_offset(memory.data, addr).i64 end
+	function load.i64(memory, addr)
+		return by_offset(memory.data, addr).i64
+	end
 
-	function load.f32(memory, addr) return by_offset(memory.data, addr).f32 end
+	function load.f32(memory, addr)
+		return by_offset(memory.data, addr).f32
+	end
 
-	function load.f64(memory, addr) return by_offset(memory.data, addr).f64 end
+	function load.f64(memory, addr)
+		return by_offset(memory.data, addr).f64
+	end
 
-	function store.i32_n8(memory, addr, value) by_offset(memory.data, addr).i8 = value end
+	function store.i32_n8(memory, addr, value)
+		by_offset(memory.data, addr).i8 = value
+	end
 
-	function store.i32_n16(memory, addr, value) by_offset(memory.data, addr).i16 = value end
+	function store.i32_n16(memory, addr, value)
+		by_offset(memory.data, addr).i16 = value
+	end
 
-	function store.i32(memory, addr, value) by_offset(memory.data, addr).i32 = value end
+	function store.i32(memory, addr, value)
+		by_offset(memory.data, addr).i32 = value
+	end
 
-	function store.i64_n8(memory, addr, value) by_offset(memory.data, addr).i8 = value end
+	function store.i64_n8(memory, addr, value)
+		by_offset(memory.data, addr).i8 = value
+	end
 
-	function store.i64_n16(memory, addr, value) by_offset(memory.data, addr).i16 = value end
+	function store.i64_n16(memory, addr, value)
+		by_offset(memory.data, addr).i16 = value
+	end
 
-	function store.i64_n32(memory, addr, value) by_offset(memory.data, addr).i32 = value end
+	function store.i64_n32(memory, addr, value)
+		by_offset(memory.data, addr).i32 = value
+	end
 
-	function store.i64(memory, addr, value) by_offset(memory.data, addr).i64 = value end
+	function store.i64(memory, addr, value)
+		by_offset(memory.data, addr).i64 = value
+	end
 
-	function store.f32(memory, addr, value) by_offset(memory.data, addr).f32 = value end
+	function store.f32(memory, addr, value)
+		by_offset(memory.data, addr).f32 = value
+	end
 
-	function store.f64(memory, addr, value) by_offset(memory.data, addr).f64 = value end
+	function store.f64(memory, addr, value)
+		by_offset(memory.data, addr).f64 = value
+	end
 
 	local WASM_PAGE_SIZE = 65536
 
-	local function finalizer(memory) ffi.C.free(memory.data) end
+	local function finalizer(memory)
+		ffi.C.free(memory.data)
+	end
 
 	local function grow_unchecked(memory, old, new)
 		memory.data = ffi.C.realloc(memory.data, new)
 
-		assert(memory.data ~= nil, 'failed to reallocate')
+		assert(memory.data ~= nil, "failed to reallocate")
 
 		ffi.fill(by_offset(memory.data, old), new - old, 0)
 	end
@@ -368,14 +468,16 @@ do
 	function memory.new(min, max)
 		local data = ffi.C.calloc(max, WASM_PAGE_SIZE)
 
-		assert(data ~= nil, 'failed to allocate')
+		assert(data ~= nil, "failed to allocate")
 
-		local memory = ffi.new('struct Memory', min, max, data)
+		local memory = ffi.new("struct Memory", min, max, data)
 
 		return ffi.gc(memory, finalizer)
 	end
 
-	function memory.init(memory, addr, data) ffi.copy(by_offset(memory.data, addr), data, #data - 1) end
+	function memory.init(memory, addr, data)
+		ffi.copy(by_offset(memory.data, addr), data, #data - 1)
+	end
 
 	function memory.grow(memory, num)
 		local old = memory.min
