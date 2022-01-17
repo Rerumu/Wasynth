@@ -239,7 +239,7 @@ end
 do
 	local load = {}
 	local store = {}
-	local memory = {}
+	local allocator = {}
 
 	local function rip_u64(x)
 		return math.floor(x / 0x100000000), x % 0x100000000
@@ -327,11 +327,11 @@ do
 		store.i32(memory, addr + 4, hi)
 	end
 
-	function memory.new(min, max)
+	function allocator.new(min, max)
 		return { min = min, max = max, data = {} }
 	end
 
-	function memory.init(memory, offset, data)
+	function allocator.init(memory, offset, data)
 		local store_i8 = module.store.i32_n8
 		local store_i32 = module.store.i32
 
@@ -351,7 +351,7 @@ do
 		end
 	end
 
-	function memory.grow(memory, num)
+	function allocator.grow(memory, num)
 		local old = memory.min
 		local new = old + num
 
@@ -366,7 +366,7 @@ do
 
 	module.load = load
 	module.store = store
-	module.memory = memory
+	module.allocator = allocator
 end
 
 return module

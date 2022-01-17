@@ -320,7 +320,7 @@ end
 do
 	local load = {}
 	local store = {}
-	local memory = {}
+	local allocator = {}
 
 	ffi.cdef([[
 	union Any {
@@ -465,7 +465,7 @@ do
 		ffi.fill(by_offset(memory.data, old), new - old, 0)
 	end
 
-	function memory.new(min, max)
+	function allocator.new(min, max)
 		local data = ffi.C.calloc(max, WASM_PAGE_SIZE)
 
 		assert(data ~= nil, "failed to allocate")
@@ -475,11 +475,11 @@ do
 		return ffi.gc(memory, finalizer)
 	end
 
-	function memory.init(memory, addr, data)
+	function allocator.init(memory, addr, data)
 		ffi.copy(by_offset(memory.data, addr), data, #data - 1)
 	end
 
-	function memory.grow(memory, num)
+	function allocator.grow(memory, num)
 		local old = memory.min
 		local new = old + num
 
@@ -495,7 +495,7 @@ do
 
 	module.load = load
 	module.store = store
-	module.memory = memory
+	module.allocator = allocator
 end
 
 return module

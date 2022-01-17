@@ -30,7 +30,7 @@ pub fn write_memory_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
 	let a = limit.initial();
 	let b = new_limit_max(limit);
 
-	write!(w, "rt.memory.new({}, {})", a, b)
+	write!(w, "rt.allocator.new({}, {})", a, b)
 }
 
 pub fn write_func_name(wasm: &Module, index: u32, offset: u32, w: Writer) -> Result<()> {

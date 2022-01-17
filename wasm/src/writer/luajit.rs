@@ -148,7 +148,7 @@ impl Driver for MemorySize {
 
 impl Driver for MemoryGrow {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		write!(w, "rt.memory.grow(memory_at_{}, ", self.memory)?;
+		write!(w, "rt.allocator.grow(memory_at_{}, ", self.memory)?;
 		self.value.visit(v, w)?;
 		write!(w, ")")
 	}
@@ -645,7 +645,7 @@ impl<'a> LuaJIT<'a> {
 
 			write!(w, "\"")?;
 
-			write!(w, "rt.memory.init(target, offset, data)")?;
+			write!(w, "rt.allocator.init(target, offset, data)")?;
 
 			write!(w, "end ")?;
 		}
