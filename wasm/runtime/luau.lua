@@ -1,13 +1,17 @@
 local module = {}
 
+local math_floor = math.floor
+local math_ceil = math.ceil
+
 local bit32 = bit32
+local bit_band = bit32.band
 
 local function no_op(x)
 	return x
 end
 
 local function to_u32(x)
-	return bit32.band(x, 0xFFFFFFFF)
+	return bit_band(x, 0xFFFFFFFF)
 end
 
 local function to_i32(x)
@@ -19,14 +23,14 @@ local function to_i32(x)
 end
 
 local function wrap_i32(x)
-	return to_i32(to_u32(x) % 0x100000000)
+	return to_i32(to_u32(x))
 end
 
 local function truncate(num)
 	if num >= 0 then
-		return math.floor(num)
+		return math_floor(num)
 	else
-		return math.ceil(num)
+		return math_ceil(num)
 	end
 end
 
