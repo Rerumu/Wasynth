@@ -1,5 +1,6 @@
 use parity_wasm::elements::{
-	BlockType, External, FuncBody, FunctionType, ImportEntry, Instruction, Module, Type, ValueType,
+	BlockType, External, FuncBody, FunctionType, ImportEntry, Instruction, Local, Module, Type,
+	ValueType,
 };
 
 use super::{
@@ -120,10 +121,15 @@ fn is_dead_precursor(inst: &Instruction) -> bool {
 	)
 }
 
+fn flat_local_list(local: Local) -> impl Iterator<Item = ValueType> {
+	std::iter::repeat(local.value_type()).take(local.count().try_into().unwrap())
+}
+
 fn load_local_list(func: &FuncBody) -> Vec<ValueType> {
 	func.locals()
 		.iter()
-		.flat_map(|l| std::iter::repeat(l.value_type()).take(l.count().try_into().unwrap()))
+		.copied()
+		.flat_map(flat_local_list)
 		.collect()
 }
 
