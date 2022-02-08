@@ -1,33 +1,157 @@
-use std::{collections::BTreeSet, io::Result};
+use std::{collections::BTreeSet, io::Result, ops::Range};
 
-use parity_wasm::elements::{External, ImportCountType, Instruction, Internal, Module};
-
-use crate::{
-	analyzer::{localize, memory},
-	ast::{
-		builder::{Arities, Builder},
-		node::{
-			AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call,
-			CallIndirect, Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize,
-			MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
-		},
-	},
+use parity_wasm::elements::{
+	External, ImportCountType, Instruction, Internal, Module, NameSection, ResizableLimits,
 };
 
-use super::{
-	base::{Transpiler, Writer},
-	shared::{
-		aux_internal_index, write_f32, write_f64, write_func_name, write_memory_init,
-		write_parameter_list, write_result_list, write_table_init, write_variable_list,
+use wasm_ast::{
+	builder::{Arities, Builder},
+	node::{
+		AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call,
+		CallIndirect, Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize,
+		MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
 	},
+	writer::{Transpiler, Writer},
 };
+
+use crate::analyzer::{localize, memory};
+
+fn aux_internal_index(internal: Internal) -> u32 {
+	match internal {
+		Internal::Function(v) | Internal::Table(v) | Internal::Memory(v) | Internal::Global(v) => v,
+	}
+}
+
+fn new_limit_max(limits: &ResizableLimits) -> String {
+	match limits.maximum() {
+		Some(v) => v.to_string(),
+		None => "0xFFFF".to_string(),
+	}
+}
+
+fn write_table_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
+	let a = limit.initial();
+	let b = new_limit_max(limit);
+
+	write!(w, "{{ min = {}, max = {}, data = {{}} }}", a, b)
+}
+
+fn write_memory_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
+	let a = limit.initial();
+	let b = new_limit_max(limit);
+
+	write!(w, "rt.allocator.new({}, {})", a, b)
+}
+
+fn write_func_name(wasm: &Module, index: u32, offset: u32, w: Writer) -> Result<()> {
+	let opt = wasm
+		.names_section()
+		.and_then(NameSection::functions)
+		.and_then(|v| v.names().get(index));
+
+	write!(w, "FUNC_LIST")?;
+
+	if let Some(name) = opt {
+		write!(w, "--[[{}]]", name)?;
+	}
+
+	write!(w, "[{}] =", index + offset)
+}
+
+fn write_in_order(prefix: &str, len: u32, w: Writer) -> Result<()> {
+	if len == 0 {
+		return Ok(());
+	}
+
+	write!(w, "{}_{}", prefix, 0)?;
+	(1..len).try_for_each(|i| write!(w, ", {}_{}", prefix, i))
+}
+
+fn write_f32(f: f32, w: Writer) -> Result<()> {
+	let sign = if f.is_sign_negative() { "-" } else { "" };
+
+	if f.is_infinite() {
+		write!(w, "{}math.huge ", sign)
+	} else if f.is_nan() {
+		write!(w, "{}0/0 ", sign)
+	} else {
+		write!(w, "{:e} ", f)
+	}
+}
+
+fn write_f64(f: f64, w: Writer) -> Result<()> {
+	let sign = if f.is_sign_negative() { "-" } else { "" };
+
+	if f.is_infinite() {
+		write!(w, "{}math.huge ", sign)
+	} else if f.is_nan() {
+		write!(w, "{}0/0 ", sign)
+	} else {
+		write!(w, "{:e} ", f)
+	}
+}
+
+fn write_list(name: &str, len: usize, w: Writer) -> Result<()> {
+	let hash = len.min(1);
+	let len = len.saturating_sub(1);
+
+	write!(w, "local {} = table_new({}, {})", name, len, hash)
+}
+
+fn write_parameter_list(func: &Function, w: Writer) -> Result<()> {
+	write!(w, "function(")?;
+	write_in_order("param", func.num_param, w)?;
+	write!(w, ")")
+}
+
+fn write_result_list(range: Range<u32>, w: Writer) -> Result<()> {
+	if range.is_empty() {
+		return Ok(());
+	}
+
+	range.clone().try_for_each(|i| {
+		if i != range.start {
+			write!(w, ", ")?;
+		}
+
+		write!(w, "reg_{}", i)
+	})?;
+
+	write!(w, " = ")
+}
+
+fn write_variable_list(func: &Function, w: Writer) -> Result<()> {
+	if !func.local_list.is_empty() {
+		let num_local = func.local_list.len().try_into().unwrap();
+
+		write!(w, "local ")?;
+		write_in_order("loc", num_local, w)?;
+		write!(w, " = ")?;
+
+		for (i, t) in func.local_list.iter().enumerate() {
+			if i != 0 {
+				write!(w, ", ")?;
+			}
+
+			write!(w, "ZERO_{} ", t)?;
+		}
+	}
+
+	if func.num_stack != 0 {
+		write!(w, "local ")?;
+		write_in_order("reg", func.num_stack, w)?;
+		write!(w, " ")?;
+	}
+
+	Ok(())
+}
 
 fn write_expression(code: &[Instruction], w: Writer) -> Result<()> {
 	// FIXME: Badly generated WASM will produce the wrong constant.
 	for inst in code {
 		let result = match *inst {
 			Instruction::I32Const(v) => write!(w, "{} ", v),
-			Instruction::I64Const(v) => write!(w, "{} ", v),
+			Instruction::I64Const(v) => write!(w, "{}LL ", v),
 			Instruction::F32Const(v) => write_f32(f32::from_bits(v), w),
 			Instruction::F64Const(v) => write_f64(f64::from_bits(v), w),
 			Instruction::GetGlobal(i) => write!(w, "GLOBAL_LIST[{}].value ", i),
@@ -42,40 +166,51 @@ fn write_expression(code: &[Instruction], w: Writer) -> Result<()> {
 	write!(w, "error(\"mundane expression\")")
 }
 
-fn br_target(level: usize, in_loop: bool, w: Writer) -> Result<()> {
-	write!(w, "if desired then ")?;
-	write!(w, "if desired == {} then ", level)?;
-	write!(w, "desired = nil ")?;
+fn condense_jump_table(list: &[u32]) -> Vec<(usize, usize, u32)> {
+	let mut result = Vec::new();
+	let mut index = 0;
 
-	if in_loop {
-		write!(w, "continue ")?;
+	while index < list.len() {
+		let start = index;
+
+		loop {
+			index += 1;
+
+			// if end of list or next value is not equal, break
+			if index == list.len() || list[index - 1] != list[index] {
+				break;
+			}
+		}
+
+		result.push((start, index - 1, list[start]));
 	}
 
-	write!(w, "end ")?;
-	write!(w, "break ")?;
-	write!(w, "end ")
-}
-
-#[derive(PartialEq, Eq)]
-enum Label {
-	Forward,
-	Backward,
-	If,
+	result
 }
 
 #[derive(Default)]
 struct Visitor {
-	label_list: Vec<Label>,
+	label_list: Vec<usize>,
+	num_label: usize,
 	num_param: u32,
 }
 
 impl Visitor {
-	fn write_br_gadget(&self, rem: usize, w: Writer) -> Result<()> {
-		match self.label_list.last() {
-			Some(Label::Forward | Label::If) => br_target(rem, false, w),
-			Some(Label::Backward) => br_target(rem, true, w),
-			None => Ok(()),
-		}
+	fn push_label(&mut self) -> usize {
+		self.label_list.push(self.num_label);
+		self.num_label += 1;
+
+		self.num_label - 1
+	}
+
+	fn pop_label(&mut self) {
+		self.label_list.pop().unwrap();
+	}
+
+	fn get_label(&self, up: u32) -> usize {
+		let last = self.label_list.len() - 1;
+
+		self.label_list[last - up as usize]
 	}
 }
 
@@ -92,8 +227,8 @@ impl Driver for Recall {
 impl Driver for Select {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		write!(w, "(")?;
-		self.cond.visit(v, w)?;
-		write!(w, "~= 0 and ")?;
+		write_as_condition(&self.cond, v, w)?;
+		write!(w, "and ")?;
 		self.a.visit(v, w)?;
 		write!(w, "or ")?;
 		self.b.visit(v, w)?;
@@ -147,7 +282,7 @@ impl Driver for Value {
 	fn visit(&self, _: &mut Visitor, w: Writer) -> Result<()> {
 		match self {
 			Self::I32(i) => write!(w, "{} ", i),
-			Self::I64(i) => write!(w, "{} ", i),
+			Self::I64(i) => write!(w, "{}LL ", i),
 			Self::F32(f) => write_f32(*f, w),
 			Self::F64(f) => write_f64(*f, w),
 		}
@@ -164,45 +299,59 @@ impl Driver for AnyUnOp {
 	}
 }
 
-fn write_bin_op(bin_op: &AnyBinOp, v: &mut Visitor, w: Writer) -> Result<()> {
-	let op = bin_op.op.as_operator().unwrap();
-
-	write!(w, "(")?;
-	bin_op.lhs.visit(v, w)?;
-	write!(w, "{} ", op)?;
-	bin_op.rhs.visit(v, w)?;
-	write!(w, ")")
-}
-
-fn write_bin_op_call(bin_op: &AnyBinOp, v: &mut Visitor, w: Writer) -> Result<()> {
-	let (a, b) = bin_op.op.as_name();
-
-	write!(w, "{}_{}(", a, b)?;
-	bin_op.lhs.visit(v, w)?;
+fn write_bin_call(
+	op: (&str, &str),
+	lhs: &Expression,
+	rhs: &Expression,
+	v: &mut Visitor,
+	w: Writer,
+) -> Result<()> {
+	write!(w, "{}_{}(", op.0, op.1)?;
+	lhs.visit(v, w)?;
 	write!(w, ", ")?;
-	bin_op.rhs.visit(v, w)?;
+	rhs.visit(v, w)?;
 	write!(w, ")")
 }
 
 impl Driver for AnyBinOp {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		if self.op.as_operator().is_some() {
-			write_bin_op(self, v, w)
+		if let Some(op) = self.op.as_operator() {
+			write!(w, "(")?;
+			self.lhs.visit(v, w)?;
+			write!(w, "{} ", op)?;
+			self.rhs.visit(v, w)?;
+			write!(w, ")")
 		} else {
-			write_bin_op_call(self, v, w)
+			write_bin_call(self.op.as_name(), &self.lhs, &self.rhs, v, w)
 		}
+	}
+}
+
+fn write_any_cmp(cmp: &AnyCmpOp, v: &mut Visitor, w: Writer) -> Result<()> {
+	if let Some(op) = cmp.op.as_operator() {
+		cmp.lhs.visit(v, w)?;
+		write!(w, "{} ", op)?;
+		cmp.rhs.visit(v, w)
+	} else {
+		write_bin_call(cmp.op.as_name(), &cmp.lhs, &cmp.rhs, v, w)
 	}
 }
 
 impl Driver for AnyCmpOp {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		let (a, b) = self.op.as_name();
+		write!(w, "(")?;
+		write_any_cmp(self, v, w)?;
+		write!(w, "and 1 or 0)")
+	}
+}
 
-		write!(w, "{}_{}(", a, b)?;
-		self.lhs.visit(v, w)?;
-		write!(w, ", ")?;
-		self.rhs.visit(v, w)?;
-		write!(w, ")")
+// Removes the boolean to integer conversion
+fn write_as_condition(data: &Expression, v: &mut Visitor, w: Writer) -> Result<()> {
+	if let Expression::AnyCmpOp(o) = data {
+		write_any_cmp(o, v, w)
+	} else {
+		data.visit(v, w)?;
+		write!(w, "~= 0 ")
 	}
 }
 
@@ -243,28 +392,23 @@ impl Driver for Memorize {
 
 impl Driver for Forward {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		let rem = v.label_list.len();
-
-		v.label_list.push(Label::Forward);
-
-		write!(w, "while true do ")?;
+		let label = v.push_label();
 
 		self.body.iter().try_for_each(|s| s.visit(v, w))?;
 
-		write!(w, "break ")?;
-		write!(w, "end ")?;
+		write!(w, "::continue_at_{}::", label)?;
 
-		v.label_list.pop().unwrap();
-		v.write_br_gadget(rem, w)
+		v.pop_label();
+
+		Ok(())
 	}
 }
 
 impl Driver for Backward {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		let rem = v.label_list.len();
+		let label = v.push_label();
 
-		v.label_list.push(Label::Backward);
-
+		write!(w, "::continue_at_{}::", label)?;
 		write!(w, "while true do ")?;
 
 		self.body.iter().try_for_each(|s| s.visit(v, w))?;
@@ -272,8 +416,9 @@ impl Driver for Backward {
 		write!(w, "break ")?;
 		write!(w, "end ")?;
 
-		v.label_list.pop().unwrap();
-		v.write_br_gadget(rem, w)
+		v.pop_label();
+
+		Ok(())
 	}
 }
 
@@ -287,14 +432,11 @@ impl Driver for Else {
 
 impl Driver for If {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		let rem = v.label_list.len();
+		let label = v.push_label();
 
-		v.label_list.push(Label::If);
-
-		write!(w, "while true do ")?;
 		write!(w, "if ")?;
-		self.cond.visit(v, w)?;
-		write!(w, "~= 0 then ")?;
+		write_as_condition(&self.cond, v, w)?;
+		write!(w, "then ")?;
 
 		self.truthy.iter().try_for_each(|s| s.visit(v, w))?;
 
@@ -302,35 +444,19 @@ impl Driver for If {
 			s.visit(v, w)?;
 		}
 
-		write!(w, "end ")?;
-		write!(w, "break ")?;
+		write!(w, "::continue_at_{}::", label)?;
 		write!(w, "end ")?;
 
-		v.label_list.pop().unwrap();
-		v.write_br_gadget(rem, w)
+		v.pop_label();
+
+		Ok(())
 	}
 }
 
 fn write_br_at(up: u32, v: &Visitor, w: Writer) -> Result<()> {
-	let up = up as usize;
-	let level = v.label_list.len() - 1;
+	let level = v.get_label(up);
 
-	write!(w, "do ")?;
-
-	if up == 0 {
-		let is_loop = v.label_list[level - up] == Label::Backward;
-
-		if is_loop {
-			write!(w, "continue ")?;
-		} else {
-			write!(w, "break ")?;
-		}
-	} else {
-		write!(w, "desired = {} ", level - up)?;
-		write!(w, "break ")?;
-	}
-
-	write!(w, "end ")
+	write!(w, "goto continue_at_{} ", level)
 }
 
 impl Driver for Br {
@@ -342,8 +468,8 @@ impl Driver for Br {
 impl Driver for BrIf {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		write!(w, "if ")?;
-		self.cond.visit(v, w)?;
-		write!(w, "~= 0 then ")?;
+		write_as_condition(&self.cond, v, w)?;
+		write!(w, "then ")?;
 
 		write_br_at(self.target, v, w)?;
 
@@ -353,23 +479,23 @@ impl Driver for BrIf {
 
 impl Driver for BrTable {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		write!(w, "do ")?;
-		write!(w, "local temp = {{")?;
+		write!(w, "temp = ")?;
+		self.cond.visit(v, w)?;
+		write!(w, " ")?;
 
-		if !self.data.table.is_empty() {
-			write!(w, "[0] =")?;
-
-			for d in self.data.table.iter() {
-				write!(w, "{}, ", d)?;
+		for (start, end, dest) in condense_jump_table(&self.data.table) {
+			if start == end {
+				write!(w, "if temp == {} then ", start)?;
+			} else {
+				write!(w, "if temp >= {} and temp <= {} then ", start, end)?;
 			}
+
+			write_br_at(dest, v, w)?;
+			write!(w, "else")?;
 		}
 
-		write!(w, "}} ")?;
-
-		write!(w, "desired = temp[")?;
-		self.cond.visit(v, w)?;
-		write!(w, "] or {} ", self.data.default)?;
-		write!(w, "break ")?;
+		write!(w, " ")?;
+		write_br_at(self.data.default, v, w)?;
 		write!(w, "end ")
 	}
 }
@@ -441,20 +567,20 @@ impl Driver for AnyStore {
 impl Driver for Statement {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		match self {
-			Statement::Unreachable => write!(w, "error(\"out of code bounds\")"),
-			Statement::Memorize(s) => s.visit(v, w),
-			Statement::Forward(s) => s.visit(v, w),
-			Statement::Backward(s) => s.visit(v, w),
-			Statement::If(s) => s.visit(v, w),
-			Statement::Br(s) => s.visit(v, w),
-			Statement::BrIf(s) => s.visit(v, w),
-			Statement::BrTable(s) => s.visit(v, w),
-			Statement::Return(s) => s.visit(v, w),
-			Statement::Call(s) => s.visit(v, w),
-			Statement::CallIndirect(s) => s.visit(v, w),
-			Statement::SetLocal(s) => s.visit(v, w),
-			Statement::SetGlobal(s) => s.visit(v, w),
-			Statement::AnyStore(s) => s.visit(v, w),
+			Self::Unreachable => write!(w, "error(\"out of code bounds\")"),
+			Self::Memorize(s) => s.visit(v, w),
+			Self::Forward(s) => s.visit(v, w),
+			Self::Backward(s) => s.visit(v, w),
+			Self::If(s) => s.visit(v, w),
+			Self::Br(s) => s.visit(v, w),
+			Self::BrIf(s) => s.visit(v, w),
+			Self::BrTable(s) => s.visit(v, w),
+			Self::Return(s) => s.visit(v, w),
+			Self::Call(s) => s.visit(v, w),
+			Self::CallIndirect(s) => s.visit(v, w),
+			Self::SetLocal(s) => s.visit(v, w),
+			Self::SetGlobal(s) => s.visit(v, w),
+			Self::AnyStore(s) => s.visit(v, w),
 		}
 	}
 }
@@ -468,6 +594,7 @@ impl Driver for Function {
 		}
 
 		write_variable_list(self, w)?;
+		write!(w, "local temp ")?;
 
 		v.num_param = self.num_param;
 		self.body.visit(v, w)?;
@@ -476,12 +603,48 @@ impl Driver for Function {
 	}
 }
 
-pub struct Luau<'a> {
+pub struct Generator<'a> {
 	wasm: &'a Module,
 	arity: Arities,
 }
 
-impl<'a> Luau<'a> {
+static RUNTIME: &str = include_str!("../runtime/runtime.lua");
+
+impl<'a> Transpiler<'a> for Generator<'a> {
+	fn new(wasm: &'a Module) -> Self {
+		let arity = Arities::new(wasm);
+
+		Self { wasm, arity }
+	}
+
+	fn runtime(w: Writer) -> Result<()> {
+		write!(w, "{}", RUNTIME)
+	}
+
+	fn transpile(&self, w: Writer) -> Result<()> {
+		write!(w, "local rt = require(\"luajit\")")?;
+
+		let func_list = self.build_func_list();
+
+		Self::gen_localize(&func_list, w)?;
+
+		write!(w, "local ZERO_i32 = 0 ")?;
+		write!(w, "local ZERO_i64 = 0LL ")?;
+		write!(w, "local ZERO_f32 = 0.0 ")?;
+		write!(w, "local ZERO_f64 = 0.0 ")?;
+
+		write!(w, "local table_new = require(\"table.new\")")?;
+		write_list("FUNC_LIST", self.wasm.functions_space(), w)?;
+		write_list("TABLE_LIST", self.wasm.table_space(), w)?;
+		write_list("MEMORY_LIST", self.wasm.memory_space(), w)?;
+		write_list("GLOBAL_LIST", self.wasm.globals_space(), w)?;
+
+		self.gen_func_list(&func_list, w)?;
+		self.gen_start_point(w)
+	}
+}
+
+impl<'a> Generator<'a> {
 	fn gen_import_of<T>(&self, w: Writer, lower: &str, cond: T) -> Result<()>
 	where
 		T: Fn(&External) -> bool,
@@ -684,7 +847,9 @@ impl<'a> Luau<'a> {
 			.try_for_each(|(a, b)| write!(w, "local {0}_{1} = rt.{0}.{1} ", a, b))
 	}
 
-	fn build_func_list(&self) -> Vec<Function> {
+	// FIXME: Make `pub` only for fuzzing.
+	#[must_use]
+	pub fn build_func_list(&self) -> Vec<Function> {
 		let range = 0..self.arity.len_in();
 
 		range
@@ -692,7 +857,12 @@ impl<'a> Luau<'a> {
 			.collect()
 	}
 
-	fn gen_func_list(&self, func_list: &[Function], w: Writer) -> Result<()> {
+	/// # Errors
+	/// Returns `Err` if writing to `Writer` failed.
+	///
+	/// # Panics
+	/// If the number of functions overflows 32 bits.
+	pub fn gen_func_list(&self, func_list: &[Function], w: Writer) -> Result<()> {
 		let o = self.arity.len_ex();
 
 		func_list.iter().enumerate().try_for_each(|(i, v)| {
@@ -700,46 +870,5 @@ impl<'a> Luau<'a> {
 
 			v.visit(&mut Visitor::default(), w)
 		})
-	}
-}
-
-fn write_list(name: &str, len: usize, w: Writer) -> Result<()> {
-	let len = len.saturating_sub(1);
-
-	write!(w, "local {} = table.create({})", name, len)
-}
-
-static LUAU_RUNTIME: &str = include_str!("../../runtime/luau.lua");
-
-impl<'a> Transpiler<'a> for Luau<'a> {
-	fn new(wasm: &'a Module) -> Self {
-		let arity = Arities::new(wasm);
-
-		Self { wasm, arity }
-	}
-
-	fn runtime(writer: Writer) -> Result<()> {
-		write!(writer, "{}", LUAU_RUNTIME)
-	}
-
-	fn transpile(&self, w: Writer) -> Result<()> {
-		write!(w, "local rt = require(script.Runtime)")?;
-
-		let func_list = self.build_func_list();
-
-		Self::gen_localize(&func_list, w)?;
-
-		write!(w, "local ZERO_i32 = 0 ")?;
-		write!(w, "local ZERO_i64 = 0 ")?;
-		write!(w, "local ZERO_f32 = 0.0 ")?;
-		write!(w, "local ZERO_f64 = 0.0 ")?;
-
-		write_list("FUNC_LIST", self.wasm.functions_space(), w)?;
-		write_list("TABLE_LIST", self.wasm.table_space(), w)?;
-		write_list("MEMORY_LIST", self.wasm.memory_space(), w)?;
-		write_list("GLOBAL_LIST", self.wasm.globals_space(), w)?;
-
-		self.gen_func_list(&func_list, w)?;
-		self.gen_start_point(w)
 	}
 }

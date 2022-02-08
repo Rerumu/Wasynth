@@ -1,9 +1,8 @@
 use parity_wasm::{deserialize_file, elements::Module};
-use writer::{base::Transpiler, luajit::LuaJIT, luau::Luau};
 
-mod analyzer;
-mod ast;
-mod writer;
+use codegen_luajit::gen::Generator as LuaJIT;
+use codegen_luau::gen::Generator as Luau;
+use wasm_ast::writer::Transpiler;
 
 fn parse_module(name: &str) -> Module {
 	let wasm = deserialize_file(name).expect("Failed to parse Wasm file");
@@ -33,8 +32,8 @@ fn do_translate(name: &str, file: &str) {
 	let wasm = &parse_module(file);
 
 	match name.to_lowercase().as_str() {
-		"luau" => run_translator::<Luau>(wasm),
 		"luajit" => run_translator::<LuaJIT>(wasm),
+		"luau" => run_translator::<Luau>(wasm),
 		_ => panic!("Bad language: {}", name),
 	}
 }

@@ -15,8 +15,11 @@ wasm-smith = "0.8.0"
 git = "https://github.com/paritytech/parity-wasm.git"
 features = ["multi_value", "sign_ext"]
 
-[dependencies.wasm]
-path = "../wasm"
+[dependencies.wasm-ast]
+path = "../wasm-ast"
+
+[dependencies.codegen-luajit]
+path = "../codegen-luajit"
 
 [[bin]]
 name = "full_transpile"

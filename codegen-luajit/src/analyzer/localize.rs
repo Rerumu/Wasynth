@@ -1,8 +1,9 @@
 use std::collections::BTreeSet;
 
-use crate::ast::node::{AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Function};
-
-use super::visit::{Driver, Visitor};
+use wasm_ast::{
+	node::{AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Function},
+	visit::{Driver, Visitor},
+};
 
 struct Visit {
 	result: BTreeSet<(&'static str, &'static str)>,

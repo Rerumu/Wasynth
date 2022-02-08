@@ -3,13 +3,11 @@ use parity_wasm::elements::{
 	ValueType,
 };
 
-use super::{
-	node::{
-		AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call,
-		CallIndirect, Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize,
-		MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
-	},
-	tag::{BinOp, CmpOp, Load, Store, UnOp},
+use crate::node::{
+	AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Backward, BinOp, Br, BrIf, BrTable, Call,
+	CallIndirect, CmpOp, Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Load,
+	Memorize, MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement,
+	Store, UnOp, Value,
 };
 
 struct Arity {
@@ -73,6 +71,7 @@ pub struct Arities {
 }
 
 impl Arities {
+	#[must_use]
 	pub fn new(parent: &Module) -> Self {
 		Self {
 			ex_arity: Arity::new_ex_list(parent),
@@ -80,10 +79,12 @@ impl Arities {
 		}
 	}
 
+	#[must_use]
 	pub fn len_in(&self) -> usize {
 		self.in_arity.len()
 	}
 
+	#[must_use]
 	pub fn len_ex(&self) -> usize {
 		self.ex_arity.len()
 	}
@@ -138,6 +139,7 @@ fn load_func_at(wasm: &Module, index: usize) -> &FuncBody {
 }
 
 impl<'a> Builder<'a> {
+	#[must_use]
 	pub fn new(wasm: &'a Module, other: &'a Arities) -> Builder<'a> {
 		Builder {
 			wasm,
@@ -149,6 +151,7 @@ impl<'a> Builder<'a> {
 		}
 	}
 
+	#[must_use]
 	pub fn consume(mut self, index: usize) -> Function {
 		let func = load_func_at(self.wasm, index);
 		let arity = &self.other.in_arity[index];

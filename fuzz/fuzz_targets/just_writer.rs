@@ -5,10 +5,11 @@ use std::io::Result;
 use parity_wasm::elements::Module as WasmModule;
 use wasm_smith::Module as SmModule;
 
-use wasm::writer::{base::Transpiler, luajit::LuaJIT};
+use codegen_luajit::gen::Generator;
+use wasm_ast::writer::Transpiler;
 
 fn fuzz_writer(wasm: &WasmModule) -> Result<()> {
-	let trans = LuaJIT::new(wasm);
+	let trans = Generator::new(wasm);
 	let list = trans.build_func_list();
 
 	trans.gen_func_list(&list, &mut std::io::sink())

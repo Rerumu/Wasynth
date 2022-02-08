@@ -1,4 +1,4 @@
-use crate::ast::node::{
+use crate::node::{
 	AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call,
 	CallIndirect, Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize,
 	MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,

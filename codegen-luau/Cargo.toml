@@ -1,9 +1,12 @@
 [package]
-name = "wasm"
+name = "codegen-luau"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies.wasm-ast]
+path = "../wasm-ast"
 
 [dependencies.parity-wasm]
 git = "https://github.com/paritytech/parity-wasm.git"

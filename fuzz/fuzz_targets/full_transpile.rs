@@ -2,7 +2,8 @@
 
 use wasm_smith::Module;
 
-use wasm::writer::{base::Transpiler, luajit::LuaJIT};
+use codegen_luajit::gen::Generator;
+use wasm_ast::writer::Transpiler;
 
 // We are not interested in parity_wasm errors.
 // Only 1 edition should need to be tested too.
@@ -13,7 +14,7 @@ libfuzzer_sys::fuzz_target!(|module: Module| {
 		Err(_) => return,
 	};
 
-	LuaJIT::new(&wasm)
+	Generator::new(&wasm)
 		.transpile(&mut std::io::sink())
 		.expect("LuaJIT should succeed");
 });

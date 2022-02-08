@@ -1,2 +1,8 @@
 [workspace]
-members = ["fuzz", "wasm"]
+members = [
+	"codegen-luajit",
+	"codegen-luau",
+	"fuzz",
+	"wasm-ast",
+	"wasm-synth"
+]

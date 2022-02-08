@@ -1,3 +1,4 @@
 pub mod builder;
 pub mod node;
-mod tag;
+pub mod visit;
+pub mod writer;
