@@ -216,7 +216,7 @@ impl Stacked {
 
 	// Since Eqz is the only unary comparison it's cleaner to
 	// generate a simple CmpOp
-	fn from_equal_zero(&mut self, inst: &Instruction) -> bool {
+	fn try_equal_zero(&mut self, inst: &Instruction) -> bool {
 		match inst {
 			Instruction::I32Eqz => {
 				self.push_constant(0_i32);
@@ -234,7 +234,7 @@ impl Stacked {
 		}
 	}
 
-	fn from_operation(&mut self, inst: &Instruction) -> bool {
+	fn try_operation(&mut self, inst: &Instruction) -> bool {
 		if let Ok(op) = UnOp::try_from(inst) {
 			self.push_un_op(op);
 
@@ -248,7 +248,7 @@ impl Stacked {
 
 			true
 		} else {
-			self.from_equal_zero(inst)
+			self.try_equal_zero(inst)
 		}
 	}
 }
@@ -431,7 +431,7 @@ impl<'a> Builder<'a> {
 
 			*list = &list[1..];
 
-			if self.data.from_operation(inst) {
+			if self.data.try_operation(inst) {
 				continue;
 			}
 
