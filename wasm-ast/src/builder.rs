@@ -436,7 +436,7 @@ impl<'a> Builder<'a> {
 				continue;
 			}
 
-			match inst {
+			match *inst {
 				Inst::Nop => {}
 				Inst::Unreachable => {
 					stat.push(Statement::Unreachable);
@@ -446,7 +446,7 @@ impl<'a> Builder<'a> {
 
 					let data = self.new_forward(list);
 
-					self.push_block_result(*t);
+					self.push_block_result(t);
 					stat.push(Statement::Forward(data));
 				}
 				Inst::Loop(t) => {
@@ -454,7 +454,7 @@ impl<'a> Builder<'a> {
 
 					let data = self.new_backward(list);
 
-					self.push_block_result(*t);
+					self.push_block_result(t);
 					stat.push(Statement::Backward(data));
 				}
 				Inst::If(t) => {
@@ -464,7 +464,7 @@ impl<'a> Builder<'a> {
 
 					let data = self.new_if(cond, list);
 
-					self.push_block_result(*t);
+					self.push_block_result(t);
 					stat.push(Statement::If(data));
 				}
 				Inst::Else => {
@@ -481,17 +481,17 @@ impl<'a> Builder<'a> {
 
 					break;
 				}
-				Inst::Br(i) => {
+				Inst::Br(target) => {
 					self.data.gen_leak_pending(&mut stat);
-					stat.push(Statement::Br(Br { target: *i }));
+					stat.push(Statement::Br(Br { target }));
 				}
-				Inst::BrIf(i) => {
+				Inst::BrIf(target) => {
 					let cond = self.data.pop();
 
 					self.data.gen_leak_pending(&mut stat);
-					stat.push(Statement::BrIf(BrIf { cond, target: *i }));
+					stat.push(Statement::BrIf(BrIf { cond, target }));
 				}
-				Inst::BrTable(t) => {
+				Inst::BrTable(ref t) => {
 					let cond = self.data.pop();
 
 					self.data.gen_leak_pending(&mut stat);
@@ -504,10 +504,10 @@ impl<'a> Builder<'a> {
 					self.gen_return(&mut stat);
 				}
 				Inst::Call(i) => {
-					self.gen_call(*i, &mut stat);
+					self.gen_call(i, &mut stat);
 				}
 				Inst::CallIndirect(i, t) => {
-					self.gen_call_indirect(*i, *t, &mut stat);
+					self.gen_call_indirect(i, t, &mut stat);
 				}
 				Inst::Drop => {
 					self.data.pop();
@@ -519,71 +519,71 @@ impl<'a> Builder<'a> {
 
 					self.data.push(Expression::Select(Select { cond, a, b }));
 				}
-				Inst::GetLocal(i) => {
-					self.data.push(Expression::GetLocal(GetLocal { var: *i }));
+				Inst::GetLocal(var) => {
+					self.data.push(Expression::GetLocal(GetLocal { var }));
 				}
-				Inst::SetLocal(i) => {
+				Inst::SetLocal(var) => {
 					let value = self.data.pop();
 
 					self.data.gen_leak_pending(&mut stat);
-					stat.push(Statement::SetLocal(SetLocal { var: *i, value }));
+					stat.push(Statement::SetLocal(SetLocal { var, value }));
 				}
-				Inst::TeeLocal(i) => {
+				Inst::TeeLocal(var) => {
 					self.data.gen_leak_pending(&mut stat);
 
 					let value = self.data.pop();
 
 					self.data.push(value.clone_recall());
-					stat.push(Statement::SetLocal(SetLocal { var: *i, value }));
+					stat.push(Statement::SetLocal(SetLocal { var, value }));
 				}
-				Inst::GetGlobal(i) => {
-					self.data.push(Expression::GetGlobal(GetGlobal { var: *i }));
+				Inst::GetGlobal(var) => {
+					self.data.push(Expression::GetGlobal(GetGlobal { var }));
 				}
-				Inst::SetGlobal(i) => {
+				Inst::SetGlobal(var) => {
 					let value = self.data.pop();
 
-					stat.push(Statement::SetGlobal(SetGlobal { var: *i, value }));
+					stat.push(Statement::SetGlobal(SetGlobal { var, value }));
 				}
-				Inst::I32Load(_, o) => self.data.push_load(Load::I32, *o),
-				Inst::I64Load(_, o) => self.data.push_load(Load::I64, *o),
-				Inst::F32Load(_, o) => self.data.push_load(Load::F32, *o),
-				Inst::F64Load(_, o) => self.data.push_load(Load::F64, *o),
-				Inst::I32Load8S(_, o) => self.data.push_load(Load::I32_I8, *o),
-				Inst::I32Load8U(_, o) => self.data.push_load(Load::I32_U8, *o),
-				Inst::I32Load16S(_, o) => self.data.push_load(Load::I32_I16, *o),
-				Inst::I32Load16U(_, o) => self.data.push_load(Load::I32_U16, *o),
-				Inst::I64Load8S(_, o) => self.data.push_load(Load::I64_I8, *o),
-				Inst::I64Load8U(_, o) => self.data.push_load(Load::I64_U8, *o),
-				Inst::I64Load16S(_, o) => self.data.push_load(Load::I64_I16, *o),
-				Inst::I64Load16U(_, o) => self.data.push_load(Load::I64_U16, *o),
-				Inst::I64Load32S(_, o) => self.data.push_load(Load::I64_I32, *o),
-				Inst::I64Load32U(_, o) => self.data.push_load(Load::I64_U32, *o),
-				Inst::I32Store(_, o) => self.data.gen_store(Store::I32, *o, &mut stat),
-				Inst::I64Store(_, o) => self.data.gen_store(Store::I64, *o, &mut stat),
-				Inst::F32Store(_, o) => self.data.gen_store(Store::F32, *o, &mut stat),
-				Inst::F64Store(_, o) => self.data.gen_store(Store::F64, *o, &mut stat),
-				Inst::I32Store8(_, o) => self.data.gen_store(Store::I32_N8, *o, &mut stat),
-				Inst::I32Store16(_, o) => self.data.gen_store(Store::I32_N16, *o, &mut stat),
-				Inst::I64Store8(_, o) => self.data.gen_store(Store::I64_N8, *o, &mut stat),
-				Inst::I64Store16(_, o) => self.data.gen_store(Store::I64_N16, *o, &mut stat),
-				Inst::I64Store32(_, o) => self.data.gen_store(Store::I64_N32, *o, &mut stat),
-				Inst::CurrentMemory(i) => {
+				Inst::I32Load(_, o) => self.data.push_load(Load::I32, o),
+				Inst::I64Load(_, o) => self.data.push_load(Load::I64, o),
+				Inst::F32Load(_, o) => self.data.push_load(Load::F32, o),
+				Inst::F64Load(_, o) => self.data.push_load(Load::F64, o),
+				Inst::I32Load8S(_, o) => self.data.push_load(Load::I32_I8, o),
+				Inst::I32Load8U(_, o) => self.data.push_load(Load::I32_U8, o),
+				Inst::I32Load16S(_, o) => self.data.push_load(Load::I32_I16, o),
+				Inst::I32Load16U(_, o) => self.data.push_load(Load::I32_U16, o),
+				Inst::I64Load8S(_, o) => self.data.push_load(Load::I64_I8, o),
+				Inst::I64Load8U(_, o) => self.data.push_load(Load::I64_U8, o),
+				Inst::I64Load16S(_, o) => self.data.push_load(Load::I64_I16, o),
+				Inst::I64Load16U(_, o) => self.data.push_load(Load::I64_U16, o),
+				Inst::I64Load32S(_, o) => self.data.push_load(Load::I64_I32, o),
+				Inst::I64Load32U(_, o) => self.data.push_load(Load::I64_U32, o),
+				Inst::I32Store(_, o) => self.data.gen_store(Store::I32, o, &mut stat),
+				Inst::I64Store(_, o) => self.data.gen_store(Store::I64, o, &mut stat),
+				Inst::F32Store(_, o) => self.data.gen_store(Store::F32, o, &mut stat),
+				Inst::F64Store(_, o) => self.data.gen_store(Store::F64, o, &mut stat),
+				Inst::I32Store8(_, o) => self.data.gen_store(Store::I32_N8, o, &mut stat),
+				Inst::I32Store16(_, o) => self.data.gen_store(Store::I32_N16, o, &mut stat),
+				Inst::I64Store8(_, o) => self.data.gen_store(Store::I64_N8, o, &mut stat),
+				Inst::I64Store16(_, o) => self.data.gen_store(Store::I64_N16, o, &mut stat),
+				Inst::I64Store32(_, o) => self.data.gen_store(Store::I64_N32, o, &mut stat),
+				Inst::CurrentMemory(memory) => {
 					self.data
-						.push(Expression::MemorySize(MemorySize { memory: *i }));
+						.push(Expression::MemorySize(MemorySize { memory }));
 				}
-				Inst::GrowMemory(i) => {
+				Inst::GrowMemory(memory) => {
 					let value = Box::new(self.data.pop());
 
 					// `MemoryGrow` is an expression *but* it has side effects
 					self.data
-						.push(Expression::MemoryGrow(MemoryGrow { memory: *i, value }));
+						.push(Expression::MemoryGrow(MemoryGrow { memory, value }));
 
 					self.data.gen_leak_pending(&mut stat);
 				}
-				Inst::I32Const(v) => self.data.push_constant(*v),
-				Inst::I64Const(v) => self.data.push_constant(*v),
-				Inst::F32Const(v) => self.data.push_constant(*v),
-				Inst::F64Const(v) => self.data.push_constant(*v),
+				Inst::I32Const(v) => self.data.push_constant(v),
+				Inst::I64Const(v) => self.data.push_constant(v),
+				Inst::F32Const(v) => self.data.push_constant(v),
+				Inst::F64Const(v) => self.data.push_constant(v),
 				_ => unreachable!(),
 			}
 
