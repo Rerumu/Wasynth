@@ -605,6 +605,30 @@ pub enum Value {
 	F64(f64),
 }
 
+impl From<i32> for Value {
+	fn from(value: i32) -> Self {
+		Self::I32(value)
+	}
+}
+
+impl From<i64> for Value {
+	fn from(value: i64) -> Self {
+		Self::I64(value)
+	}
+}
+
+impl From<u32> for Value {
+	fn from(value: u32) -> Self {
+		Self::F32(f32::from_bits(value))
+	}
+}
+
+impl From<u64> for Value {
+	fn from(value: u64) -> Self {
+		Self::F64(f64::from_bits(value))
+	}
+}
+
 pub struct AnyUnOp {
 	pub op: UnOp,
 	pub rhs: Box<Expression>,

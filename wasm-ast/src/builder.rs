@@ -154,8 +154,10 @@ impl Stacked {
 		self.stack.push(value);
 	}
 
-	fn push_constant(&mut self, value: Value) {
-		self.stack.push(Expression::Value(value));
+	fn push_constant<T: Into<Value>>(&mut self, value: T) {
+		let value = Expression::Value(value.into());
+
+		self.stack.push(value);
 	}
 
 	fn push_recall(&mut self, num: u32) {
@@ -217,13 +219,13 @@ impl Stacked {
 	fn from_equal_zero(&mut self, inst: &Instruction) -> bool {
 		match inst {
 			Instruction::I32Eqz => {
-				self.push_constant(Value::I32(0));
+				self.push_constant(0_i32);
 				self.push_cmp_op(CmpOp::Eq_I32);
 
 				true
 			}
 			Instruction::I64Eqz => {
-				self.push_constant(Value::I64(0));
+				self.push_constant(0_i64);
 				self.push_cmp_op(CmpOp::Eq_I64);
 
 				true
@@ -578,10 +580,10 @@ impl<'a> Builder<'a> {
 
 					self.data.gen_leak_pending(&mut stat);
 				}
-				Inst::I32Const(v) => self.data.push_constant(Value::I32(*v)),
-				Inst::I64Const(v) => self.data.push_constant(Value::I64(*v)),
-				Inst::F32Const(v) => self.data.push_constant(Value::F32(f32::from_bits(*v))),
-				Inst::F64Const(v) => self.data.push_constant(Value::F64(f64::from_bits(*v))),
+				Inst::I32Const(v) => self.data.push_constant(*v),
+				Inst::I64Const(v) => self.data.push_constant(*v),
+				Inst::F32Const(v) => self.data.push_constant(*v),
+				Inst::F64Const(v) => self.data.push_constant(*v),
 				_ => unreachable!(),
 			}
 
