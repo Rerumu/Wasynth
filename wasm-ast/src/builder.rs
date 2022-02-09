@@ -369,11 +369,10 @@ impl<'a> Builder<'a> {
 
 	fn gen_call_indirect(&mut self, typ: u32, table: u8, stat: &mut Vec<Statement>) {
 		let arity = self.get_type_of(typ);
+		let index = self.data.pop();
 		let len = self.data.stack.len();
 
-		let index = self.data.pop();
 		let param_list = self.data.stack.split_off(len - arity.num_param as usize);
-
 		let first = u32::try_from(len).unwrap();
 		let result = first..first + arity.num_result;
 
