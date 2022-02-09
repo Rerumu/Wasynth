@@ -150,6 +150,10 @@ impl Stacked {
 		self.stack.pop().unwrap()
 	}
 
+	fn pop_many(&mut self, len: usize) -> Vec<Expression> {
+		self.stack.split_off(self.stack.len() - len)
+	}
+
 	fn push(&mut self, value: Expression) {
 		self.stack.push(value);
 	}
@@ -342,7 +346,7 @@ impl<'a> Builder<'a> {
 
 	fn gen_return(&mut self, stat: &mut Vec<Statement>) {
 		let num = self.num_result as usize;
-		let list = self.data.stack.split_off(self.data.stack.len() - num);
+		let list = self.data.pop_many(num);
 
 		self.data.gen_leak_pending(stat);
 
@@ -351,11 +355,10 @@ impl<'a> Builder<'a> {
 
 	fn gen_call(&mut self, func: u32, stat: &mut Vec<Statement>) {
 		let arity = self.other.arity_of(func as usize);
-		let len = self.data.stack.len();
+		let param_list = self.data.pop_many(arity.num_param as usize);
 
-		let first = u32::try_from(len).unwrap();
+		let first = u32::try_from(self.data.stack.len()).unwrap();
 		let result = first..first + arity.num_result;
-		let param_list = self.data.stack.split_off(len - arity.num_param as usize);
 
 		self.data.push_recall(arity.num_result);
 		self.data.gen_leak_pending(stat);
@@ -370,10 +373,9 @@ impl<'a> Builder<'a> {
 	fn gen_call_indirect(&mut self, typ: u32, table: u8, stat: &mut Vec<Statement>) {
 		let arity = self.get_type_of(typ);
 		let index = self.data.pop();
-		let len = self.data.stack.len();
+		let param_list = self.data.pop_many(arity.num_param as usize);
 
-		let param_list = self.data.stack.split_off(len - arity.num_param as usize);
-		let first = u32::try_from(len).unwrap();
+		let first = u32::try_from(self.data.stack.len()).unwrap();
 		let result = first..first + arity.num_result;
 
 		self.data.push_recall(arity.num_result);
