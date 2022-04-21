@@ -7,10 +7,7 @@ use wasm_ast::writer::Transpiler;
 fn parse_module(name: &str) -> Module {
 	let wasm = deserialize_file(name).expect("Failed to parse Wasm file");
 
-	match wasm.parse_names() {
-		Ok(n) => n,
-		Err(n) => n.1,
-	}
+	wasm.parse_names().unwrap_or_else(|v| v.1)
 }
 
 fn run_translator<'a, T: Transpiler<'a>>(wasm: &'a Module) {
