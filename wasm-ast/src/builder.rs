@@ -1,6 +1,6 @@
 use parity_wasm::elements::{
-	BlockType, External, FuncBody, FunctionType, ImportEntry, Instruction, Local, Module, Type,
-	ValueType,
+	BlockType, External, Func, FuncBody, FunctionSection, FunctionType, ImportEntry, ImportSection,
+	Instruction, Module, Type, TypeSection,
 };
 
 use crate::node::{
@@ -25,77 +25,80 @@ impl Arity {
 			num_result,
 		}
 	}
-
-	fn from_index(types: &[Type], index: u32) -> Self {
-		let Type::Function(typ) = &types[index as usize];
-
-		Self::from_type(typ)
-	}
-
-	fn new_arity_ext(types: &[Type], import: &ImportEntry) -> Option<Arity> {
-		if let External::Function(i) = import.external() {
-			Some(Arity::from_index(types, *i))
-		} else {
-			None
-		}
-	}
-
-	fn new_in_list(wasm: &Module) -> Vec<Self> {
-		let (types, funcs) = match (wasm.type_section(), wasm.function_section()) {
-			(Some(t), Some(f)) => (t.types(), f.entries()),
-			_ => return Vec::new(),
-		};
-
-		funcs
-			.iter()
-			.map(|i| Self::from_index(types, i.type_ref()))
-			.collect()
-	}
-
-	fn new_ex_list(wasm: &Module) -> Vec<Self> {
-		let (types, imports) = match (wasm.type_section(), wasm.import_section()) {
-			(Some(t), Some(i)) => (t.types(), i.entries()),
-			_ => return Vec::new(),
-		};
-
-		imports
-			.iter()
-			.filter_map(|i| Self::new_arity_ext(types, i))
-			.collect()
-	}
 }
 
-pub struct Arities {
-	ex_arity: Vec<Arity>,
-	in_arity: Vec<Arity>,
+pub struct TypeInfo<'a> {
+	data: &'a [Type],
+	func_ex: Vec<u32>,
+	func_in: Vec<u32>,
 }
 
-impl Arities {
+impl<'a> TypeInfo<'a> {
 	#[must_use]
-	pub fn new(parent: &Module) -> Self {
+	pub fn from_module(parent: &'a Module) -> Self {
+		let data = parent
+			.type_section()
+			.map_or([].as_ref(), TypeSection::types);
+
+		let func_ex = Self::new_ex_list(parent);
+		let func_in = Self::new_in_list(parent);
+
 		Self {
-			ex_arity: Arity::new_ex_list(parent),
-			in_arity: Arity::new_in_list(parent),
+			data,
+			func_ex,
+			func_in,
 		}
 	}
 
 	#[must_use]
 	pub fn len_in(&self) -> usize {
-		self.in_arity.len()
+		self.func_in.len()
 	}
 
 	#[must_use]
 	pub fn len_ex(&self) -> usize {
-		self.ex_arity.len()
+		self.func_ex.len()
 	}
 
-	fn arity_of(&self, index: usize) -> &Arity {
-		let offset = self.ex_arity.len();
+	fn raw_arity_of(&self, index: u32) -> Arity {
+		let Type::Function(typ) = &self.data[index as usize];
 
-		self.ex_arity
-			.get(index)
-			.or_else(|| self.in_arity.get(index - offset))
-			.unwrap()
+		Arity::from_type(typ)
+	}
+
+	fn arity_of(&self, index: usize) -> Arity {
+		let adjusted = self
+			.func_ex
+			.iter()
+			.chain(self.func_in.iter())
+			.nth(index)
+			.unwrap();
+
+		self.raw_arity_of(*adjusted)
+	}
+
+	fn func_of_import(import: &ImportEntry) -> Option<u32> {
+		if let &External::Function(i) = import.external() {
+			Some(i)
+		} else {
+			None
+		}
+	}
+
+	fn new_ex_list(wasm: &Module) -> Vec<u32> {
+		let list = wasm
+			.import_section()
+			.map_or([].as_ref(), ImportSection::entries);
+
+		list.iter().filter_map(Self::func_of_import).collect()
+	}
+
+	fn new_in_list(wasm: &Module) -> Vec<u32> {
+		let list = wasm
+			.function_section()
+			.map_or([].as_ref(), FunctionSection::entries);
+
+		list.iter().map(Func::type_ref).collect()
 	}
 }
 
@@ -259,8 +262,7 @@ impl Stacked {
 
 pub struct Builder<'a> {
 	// target state
-	wasm: &'a Module,
-	other: &'a Arities,
+	type_info: &'a TypeInfo<'a>,
 	num_result: u32,
 
 	// translation state
@@ -278,58 +280,31 @@ fn is_dead_precursor(inst: &Instruction) -> bool {
 	)
 }
 
-fn flat_local_list(local: Local) -> impl Iterator<Item = ValueType> {
-	std::iter::repeat(local.value_type()).take(local.count().try_into().unwrap())
-}
-
-fn load_local_list(func: &FuncBody) -> Vec<ValueType> {
-	func.locals()
-		.iter()
-		.copied()
-		.flat_map(flat_local_list)
-		.collect()
-}
-
-fn load_func_at(wasm: &Module, index: usize) -> &FuncBody {
-	&wasm.code_section().unwrap().bodies()[index]
-}
-
 impl<'a> Builder<'a> {
 	#[must_use]
-	pub fn new(wasm: &'a Module, other: &'a Arities) -> Builder<'a> {
+	pub fn new(info: &'a TypeInfo) -> Builder<'a> {
 		Builder {
-			wasm,
-			other,
+			type_info: info,
 			num_result: 0,
 			data: Stacked::new(),
 		}
 	}
 
 	#[must_use]
-	pub fn consume(mut self, index: usize) -> Function {
-		let func = load_func_at(self.wasm, index);
-		let arity = &self.other.in_arity[index];
-
-		let local_list = load_local_list(func);
-		let num_param = arity.num_param;
+	pub fn consume(mut self, index: usize, func: &'a FuncBody) -> Function {
+		let arity = &self.type_info.arity_of(self.type_info.len_ex() + index);
 
 		self.num_result = arity.num_result;
 
-		let body = self.new_forward(&mut func.code().elements());
+		let code = self.new_forward(&mut func.code().elements());
 		let num_stack = self.data.last_stack.try_into().unwrap();
 
 		Function {
-			local_list,
-			num_param,
+			local_data: func.locals().to_vec(),
+			num_param: arity.num_param,
 			num_stack,
-			body,
+			code,
 		}
-	}
-
-	fn get_type_of(&self, index: u32) -> Arity {
-		let types = self.wasm.type_section().unwrap().types();
-
-		Arity::from_index(types, index)
 	}
 
 	fn push_block_result(&mut self, typ: BlockType) {
@@ -338,7 +313,7 @@ impl<'a> Builder<'a> {
 				return;
 			}
 			BlockType::Value(_) => 1,
-			BlockType::TypeIndex(i) => self.get_type_of(i).num_result,
+			BlockType::TypeIndex(i) => self.type_info.raw_arity_of(i).num_result,
 		};
 
 		self.data.push_recall(num);
@@ -354,7 +329,7 @@ impl<'a> Builder<'a> {
 	}
 
 	fn gen_call(&mut self, func: u32, stat: &mut Vec<Statement>) {
-		let arity = self.other.arity_of(func as usize);
+		let arity = self.type_info.arity_of(func as usize);
 		let param_list = self.data.pop_many(arity.num_param as usize);
 
 		let first = u32::try_from(self.data.stack.len()).unwrap();
@@ -371,7 +346,7 @@ impl<'a> Builder<'a> {
 	}
 
 	fn gen_call_indirect(&mut self, typ: u32, table: u8, stat: &mut Vec<Statement>) {
-		let arity = self.get_type_of(typ);
+		let arity = self.type_info.raw_arity_of(typ);
 		let index = self.data.pop();
 		let param_list = self.data.pop_many(arity.num_param as usize);
 

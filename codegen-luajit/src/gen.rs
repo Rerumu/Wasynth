@@ -5,7 +5,7 @@ use parity_wasm::elements::{
 };
 
 use wasm_ast::{
-	builder::{Arities, Builder},
+	builder::{Builder, TypeInfo},
 	node::{
 		AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call,
 		CallIndirect, Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize,
@@ -121,19 +121,17 @@ fn write_result_list(range: Range<u32>, w: Writer) -> Result<()> {
 }
 
 fn write_variable_list(func: &Function, w: Writer) -> Result<()> {
-	if !func.local_list.is_empty() {
-		let num_local = func.local_list.len().try_into().unwrap();
-
+	for data in &func.local_data {
 		write!(w, "local ")?;
-		write_in_order("loc", num_local, w)?;
+		write_in_order("loc", data.count(), w)?;
 		write!(w, " = ")?;
 
-		for (i, t) in func.local_list.iter().enumerate() {
+		for i in 0..data.count() {
 			if i != 0 {
 				write!(w, ", ")?;
 			}
 
-			write!(w, "ZERO_{} ", t)?;
+			write!(w, "ZERO_{} ", data.value_type())?;
 		}
 	}
 
@@ -597,7 +595,7 @@ impl Driver for Function {
 		write!(w, "local temp ")?;
 
 		v.num_param = self.num_param;
-		self.body.visit(v, w)?;
+		self.code.visit(v, w)?;
 
 		write!(w, "end ")
 	}
@@ -605,16 +603,16 @@ impl Driver for Function {
 
 pub struct Generator<'a> {
 	wasm: &'a Module,
-	arity: Arities,
+	type_info: TypeInfo<'a>,
 }
 
 static RUNTIME: &str = include_str!("../runtime/runtime.lua");
 
 impl<'a> Transpiler<'a> for Generator<'a> {
 	fn new(wasm: &'a Module) -> Self {
-		let arity = Arities::new(wasm);
+		let type_info = TypeInfo::from_module(wasm);
 
-		Self { wasm, arity }
+		Self { wasm, type_info }
 	}
 
 	fn runtime(w: Writer) -> Result<()> {
@@ -850,10 +848,10 @@ impl<'a> Generator<'a> {
 	// FIXME: Make `pub` only for fuzzing.
 	#[must_use]
 	pub fn build_func_list(&self) -> Vec<Function> {
-		let range = 0..self.arity.len_in();
+		let list = self.wasm.code_section().unwrap().bodies();
+		let iter = list.iter().enumerate();
 
-		range
-			.map(|i| Builder::new(self.wasm, &self.arity).consume(i))
+		iter.map(|f| Builder::new(&self.type_info).consume(f.0, f.1))
 			.collect()
 	}
 
@@ -863,7 +861,7 @@ impl<'a> Generator<'a> {
 	/// # Panics
 	/// If the number of functions overflows 32 bits.
 	pub fn gen_func_list(&self, func_list: &[Function], w: Writer) -> Result<()> {
-		let o = self.arity.len_ex();
+		let o = self.type_info.len_ex();
 
 		func_list.iter().enumerate().try_for_each(|(i, v)| {
 			write_func_name(self.wasm, i.try_into().unwrap(), o.try_into().unwrap(), w)?;

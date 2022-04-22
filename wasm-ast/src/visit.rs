@@ -324,6 +324,6 @@ impl<T: Visitor> Driver<T> for Statement {
 
 impl<T: Visitor> Driver<T> for Function {
 	fn accept(&self, visitor: &mut T) {
-		self.body.accept(visitor);
+		self.code.accept(visitor);
 	}
 }

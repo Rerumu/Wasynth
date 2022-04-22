@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use parity_wasm::elements::{BrTableData, ValueType};
+use parity_wasm::elements::{BrTableData, Local};
 
 use std::convert::TryFrom;
 
@@ -767,8 +767,8 @@ pub enum Statement {
 }
 
 pub struct Function {
-	pub local_list: Vec<ValueType>,
+	pub local_data: Vec<Local>,
 	pub num_param: u32,
 	pub num_stack: u32,
-	pub body: Forward,
+	pub code: Forward,
 }
