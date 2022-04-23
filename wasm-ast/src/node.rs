@@ -575,11 +575,11 @@ pub struct Select {
 }
 
 pub struct GetLocal {
-	pub var: u32,
+	pub var: usize,
 }
 
 pub struct GetGlobal {
-	pub var: u32,
+	pub var: usize,
 }
 
 pub struct AnyLoad {
@@ -589,11 +589,11 @@ pub struct AnyLoad {
 }
 
 pub struct MemorySize {
-	pub memory: u8,
+	pub memory: usize,
 }
 
 pub struct MemoryGrow {
-	pub memory: u8,
+	pub memory: usize,
 	pub value: Box<Expression>,
 }
 
@@ -702,12 +702,12 @@ pub struct If {
 }
 
 pub struct Br {
-	pub target: u32,
+	pub target: usize,
 }
 
 pub struct BrIf {
 	pub cond: Expression,
-	pub target: u32,
+	pub target: usize,
 }
 
 pub struct BrTable {
@@ -720,25 +720,25 @@ pub struct Return {
 }
 
 pub struct Call {
-	pub func: u32,
-	pub result: Range<u32>,
+	pub func: usize,
+	pub result: Range<usize>,
 	pub param_list: Vec<Expression>,
 }
 
 pub struct CallIndirect {
-	pub table: u8,
+	pub table: usize,
 	pub index: Expression,
-	pub result: Range<u32>,
+	pub result: Range<usize>,
 	pub param_list: Vec<Expression>,
 }
 
 pub struct SetLocal {
-	pub var: u32,
+	pub var: usize,
 	pub value: Expression,
 }
 
 pub struct SetGlobal {
-	pub var: u32,
+	pub var: usize,
 	pub value: Expression,
 }
 
@@ -768,7 +768,7 @@ pub enum Statement {
 
 pub struct Function {
 	pub local_data: Vec<Local>,
-	pub num_param: u32,
-	pub num_stack: u32,
+	pub num_param: usize,
+	pub num_stack: usize,
 	pub code: Forward,
 }

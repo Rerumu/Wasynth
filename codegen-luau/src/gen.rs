@@ -58,7 +58,7 @@ fn write_func_name(wasm: &Module, index: u32, offset: u32, w: Writer) -> Result<
 	write!(w, "[{}] =", index + offset)
 }
 
-fn write_in_order(prefix: &str, len: u32, w: Writer) -> Result<()> {
+fn write_in_order(prefix: &str, len: usize, w: Writer) -> Result<()> {
 	if len == 0 {
 		return Ok(());
 	}
@@ -103,7 +103,7 @@ fn write_parameter_list(func: &Function, w: Writer) -> Result<()> {
 	write!(w, ")")
 }
 
-fn write_result_list(range: Range<u32>, w: Writer) -> Result<()> {
+fn write_result_list(range: Range<usize>, w: Writer) -> Result<()> {
 	if range.is_empty() {
 		return Ok(());
 	}
@@ -122,7 +122,7 @@ fn write_result_list(range: Range<u32>, w: Writer) -> Result<()> {
 fn write_variable_list(func: &Function, w: Writer) -> Result<()> {
 	for data in &func.local_data {
 		write!(w, "local ")?;
-		write_in_order("loc", data.count(), w)?;
+		write_in_order("loc", data.count().try_into().unwrap(), w)?;
 		write!(w, " = ")?;
 
 		for i in 0..data.count() {
@@ -187,7 +187,7 @@ enum Label {
 #[derive(Default)]
 struct Visitor {
 	label_list: Vec<Label>,
-	num_param: u32,
+	num_param: usize,
 }
 
 impl Visitor {
@@ -197,6 +197,16 @@ impl Visitor {
 			Some(Label::Backward) => br_target(rem, true, w),
 			None => Ok(()),
 		}
+	}
+
+	fn push_label(&mut self, label: Label) -> usize {
+		self.label_list.push(label);
+
+		self.label_list.len() - 1
+	}
+
+	fn pop_label(&mut self) {
+		self.label_list.pop().unwrap();
 	}
 }
 
@@ -222,7 +232,7 @@ impl Driver for Select {
 	}
 }
 
-fn write_variable(var: u32, v: &Visitor, w: Writer) -> Result<()> {
+fn write_variable(var: usize, v: &Visitor, w: Writer) -> Result<()> {
 	if let Some(rem) = var.checked_sub(v.num_param) {
 		write!(w, "loc_{} ", rem)
 	} else {
@@ -364,9 +374,7 @@ impl Driver for Memorize {
 
 impl Driver for Forward {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		let rem = v.label_list.len();
-
-		v.label_list.push(Label::Forward);
+		let rem = v.push_label(Label::Forward);
 
 		write!(w, "while true do ")?;
 
@@ -375,16 +383,14 @@ impl Driver for Forward {
 		write!(w, "break ")?;
 		write!(w, "end ")?;
 
-		v.label_list.pop().unwrap();
+		v.pop_label();
 		v.write_br_gadget(rem, w)
 	}
 }
 
 impl Driver for Backward {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		let rem = v.label_list.len();
-
-		v.label_list.push(Label::Backward);
+		let rem = v.push_label(Label::Backward);
 
 		write!(w, "while true do ")?;
 
@@ -393,7 +399,7 @@ impl Driver for Backward {
 		write!(w, "break ")?;
 		write!(w, "end ")?;
 
-		v.label_list.pop().unwrap();
+		v.pop_label();
 		v.write_br_gadget(rem, w)
 	}
 }
@@ -408,9 +414,7 @@ impl Driver for Else {
 
 impl Driver for If {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		let rem = v.label_list.len();
-
-		v.label_list.push(Label::If);
+		let rem = v.push_label(Label::If);
 
 		write!(w, "while true do ")?;
 		write!(w, "if ")?;
@@ -427,27 +431,24 @@ impl Driver for If {
 		write!(w, "break ")?;
 		write!(w, "end ")?;
 
-		v.label_list.pop().unwrap();
+		v.pop_label();
 		v.write_br_gadget(rem, w)
 	}
 }
 
-fn write_br_at(up: u32, v: &Visitor, w: Writer) -> Result<()> {
-	let up = up as usize;
-	let level = v.label_list.len() - 1;
-
+fn write_br_at(up: usize, v: &Visitor, w: Writer) -> Result<()> {
 	write!(w, "do ")?;
 
 	if up == 0 {
-		let is_loop = v.label_list[level - up] == Label::Backward;
-
-		if is_loop {
+		if let Some(&Label::Backward) = v.label_list.last() {
 			write!(w, "continue ")?;
 		} else {
 			write!(w, "break ")?;
 		}
 	} else {
-		write!(w, "desired = {} ", level - up)?;
+		let level = v.label_list.len() - 1 - up;
+
+		write!(w, "desired = {} ", level)?;
 		write!(w, "break ")?;
 	}
 

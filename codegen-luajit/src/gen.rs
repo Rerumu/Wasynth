@@ -58,7 +58,7 @@ fn write_func_name(wasm: &Module, index: u32, offset: u32, w: Writer) -> Result<
 	write!(w, "[{}] =", index + offset)
 }
 
-fn write_in_order(prefix: &str, len: u32, w: Writer) -> Result<()> {
+fn write_in_order(prefix: &str, len: usize, w: Writer) -> Result<()> {
 	if len == 0 {
 		return Ok(());
 	}
@@ -104,7 +104,7 @@ fn write_parameter_list(func: &Function, w: Writer) -> Result<()> {
 	write!(w, ")")
 }
 
-fn write_result_list(range: Range<u32>, w: Writer) -> Result<()> {
+fn write_result_list(range: Range<usize>, w: Writer) -> Result<()> {
 	if range.is_empty() {
 		return Ok(());
 	}
@@ -123,7 +123,7 @@ fn write_result_list(range: Range<u32>, w: Writer) -> Result<()> {
 fn write_variable_list(func: &Function, w: Writer) -> Result<()> {
 	for data in &func.local_data {
 		write!(w, "local ")?;
-		write_in_order("loc", data.count(), w)?;
+		write_in_order("loc", data.count().try_into().unwrap(), w)?;
 		write!(w, " = ")?;
 
 		for i in 0..data.count() {
@@ -190,7 +190,7 @@ fn condense_jump_table(list: &[u32]) -> Vec<(usize, usize, u32)> {
 struct Visitor {
 	label_list: Vec<usize>,
 	num_label: usize,
-	num_param: u32,
+	num_param: usize,
 }
 
 impl Visitor {
@@ -203,12 +203,6 @@ impl Visitor {
 
 	fn pop_label(&mut self) {
 		self.label_list.pop().unwrap();
-	}
-
-	fn get_label(&self, up: u32) -> usize {
-		let last = self.label_list.len() - 1;
-
-		self.label_list[last - up as usize]
 	}
 }
 
@@ -234,7 +228,7 @@ impl Driver for Select {
 	}
 }
 
-fn write_variable(var: u32, v: &Visitor, w: Writer) -> Result<()> {
+fn write_variable(var: usize, v: &Visitor, w: Writer) -> Result<()> {
 	if let Some(rem) = var.checked_sub(v.num_param) {
 		write!(w, "loc_{} ", rem)
 	} else {
@@ -451,8 +445,8 @@ impl Driver for If {
 	}
 }
 
-fn write_br_at(up: u32, v: &Visitor, w: Writer) -> Result<()> {
-	let level = v.get_label(up);
+fn write_br_at(up: usize, v: &Visitor, w: Writer) -> Result<()> {
+	let level = v.label_list.iter().nth_back(up).unwrap();
 
 	write!(w, "goto continue_at_{} ", level)
 }
@@ -488,12 +482,12 @@ impl Driver for BrTable {
 				write!(w, "if temp >= {} and temp <= {} then ", start, end)?;
 			}
 
-			write_br_at(dest, v, w)?;
+			write_br_at(dest.try_into().unwrap(), v, w)?;
 			write!(w, "else")?;
 		}
 
 		write!(w, " ")?;
-		write_br_at(self.data.default, v, w)?;
+		write_br_at(self.data.default.try_into().unwrap(), v, w)?;
 		write!(w, "end ")
 	}
 }

@@ -11,26 +11,23 @@ use crate::node::{
 };
 
 struct Arity {
-	num_param: u32,
-	num_result: u32,
+	num_param: usize,
+	num_result: usize,
 }
 
 impl Arity {
 	fn from_type(typ: &FunctionType) -> Self {
-		let num_param = typ.params().len().try_into().unwrap();
-		let num_result = typ.results().len().try_into().unwrap();
-
 		Self {
-			num_param,
-			num_result,
+			num_param: typ.params().len(),
+			num_result: typ.results().len(),
 		}
 	}
 }
 
 pub struct TypeInfo<'a> {
 	data: &'a [Type],
-	func_ex: Vec<u32>,
-	func_in: Vec<u32>,
+	func_ex: Vec<usize>,
+	func_in: Vec<usize>,
 }
 
 impl<'a> TypeInfo<'a> {
@@ -60,8 +57,8 @@ impl<'a> TypeInfo<'a> {
 		self.func_ex.len()
 	}
 
-	fn raw_arity_of(&self, index: u32) -> Arity {
-		let Type::Function(typ) = &self.data[index as usize];
+	fn raw_arity_of(&self, index: usize) -> Arity {
+		let Type::Function(typ) = &self.data[index];
 
 		Arity::from_type(typ)
 	}
@@ -77,15 +74,15 @@ impl<'a> TypeInfo<'a> {
 		self.raw_arity_of(*adjusted)
 	}
 
-	fn func_of_import(import: &ImportEntry) -> Option<u32> {
+	fn func_of_import(import: &ImportEntry) -> Option<usize> {
 		if let &External::Function(i) = import.external() {
-			Some(i)
+			Some(i.try_into().unwrap())
 		} else {
 			None
 		}
 	}
 
-	fn new_ex_list(wasm: &Module) -> Vec<u32> {
+	fn new_ex_list(wasm: &Module) -> Vec<usize> {
 		let list = wasm
 			.import_section()
 			.map_or([].as_ref(), ImportSection::entries);
@@ -93,12 +90,15 @@ impl<'a> TypeInfo<'a> {
 		list.iter().filter_map(Self::func_of_import).collect()
 	}
 
-	fn new_in_list(wasm: &Module) -> Vec<u32> {
+	fn new_in_list(wasm: &Module) -> Vec<usize> {
 		let list = wasm
 			.function_section()
 			.map_or([].as_ref(), FunctionSection::entries);
 
-		list.iter().map(Func::type_ref).collect()
+		list.iter()
+			.map(Func::type_ref)
+			.map(|v| v.try_into().unwrap())
+			.collect()
 	}
 }
 
@@ -167,10 +167,10 @@ impl Stacked {
 		self.stack.push(value);
 	}
 
-	fn push_recall(&mut self, num: u32) {
+	fn push_recall(&mut self, num: usize) {
 		let len = self.stack.len();
 
-		for var in len..len + num as usize {
+		for var in len..len + num {
 			self.stack.push(Expression::Recall(Recall { var }));
 		}
 	}
@@ -263,7 +263,7 @@ impl Stacked {
 pub struct Builder<'a> {
 	// target state
 	type_info: &'a TypeInfo<'a>,
-	num_result: u32,
+	num_result: usize,
 
 	// translation state
 	data: Stacked,
@@ -297,7 +297,7 @@ impl<'a> Builder<'a> {
 		self.num_result = arity.num_result;
 
 		let code = self.new_forward(&mut func.code().elements());
-		let num_stack = self.data.last_stack.try_into().unwrap();
+		let num_stack = self.data.last_stack;
 
 		Function {
 			local_data: func.locals().to_vec(),
@@ -313,26 +313,29 @@ impl<'a> Builder<'a> {
 				return;
 			}
 			BlockType::Value(_) => 1,
-			BlockType::TypeIndex(i) => self.type_info.raw_arity_of(i).num_result,
+			BlockType::TypeIndex(i) => {
+				self.type_info
+					.raw_arity_of(i.try_into().unwrap())
+					.num_result
+			}
 		};
 
 		self.data.push_recall(num);
 	}
 
 	fn gen_return(&mut self, stat: &mut Vec<Statement>) {
-		let num = self.num_result as usize;
-		let list = self.data.pop_many(num);
+		let list = self.data.pop_many(self.num_result);
 
 		self.data.gen_leak_pending(stat);
 
 		stat.push(Statement::Return(Return { list }));
 	}
 
-	fn gen_call(&mut self, func: u32, stat: &mut Vec<Statement>) {
-		let arity = self.type_info.arity_of(func as usize);
-		let param_list = self.data.pop_many(arity.num_param as usize);
+	fn gen_call(&mut self, func: usize, stat: &mut Vec<Statement>) {
+		let arity = self.type_info.arity_of(func);
+		let param_list = self.data.pop_many(arity.num_param);
 
-		let first = u32::try_from(self.data.stack.len()).unwrap();
+		let first = self.data.stack.len();
 		let result = first..first + arity.num_result;
 
 		self.data.push_recall(arity.num_result);
@@ -345,12 +348,12 @@ impl<'a> Builder<'a> {
 		}));
 	}
 
-	fn gen_call_indirect(&mut self, typ: u32, table: u8, stat: &mut Vec<Statement>) {
+	fn gen_call_indirect(&mut self, typ: usize, table: usize, stat: &mut Vec<Statement>) {
 		let arity = self.type_info.raw_arity_of(typ);
 		let index = self.data.pop();
-		let param_list = self.data.pop_many(arity.num_param as usize);
+		let param_list = self.data.pop_many(arity.num_param);
 
-		let first = u32::try_from(self.data.stack.len()).unwrap();
+		let first = self.data.stack.len();
 		let result = first..first + arity.num_result;
 
 		self.data.push_recall(arity.num_result);
@@ -458,10 +461,13 @@ impl<'a> Builder<'a> {
 					break;
 				}
 				Inst::Br(target) => {
+					let target = target.try_into().unwrap();
+
 					self.data.gen_leak_pending(&mut stat);
 					stat.push(Statement::Br(Br { target }));
 				}
 				Inst::BrIf(target) => {
+					let target = target.try_into().unwrap();
 					let cond = self.data.pop();
 
 					self.data.gen_leak_pending(&mut stat);
@@ -480,10 +486,10 @@ impl<'a> Builder<'a> {
 					self.gen_return(&mut stat);
 				}
 				Inst::Call(i) => {
-					self.gen_call(i, &mut stat);
+					self.gen_call(i.try_into().unwrap(), &mut stat);
 				}
 				Inst::CallIndirect(i, t) => {
-					self.gen_call_indirect(i, t, &mut stat);
+					self.gen_call_indirect(i.try_into().unwrap(), t.into(), &mut stat);
 				}
 				Inst::Drop => {
 					self.data.pop();
@@ -496,9 +502,12 @@ impl<'a> Builder<'a> {
 					self.data.push(Expression::Select(Select { cond, a, b }));
 				}
 				Inst::GetLocal(var) => {
+					let var = var.try_into().unwrap();
+
 					self.data.push(Expression::GetLocal(GetLocal { var }));
 				}
 				Inst::SetLocal(var) => {
+					let var = var.try_into().unwrap();
 					let value = self.data.pop();
 
 					self.data.gen_leak_pending(&mut stat);
@@ -507,15 +516,19 @@ impl<'a> Builder<'a> {
 				Inst::TeeLocal(var) => {
 					self.data.gen_leak_pending(&mut stat);
 
+					let var = var.try_into().unwrap();
 					let value = self.data.pop();
 
 					self.data.push(value.clone_recall());
 					stat.push(Statement::SetLocal(SetLocal { var, value }));
 				}
 				Inst::GetGlobal(var) => {
+					let var = var.try_into().unwrap();
+
 					self.data.push(Expression::GetGlobal(GetGlobal { var }));
 				}
 				Inst::SetGlobal(var) => {
+					let var = var.try_into().unwrap();
 					let value = self.data.pop();
 
 					stat.push(Statement::SetGlobal(SetGlobal { var, value }));
@@ -544,10 +557,13 @@ impl<'a> Builder<'a> {
 				Inst::I64Store16(_, o) => self.data.gen_store(Store::I64_N16, o, &mut stat),
 				Inst::I64Store32(_, o) => self.data.gen_store(Store::I64_N32, o, &mut stat),
 				Inst::CurrentMemory(memory) => {
+					let memory = memory.try_into().unwrap();
+
 					self.data
 						.push(Expression::MemorySize(MemorySize { memory }));
 				}
 				Inst::GrowMemory(memory) => {
+					let memory = memory.try_into().unwrap();
 					let value = Box::new(self.data.pop());
 
 					// `MemoryGrow` is an expression *but* it has side effects

@@ -6,7 +6,7 @@ use wasm_ast::{
 };
 
 struct Visit {
-	result: BTreeSet<u8>,
+	result: BTreeSet<usize>,
 }
 
 impl Visitor for Visit {
@@ -27,7 +27,7 @@ impl Visitor for Visit {
 	}
 }
 
-pub fn visit(func: &Function) -> BTreeSet<u8> {
+pub fn visit(func: &Function) -> BTreeSet<usize> {
 	let mut visit = Visit {
 		result: BTreeSet::new(),
 	};
