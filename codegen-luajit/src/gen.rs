@@ -125,13 +125,18 @@ fn write_call_store(result: Range<usize>, w: Writer) -> Result<()> {
 }
 
 fn write_variable_list(func: &Function, w: Writer) -> Result<()> {
+	let mut total = 0;
+
 	for data in &func.local_data {
-		let range = 0..data.count().try_into().unwrap();
+		let range = total..total + usize::try_from(data.count()).unwrap();
+		let typed = data.value_type();
+
+		total = range.end;
 
 		write!(w, "local ")?;
 		write_ascending("loc", range.clone(), w)?;
 		write!(w, " = ")?;
-		write_separated(range, |_, w| write!(w, "ZERO_{} ", data.value_type()), w)?;
+		write_separated(range, |_, w| write!(w, "ZERO_{} ", typed), w)?;
 	}
 
 	if func.num_stack != 0 {
