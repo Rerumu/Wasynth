@@ -29,6 +29,22 @@ fn new_limit_max(limits: &ResizableLimits) -> String {
 	}
 }
 
+fn write_separated<I, T, M>(mut iter: I, mut func: M, w: Writer) -> Result<()>
+where
+	M: FnMut(T, Writer) -> Result<()>,
+	I: Iterator<Item = T>,
+{
+	match iter.next() {
+		Some(first) => func(first, w)?,
+		None => return Ok(()),
+	}
+
+	iter.try_for_each(|v| {
+		write!(w, ", ")?;
+		func(v, w)
+	})
+}
+
 fn write_table_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
 	let a = limit.initial();
 	let b = new_limit_max(limit);
@@ -43,7 +59,7 @@ fn write_memory_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
 	write!(w, "rt.allocator.new({}, {})", a, b)
 }
 
-fn write_func_name(wasm: &Module, index: u32, offset: u32, w: Writer) -> Result<()> {
+fn write_func_start(wasm: &Module, index: u32, offset: u32, w: Writer) -> Result<()> {
 	let opt = wasm
 		.names_section()
 		.and_then(NameSection::functions)
@@ -58,13 +74,8 @@ fn write_func_name(wasm: &Module, index: u32, offset: u32, w: Writer) -> Result<
 	write!(w, "[{}] =", index + offset)
 }
 
-fn write_in_order(prefix: &str, len: usize, w: Writer) -> Result<()> {
-	if len == 0 {
-		return Ok(());
-	}
-
-	write!(w, "{}_{}", prefix, 0)?;
-	(1..len).try_for_each(|i| write!(w, ", {}_{}", prefix, i))
+fn write_ascending(prefix: &str, range: Range<usize>, w: Writer) -> Result<()> {
+	write_separated(range, |i, w| write!(w, "{}_{}", prefix, i), w)
 }
 
 fn write_f32(f: f32, w: Writer) -> Result<()> {
@@ -91,7 +102,7 @@ fn write_f64(f: f64, w: Writer) -> Result<()> {
 	}
 }
 
-fn write_list(name: &str, len: usize, w: Writer) -> Result<()> {
+fn write_named_array(name: &str, len: usize, w: Writer) -> Result<()> {
 	let hash = len.min(1);
 	let len = len.saturating_sub(1);
 
@@ -100,51 +111,39 @@ fn write_list(name: &str, len: usize, w: Writer) -> Result<()> {
 
 fn write_parameter_list(func: &Function, w: Writer) -> Result<()> {
 	write!(w, "function(")?;
-	write_in_order("param", func.num_param, w)?;
+	write_ascending("param", 0..func.num_param, w)?;
 	write!(w, ")")
 }
 
-fn write_result_list(range: Range<usize>, w: Writer) -> Result<()> {
-	if range.is_empty() {
+fn write_call_store(result: Range<usize>, w: Writer) -> Result<()> {
+	if result.is_empty() {
 		return Ok(());
 	}
 
-	range.clone().try_for_each(|i| {
-		if i != range.start {
-			write!(w, ", ")?;
-		}
-
-		write!(w, "reg_{}", i)
-	})?;
-
+	write_ascending("reg", result, w)?;
 	write!(w, " = ")
 }
 
 fn write_variable_list(func: &Function, w: Writer) -> Result<()> {
 	for data in &func.local_data {
+		let range = 0..data.count().try_into().unwrap();
+
 		write!(w, "local ")?;
-		write_in_order("loc", data.count().try_into().unwrap(), w)?;
+		write_ascending("loc", range.clone(), w)?;
 		write!(w, " = ")?;
-
-		for i in 0..data.count() {
-			if i != 0 {
-				write!(w, ", ")?;
-			}
-
-			write!(w, "ZERO_{} ", data.value_type())?;
-		}
+		write_separated(range, |_, w| write!(w, "ZERO_{} ", data.value_type()), w)?;
 	}
 
 	if func.num_stack != 0 {
 		write!(w, "local ")?;
-		write_in_order("reg", func.num_stack, w)?;
+		write_ascending("reg", 0..func.num_stack, w)?;
 		write!(w, " ")?;
 	}
 
 	Ok(())
 }
 
-fn write_expression(code: &[Instruction], w: Writer) -> Result<()> {
+fn write_constant(code: &[Instruction], w: Writer) -> Result<()> {
 	// FIXME: Badly generated WASM will produce the wrong constant.
 	for inst in code {
 		let result = match *inst {
@@ -348,13 +347,7 @@ fn write_as_condition(data: &Expression, v: &mut Visitor, w: Writer) -> Result<(
 }
 
 fn write_expr_list(list: &[Expression], v: &mut Visitor, w: Writer) -> Result<()> {
-	list.iter().enumerate().try_for_each(|(i, e)| {
-		if i != 0 {
-			write!(w, ", ")?;
-		}
-
-		e.visit(v, w)
-	})
+	write_separated(list.iter(), |e, w| e.visit(v, w), w)
 }
 
 impl Driver for Expression {
@@ -504,7 +497,7 @@ impl Driver for Return {
 
 impl Driver for Call {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		write_result_list(self.result.clone(), w)?;
+		write_call_store(self.result.clone(), w)?;
 
 		write!(w, "FUNC_LIST[{}](", self.func)?;
 
@@ -516,7 +509,7 @@ impl Driver for Call {
 
 impl Driver for CallIndirect {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		write_result_list(self.result.clone(), w)?;
+		write_call_store(self.result.clone(), w)?;
 
 		write!(w, "TABLE_LIST[{}].data[", self.table)?;
 
@@ -626,10 +619,10 @@ impl<'a> Transpiler<'a> for Generator<'a> {
 		write!(w, "local ZERO_f64 = 0.0 ")?;
 
 		write!(w, "local table_new = require(\"table.new\")")?;
-		write_list("FUNC_LIST", self.wasm.functions_space(), w)?;
-		write_list("TABLE_LIST", self.wasm.table_space(), w)?;
-		write_list("MEMORY_LIST", self.wasm.memory_space(), w)?;
-		write_list("GLOBAL_LIST", self.wasm.globals_space(), w)?;
+		write_named_array("FUNC_LIST", self.wasm.functions_space(), w)?;
+		write_named_array("TABLE_LIST", self.wasm.table_space(), w)?;
+		write_named_array("MEMORY_LIST", self.wasm.memory_space(), w)?;
+		write_named_array("GLOBAL_LIST", self.wasm.globals_space(), w)?;
 
 		self.gen_func_list(&func_list, w)?;
 		self.gen_start_point(w)
@@ -739,7 +732,7 @@ impl<'a> Generator<'a> {
 
 			write!(w, "GLOBAL_LIST[{}] = {{ value =", index)?;
 
-			write_expression(v.init_expr().code(), w)?;
+			write_constant(v.init_expr().code(), w)?;
 
 			write!(w, "}}")?;
 		}
@@ -758,7 +751,7 @@ impl<'a> Generator<'a> {
 			write!(w, "local target = TABLE_LIST[{}].data ", v.index())?;
 			write!(w, "local offset =")?;
 
-			write_expression(v.offset().as_ref().unwrap().code(), w)?;
+			write_constant(v.offset().as_ref().unwrap().code(), w)?;
 
 			write!(w, "local data = {{")?;
 
@@ -787,7 +780,7 @@ impl<'a> Generator<'a> {
 			write!(w, "local target = MEMORY_LIST[{}]", v.index())?;
 			write!(w, "local offset =")?;
 
-			write_expression(v.offset().as_ref().unwrap().code(), w)?;
+			write_constant(v.offset().as_ref().unwrap().code(), w)?;
 
 			write!(w, "local data = \"")?;
 
@@ -855,10 +848,10 @@ impl<'a> Generator<'a> {
 	/// # Panics
 	/// If the number of functions overflows 32 bits.
 	pub fn gen_func_list(&self, func_list: &[Function], w: Writer) -> Result<()> {
-		let o = self.type_info.len_ex();
+		let offset = self.type_info.len_ex().try_into().unwrap();
 
 		func_list.iter().enumerate().try_for_each(|(i, v)| {
-			write_func_name(self.wasm, i.try_into().unwrap(), o.try_into().unwrap(), w)?;
+			write_func_start(self.wasm, i.try_into().unwrap(), offset, w)?;
 
 			v.visit(&mut Visitor::default(), w)
 		})
