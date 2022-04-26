@@ -1,10 +1,6 @@
 use std::ops::Range;
 
-use parity_wasm::elements::{BrTableData, Local};
-
-use std::convert::TryFrom;
-
-use parity_wasm::elements::{Instruction, SignExtInstruction};
+use parity_wasm::elements::{BrTableData, Instruction, Local, SignExtInstruction};
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
