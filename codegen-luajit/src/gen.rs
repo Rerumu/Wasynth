@@ -49,14 +49,14 @@ fn write_table_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
 	let a = limit.initial();
 	let b = new_limit_max(limit);
 
-	write!(w, "{{ min = {}, max = {}, data = {{}} }}", a, b)
+	write!(w, "{{ min = {a}, max = {b}, data = {{}} }}")
 }
 
 fn write_memory_init(limit: &ResizableLimits, w: Writer) -> Result<()> {
 	let a = limit.initial();
 	let b = new_limit_max(limit);
 
-	write!(w, "rt.allocator.new({}, {})", a, b)
+	write!(w, "rt.allocator.new({a}, {b})")
 }
 
 fn write_func_start(wasm: &Module, index: u32, offset: u32, w: Writer) -> Result<()> {
@@ -68,37 +68,37 @@ fn write_func_start(wasm: &Module, index: u32, offset: u32, w: Writer) -> Result
 	write!(w, "FUNC_LIST")?;
 
 	if let Some(name) = opt {
-		write!(w, "--[[{}]]", name)?;
+		write!(w, "--[[{name}]]")?;
 	}
 
 	write!(w, "[{}] =", index + offset)
 }
 
 fn write_ascending(prefix: &str, range: Range<usize>, w: Writer) -> Result<()> {
-	write_separated(range, |i, w| write!(w, "{}_{}", prefix, i), w)
+	write_separated(range, |i, w| write!(w, "{prefix}_{i}"), w)
 }
 
-fn write_f32(f: f32, w: Writer) -> Result<()> {
-	let sign = if f.is_sign_negative() { "-" } else { "" };
+fn write_f32(number: f32, w: Writer) -> Result<()> {
+	let sign = if number.is_sign_negative() { "-" } else { "" };
 
-	if f.is_infinite() {
-		write!(w, "{}math.huge ", sign)
-	} else if f.is_nan() {
-		write!(w, "{}0/0 ", sign)
+	if number.is_infinite() {
+		write!(w, "{sign}math.huge ")
+	} else if number.is_nan() {
+		write!(w, "{sign}0/0 ")
 	} else {
-		write!(w, "{:e} ", f)
+		write!(w, "{number:e} ")
 	}
 }
 
-fn write_f64(f: f64, w: Writer) -> Result<()> {
-	let sign = if f.is_sign_negative() { "-" } else { "" };
+fn write_f64(number: f64, w: Writer) -> Result<()> {
+	let sign = if number.is_sign_negative() { "-" } else { "" };
 
-	if f.is_infinite() {
-		write!(w, "{}math.huge ", sign)
-	} else if f.is_nan() {
-		write!(w, "{}0/0 ", sign)
+	if number.is_infinite() {
+		write!(w, "{sign}math.huge ")
+	} else if number.is_nan() {
+		write!(w, "{sign}0/0 ")
 	} else {
-		write!(w, "{:e} ", f)
+		write!(w, "{number:e} ")
 	}
 }
 
@@ -106,7 +106,7 @@ fn write_named_array(name: &str, len: usize, w: Writer) -> Result<()> {
 	let hash = len.min(1);
 	let len = len.saturating_sub(1);
 
-	write!(w, "local {} = table_new({}, {})", name, len, hash)
+	write!(w, "local {name} = table_new({len}, {hash})")
 }
 
 fn write_parameter_list(func: &Function, w: Writer) -> Result<()> {
@@ -136,7 +136,7 @@ fn write_variable_list(func: &Function, w: Writer) -> Result<()> {
 		write!(w, "local ")?;
 		write_ascending("loc", range.clone(), w)?;
 		write!(w, " = ")?;
-		write_separated(range, |_, w| write!(w, "ZERO_{} ", typed), w)?;
+		write_separated(range, |_, w| write!(w, "ZERO_{typed} "), w)?;
 	}
 
 	if func.num_stack != 0 {
@@ -152,11 +152,11 @@ fn write_constant(code: &[Instruction], w: Writer) -> Result<()> {
 	// FIXME: Badly generated WASM will produce the wrong constant.
 	for inst in code {
 		let result = match *inst {
-			Instruction::I32Const(v) => write!(w, "{} ", v),
-			Instruction::I64Const(v) => write!(w, "{}LL ", v),
+			Instruction::I32Const(v) => write!(w, "{v} "),
+			Instruction::I64Const(v) => write!(w, "{v}LL "),
 			Instruction::F32Const(v) => write_f32(f32::from_bits(v), w),
 			Instruction::F64Const(v) => write_f64(f64::from_bits(v), w),
-			Instruction::GetGlobal(i) => write!(w, "GLOBAL_LIST[{}].value ", i),
+			Instruction::GetGlobal(i) => write!(w, "GLOBAL_LIST[{i}].value "),
 			_ => {
 				continue;
 			}
@@ -234,9 +234,9 @@ impl Driver for Select {
 
 fn write_variable(var: usize, v: &Visitor, w: Writer) -> Result<()> {
 	if let Some(rem) = var.checked_sub(v.num_param) {
-		write!(w, "loc_{} ", rem)
+		write!(w, "loc_{rem} ")
 	} else {
-		write!(w, "param_{} ", var)
+		write!(w, "param_{var} ")
 	}
 }
 
@@ -277,8 +277,8 @@ impl Driver for MemoryGrow {
 impl Driver for Value {
 	fn visit(&self, _: &mut Visitor, w: Writer) -> Result<()> {
 		match self {
-			Self::I32(i) => write!(w, "{} ", i),
-			Self::I64(i) => write!(w, "{}LL ", i),
+			Self::I32(i) => write!(w, "{i} "),
+			Self::I64(i) => write!(w, "{i}LL "),
 			Self::F32(f) => write_f32(*f, w),
 			Self::F64(f) => write_f64(*f, w),
 		}
@@ -289,7 +289,7 @@ impl Driver for AnyUnOp {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		let (a, b) = self.op.as_name();
 
-		write!(w, "{}_{}(", a, b)?;
+		write!(w, "{a}_{b}(")?;
 		self.rhs.visit(v, w)?;
 		write!(w, ")")
 	}
@@ -314,7 +314,7 @@ impl Driver for AnyBinOp {
 		if let Some(op) = self.op.as_operator() {
 			write!(w, "(")?;
 			self.lhs.visit(v, w)?;
-			write!(w, "{} ", op)?;
+			write!(w, "{op} ")?;
 			self.rhs.visit(v, w)?;
 			write!(w, ")")
 		} else {
@@ -326,7 +326,7 @@ impl Driver for AnyBinOp {
 fn write_any_cmp(cmp: &AnyCmpOp, v: &mut Visitor, w: Writer) -> Result<()> {
 	if let Some(op) = cmp.op.as_operator() {
 		cmp.lhs.visit(v, w)?;
-		write!(w, "{} ", op)?;
+		write!(w, "{op} ")?;
 		cmp.rhs.visit(v, w)
 	} else {
 		write_bin_call(cmp.op.as_name(), &cmp.lhs, &cmp.rhs, v, w)
@@ -386,7 +386,7 @@ impl Driver for Forward {
 
 		self.body.iter().try_for_each(|s| s.visit(v, w))?;
 
-		write!(w, "::continue_at_{}::", label)?;
+		write!(w, "::continue_at_{label}::")?;
 
 		v.pop_label();
 
@@ -398,7 +398,7 @@ impl Driver for Backward {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		let label = v.push_label();
 
-		write!(w, "::continue_at_{}::", label)?;
+		write!(w, "::continue_at_{label}::")?;
 		write!(w, "while true do ")?;
 
 		self.body.iter().try_for_each(|s| s.visit(v, w))?;
@@ -434,7 +434,7 @@ impl Driver for If {
 			s.visit(v, w)?;
 		}
 
-		write!(w, "::continue_at_{}::", label)?;
+		write!(w, "::continue_at_{label}::")?;
 		write!(w, "end ")?;
 
 		v.pop_label();
@@ -446,7 +446,7 @@ impl Driver for If {
 fn write_br_at(up: usize, v: &Visitor, w: Writer) -> Result<()> {
 	let level = v.label_list.iter().nth_back(up).unwrap();
 
-	write!(w, "goto continue_at_{} ", level)
+	write!(w, "goto continue_at_{level} ")
 }
 
 impl Driver for Br {
@@ -475,9 +475,9 @@ impl Driver for BrTable {
 
 		for (start, end, dest) in condense_jump_table(&self.data.table) {
 			if start == end {
-				write!(w, "if temp == {} then ", start)?;
+				write!(w, "if temp == {start} then ")?;
 			} else {
-				write!(w, "if temp >= {} and temp <= {} then ", start, end)?;
+				write!(w, "if temp >= {start} and temp <= {end} then ")?;
 			}
 
 			write_br_at(dest.try_into().unwrap(), v, w)?;
@@ -580,7 +580,7 @@ impl Driver for Function {
 		write_parameter_list(self, w)?;
 
 		for v in memory::visit(self) {
-			write!(w, "local memory_at_{0} = MEMORY_LIST[{0}]", v)?;
+			write!(w, "local memory_at_{v} = MEMORY_LIST[{v}]")?;
 		}
 
 		write_variable_list(self, w)?;
@@ -608,7 +608,7 @@ impl<'a> Transpiler<'a> for Generator<'a> {
 	}
 
 	fn runtime(w: Writer) -> Result<()> {
-		write!(w, "{}", RUNTIME)
+		write!(w, "{RUNTIME}")
 	}
 
 	fn transpile(&self, w: Writer) -> Result<()> {
@@ -649,7 +649,7 @@ impl<'a> Generator<'a> {
 			let field = v.field();
 			let module = v.module();
 
-			write!(w, "{}[{}] = wasm.{}.{}.{} ", upper, i, module, lower, field)?;
+			write!(w, "{upper}[{i}] = wasm.{module}.{lower}.{field} ")?;
 		}
 
 		Ok(())
@@ -665,13 +665,13 @@ impl<'a> Generator<'a> {
 		};
 		let upper = lower.to_uppercase();
 
-		write!(w, "{} = {{", lower)?;
+		write!(w, "{lower} = {{")?;
 
 		for v in export.iter().filter(|v| cond(v.internal())) {
 			let field = v.field();
 			let index = aux_internal_index(*v.internal());
 
-			write!(w, "{} = {}[{}],", field, upper, index)?;
+			write!(w, "{field} = {upper}[{index}],")?;
 		}
 
 		write!(w, "}},")
@@ -699,9 +699,7 @@ impl<'a> Generator<'a> {
 		let offset = self.wasm.import_count(ImportCountType::Table);
 
 		for (i, v) in table.iter().enumerate() {
-			let index = i + offset;
-
-			write!(w, "TABLE_LIST[{}] =", index)?;
+			write!(w, "TABLE_LIST[{}] =", i + offset)?;
 			write_table_init(v.limits(), w)?;
 		}
 
@@ -716,9 +714,7 @@ impl<'a> Generator<'a> {
 		let offset = self.wasm.import_count(ImportCountType::Memory);
 
 		for (i, v) in memory.iter().enumerate() {
-			let index = i + offset;
-
-			write!(w, "MEMORY_LIST[{}] =", index)?;
+			write!(w, "MEMORY_LIST[{}] =", i + offset)?;
 			write_memory_init(v.limits(), w)?;
 		}
 
@@ -733,12 +729,8 @@ impl<'a> Generator<'a> {
 		let offset = self.wasm.import_count(ImportCountType::Global);
 
 		for (i, v) in global.entries().iter().enumerate() {
-			let index = i + offset;
-
-			write!(w, "GLOBAL_LIST[{}] = {{ value =", index)?;
-
+			write!(w, "GLOBAL_LIST[{}] = {{ value =", i + offset)?;
 			write_constant(v.init_expr().code(), w)?;
-
 			write!(w, "}}")?;
 		}
 
@@ -762,7 +754,7 @@ impl<'a> Generator<'a> {
 
 			v.members()
 				.iter()
-				.try_for_each(|v| write!(w, "FUNC_LIST[{}],", v))?;
+				.try_for_each(|v| write!(w, "FUNC_LIST[{v}],"))?;
 
 			write!(w, "}}")?;
 
@@ -789,9 +781,7 @@ impl<'a> Generator<'a> {
 
 			write!(w, "local data = \"")?;
 
-			v.value()
-				.iter()
-				.try_for_each(|v| write!(w, "\\x{:02X}", v))?;
+			v.value().iter().try_for_each(|v| write!(w, "\\x{v:02X}"))?;
 
 			write!(w, "\"")?;
 
@@ -817,7 +807,7 @@ impl<'a> Generator<'a> {
 		write!(w, "run_init_code()")?;
 
 		if let Some(start) = self.wasm.start_section() {
-			write!(w, "FUNC_LIST[{}]()", start)?;
+			write!(w, "FUNC_LIST[{start}]()")?;
 		}
 
 		write!(w, "return {{")?;
@@ -834,7 +824,7 @@ impl<'a> Generator<'a> {
 
 		loc_set
 			.into_iter()
-			.try_for_each(|(a, b)| write!(w, "local {0}_{1} = rt.{0}.{1} ", a, b))
+			.try_for_each(|(a, b)| write!(w, "local {a}_{b} = rt.{a}.{b} "))
 	}
 
 	// FIXME: Make `pub` only for fuzzing.

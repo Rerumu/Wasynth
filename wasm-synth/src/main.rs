@@ -31,7 +31,7 @@ fn do_translate(name: &str, file: &str) {
 	match name.to_lowercase().as_str() {
 		"luajit" => run_translator::<LuaJIT>(wasm),
 		"luau" => run_translator::<Luau>(wasm),
-		_ => panic!("Bad language: {}", name),
+		_ => panic!("Bad language: {name}"),
 	}
 }
 
@@ -39,7 +39,7 @@ fn do_runtime(name: &str) {
 	match name.to_lowercase().as_str() {
 		"luajit" => run_runtime::<LuaJIT>(),
 		"luau" => run_runtime::<Luau>(),
-		_ => panic!("Bad runtime: {}", name),
+		_ => panic!("Bad runtime: {name}"),
 	}
 }
 
@@ -66,7 +66,7 @@ fn main() {
 			do_translate(&lang, &file);
 		}
 		bad => {
-			eprintln!("Bad action `{}`; try `help`", bad);
+			eprintln!("Bad action `{bad}`; try `help`");
 		}
 	}
 }
