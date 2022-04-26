@@ -4,7 +4,7 @@ use parity_wasm::elements::{BrTableData, Instruction, Local, SignExtInstruction}
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
-pub enum Load {
+pub enum LoadType {
 	I32,
 	I64,
 	F32,
@@ -21,7 +21,7 @@ pub enum Load {
 	I64_U32,
 }
 
-impl Load {
+impl LoadType {
 	#[must_use]
 	pub fn as_name(self) -> &'static str {
 		match self {
@@ -43,7 +43,7 @@ impl Load {
 	}
 }
 
-impl TryFrom<&Instruction> for Load {
+impl TryFrom<&Instruction> for LoadType {
 	type Error = ();
 
 	fn try_from(inst: &Instruction) -> Result<Self, Self::Error> {
@@ -73,7 +73,7 @@ impl TryFrom<&Instruction> for Load {
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
-pub enum Store {
+pub enum StoreType {
 	I32,
 	I64,
 	F32,
@@ -85,7 +85,7 @@ pub enum Store {
 	I64_N32,
 }
 
-impl Store {
+impl StoreType {
 	#[must_use]
 	pub fn as_name(self) -> &'static str {
 		match self {
@@ -102,7 +102,7 @@ impl Store {
 	}
 }
 
-impl TryFrom<&Instruction> for Store {
+impl TryFrom<&Instruction> for StoreType {
 	type Error = ();
 
 	fn try_from(inst: &Instruction) -> Result<Self, Self::Error> {
@@ -129,7 +129,7 @@ impl TryFrom<&Instruction> for Store {
 // operation_result_parameter
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
-pub enum UnOp {
+pub enum UnOpType {
 	Clz_I32,
 	Ctz_I32,
 	Popcnt_I32,
@@ -174,7 +174,7 @@ pub enum UnOp {
 	Reinterpret_F64_I64,
 }
 
-impl UnOp {
+impl UnOpType {
 	#[must_use]
 	pub fn as_name(self) -> (&'static str, &'static str) {
 		match self {
@@ -224,7 +224,7 @@ impl UnOp {
 	}
 }
 
-impl TryFrom<&Instruction> for UnOp {
+impl TryFrom<&Instruction> for UnOpType {
 	type Error = ();
 
 	fn try_from(inst: &Instruction) -> Result<Self, Self::Error> {
@@ -285,7 +285,7 @@ impl TryFrom<&Instruction> for UnOp {
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
-pub enum BinOp {
+pub enum BinOpType {
 	Add_I32,
 	Sub_I32,
 	Mul_I32,
@@ -325,7 +325,7 @@ pub enum BinOp {
 	Copysign_FN,
 }
 
-impl BinOp {
+impl BinOpType {
 	#[must_use]
 	pub fn as_operator(self) -> Option<&'static str> {
 		let op = match self {
@@ -384,7 +384,7 @@ impl BinOp {
 	}
 }
 
-impl TryFrom<&Instruction> for BinOp {
+impl TryFrom<&Instruction> for BinOpType {
 	type Error = ();
 
 	fn try_from(inst: &Instruction) -> Result<Self, Self::Error> {
@@ -439,7 +439,7 @@ impl TryFrom<&Instruction> for BinOp {
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
-pub enum CmpOp {
+pub enum CmpOpType {
 	Eq_I32,
 	Ne_I32,
 	LtS_I32,
@@ -468,7 +468,7 @@ pub enum CmpOp {
 	Ge_FN,
 }
 
-impl CmpOp {
+impl CmpOpType {
 	#[must_use]
 	pub fn as_operator(self) -> Option<&'static str> {
 		let op = match self {
@@ -517,7 +517,7 @@ impl CmpOp {
 	}
 }
 
-impl TryFrom<&Instruction> for CmpOp {
+impl TryFrom<&Instruction> for CmpOpType {
 	type Error = ();
 
 	fn try_from(inst: &Instruction) -> Result<Self, Self::Error> {
@@ -578,8 +578,8 @@ pub struct GetGlobal {
 	pub var: usize,
 }
 
-pub struct AnyLoad {
-	pub op: Load,
+pub struct LoadAt {
+	pub what: LoadType,
 	pub offset: u32,
 	pub pointer: Box<Expression>,
 }
@@ -625,19 +625,19 @@ impl From<u64> for Value {
 	}
 }
 
-pub struct AnyUnOp {
-	pub op: UnOp,
+pub struct UnOp {
+	pub op: UnOpType,
 	pub rhs: Box<Expression>,
 }
 
-pub struct AnyBinOp {
-	pub op: BinOp,
+pub struct BinOp {
+	pub op: BinOpType,
 	pub lhs: Box<Expression>,
 	pub rhs: Box<Expression>,
 }
 
-pub struct AnyCmpOp {
-	pub op: CmpOp,
+pub struct CmpOp {
+	pub op: CmpOpType,
 	pub lhs: Box<Expression>,
 	pub rhs: Box<Expression>,
 }
@@ -647,13 +647,13 @@ pub enum Expression {
 	Select(Select),
 	GetLocal(GetLocal),
 	GetGlobal(GetGlobal),
-	AnyLoad(AnyLoad),
+	LoadAt(LoadAt),
 	MemorySize(MemorySize),
 	MemoryGrow(MemoryGrow),
 	Value(Value),
-	AnyUnOp(AnyUnOp),
-	AnyBinOp(AnyBinOp),
-	AnyCmpOp(AnyCmpOp),
+	UnOp(UnOp),
+	BinOp(BinOp),
+	CmpOp(CmpOp),
 }
 
 impl Expression {
@@ -738,8 +738,8 @@ pub struct SetGlobal {
 	pub value: Expression,
 }
 
-pub struct AnyStore {
-	pub op: Store,
+pub struct StoreAt {
+	pub what: StoreType,
 	pub offset: u32,
 	pub pointer: Expression,
 	pub value: Expression,
@@ -759,10 +759,10 @@ pub enum Statement {
 	CallIndirect(CallIndirect),
 	SetLocal(SetLocal),
 	SetGlobal(SetGlobal),
-	AnyStore(AnyStore),
+	StoreAt(StoreAt),
 }
 
-pub struct Function {
+pub struct Intermediate {
 	pub local_data: Vec<Local>,
 	pub num_param: usize,
 	pub num_stack: usize,

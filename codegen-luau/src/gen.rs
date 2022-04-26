@@ -7,9 +7,9 @@ use parity_wasm::elements::{
 use wasm_ast::{
 	builder::{Builder, TypeInfo},
 	node::{
-		AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call,
-		CallIndirect, Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize,
-		MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
+		Backward, BinOp, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Else, Expression, Forward,
+		GetGlobal, GetLocal, If, Intermediate, LoadAt, Memorize, MemoryGrow, MemorySize, Recall,
+		Return, Select, SetGlobal, SetLocal, Statement, StoreAt, UnOp, Value,
 	},
 	writer::{Transpiler, Writer},
 };
@@ -108,9 +108,9 @@ fn write_named_array(name: &str, len: usize, w: Writer) -> Result<()> {
 	write!(w, "local {name} = table.create({len})")
 }
 
-fn write_parameter_list(func: &Function, w: Writer) -> Result<()> {
+fn write_parameter_list(ir: &Intermediate, w: Writer) -> Result<()> {
 	write!(w, "function(")?;
-	write_ascending("param", 0..func.num_param, w)?;
+	write_ascending("param", 0..ir.num_param, w)?;
 	write!(w, ")")
 }
 
@@ -123,10 +123,10 @@ fn write_call_store(result: Range<usize>, w: Writer) -> Result<()> {
 	write!(w, " = ")
 }
 
-fn write_variable_list(func: &Function, w: Writer) -> Result<()> {
+fn write_variable_list(ir: &Intermediate, w: Writer) -> Result<()> {
 	let mut total = 0;
 
-	for data in &func.local_data {
+	for data in &ir.local_data {
 		let range = total..total + usize::try_from(data.count()).unwrap();
 		let typed = data.value_type();
 
@@ -138,9 +138,9 @@ fn write_variable_list(func: &Function, w: Writer) -> Result<()> {
 		write_separated(range, |_, w| write!(w, "ZERO_{typed} "), w)?;
 	}
 
-	if func.num_stack != 0 {
+	if ir.num_stack != 0 {
 		write!(w, "local ")?;
-		write_ascending("reg", 0..func.num_stack, w)?;
+		write_ascending("reg", 0..ir.num_stack, w)?;
 		write!(w, " ")?;
 	}
 
@@ -256,9 +256,9 @@ impl Driver for GetGlobal {
 	}
 }
 
-impl Driver for AnyLoad {
+impl Driver for LoadAt {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		write!(w, "load_{}(memory_at_0, ", self.op.as_name())?;
+		write!(w, "load_{}(memory_at_0, ", self.what.as_name())?;
 		self.pointer.visit(v, w)?;
 		write!(w, "+ {})", self.offset)
 	}
@@ -289,7 +289,7 @@ impl Driver for Value {
 	}
 }
 
-impl Driver for AnyUnOp {
+impl Driver for UnOp {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		let (a, b) = self.op.as_name();
 
@@ -299,7 +299,7 @@ impl Driver for AnyUnOp {
 	}
 }
 
-fn write_bin_op(bin_op: &AnyBinOp, v: &mut Visitor, w: Writer) -> Result<()> {
+fn write_bin_op(bin_op: &BinOp, v: &mut Visitor, w: Writer) -> Result<()> {
 	let op = bin_op.op.as_operator().unwrap();
 
 	write!(w, "(")?;
@@ -309,7 +309,7 @@ fn write_bin_op(bin_op: &AnyBinOp, v: &mut Visitor, w: Writer) -> Result<()> {
 	write!(w, ")")
 }
 
-fn write_bin_op_call(bin_op: &AnyBinOp, v: &mut Visitor, w: Writer) -> Result<()> {
+fn write_bin_op_call(bin_op: &BinOp, v: &mut Visitor, w: Writer) -> Result<()> {
 	let (a, b) = bin_op.op.as_name();
 
 	write!(w, "{a}_{b}(")?;
@@ -319,7 +319,7 @@ fn write_bin_op_call(bin_op: &AnyBinOp, v: &mut Visitor, w: Writer) -> Result<()
 	write!(w, ")")
 }
 
-impl Driver for AnyBinOp {
+impl Driver for BinOp {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		if self.op.as_operator().is_some() {
 			write_bin_op(self, v, w)
@@ -329,7 +329,7 @@ impl Driver for AnyBinOp {
 	}
 }
 
-impl Driver for AnyCmpOp {
+impl Driver for CmpOp {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		let (a, b) = self.op.as_name();
 
@@ -352,13 +352,13 @@ impl Driver for Expression {
 			Self::Select(e) => e.visit(v, w),
 			Self::GetLocal(e) => e.visit(v, w),
 			Self::GetGlobal(e) => e.visit(v, w),
-			Self::AnyLoad(e) => e.visit(v, w),
+			Self::LoadAt(e) => e.visit(v, w),
 			Self::MemorySize(e) => e.visit(v, w),
 			Self::MemoryGrow(e) => e.visit(v, w),
 			Self::Value(e) => e.visit(v, w),
-			Self::AnyUnOp(e) => e.visit(v, w),
-			Self::AnyBinOp(e) => e.visit(v, w),
-			Self::AnyCmpOp(e) => e.visit(v, w),
+			Self::UnOp(e) => e.visit(v, w),
+			Self::BinOp(e) => e.visit(v, w),
+			Self::CmpOp(e) => e.visit(v, w),
 		}
 	}
 }
@@ -548,9 +548,9 @@ impl Driver for SetGlobal {
 	}
 }
 
-impl Driver for AnyStore {
+impl Driver for StoreAt {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
-		write!(w, "store_{}(memory_at_0, ", self.op.as_name())?;
+		write!(w, "store_{}(memory_at_0, ", self.what.as_name())?;
 		self.pointer.visit(v, w)?;
 		write!(w, "+ {}, ", self.offset)?;
 		self.value.visit(v, w)?;
@@ -574,12 +574,12 @@ impl Driver for Statement {
 			Statement::CallIndirect(s) => s.visit(v, w),
 			Statement::SetLocal(s) => s.visit(v, w),
 			Statement::SetGlobal(s) => s.visit(v, w),
-			Statement::AnyStore(s) => s.visit(v, w),
+			Statement::StoreAt(s) => s.visit(v, w),
 		}
 	}
 }
 
-impl Driver for Function {
+impl Driver for Intermediate {
 	fn visit(&self, v: &mut Visitor, w: Writer) -> Result<()> {
 		write_parameter_list(self, w)?;
 
@@ -817,7 +817,7 @@ impl<'a> Generator<'a> {
 		write!(w, "}} end ")
 	}
 
-	fn gen_localize(func_list: &[Function], w: Writer) -> Result<()> {
+	fn gen_localize(func_list: &[Intermediate], w: Writer) -> Result<()> {
 		let mut loc_set = BTreeSet::new();
 
 		for func in func_list {
@@ -829,7 +829,7 @@ impl<'a> Generator<'a> {
 			.try_for_each(|(a, b)| write!(w, "local {a}_{b} = rt.{a}.{b} "))
 	}
 
-	fn build_func_list(&self) -> Vec<Function> {
+	fn build_func_list(&self) -> Vec<Intermediate> {
 		let list = self.wasm.code_section().unwrap().bodies();
 		let iter = list.iter().enumerate();
 
@@ -837,7 +837,7 @@ impl<'a> Generator<'a> {
 			.collect()
 	}
 
-	fn gen_func_list(&self, func_list: &[Function], w: Writer) -> Result<()> {
+	fn gen_func_list(&self, func_list: &[Intermediate], w: Writer) -> Result<()> {
 		let offset = self.type_info.len_ex().try_into().unwrap();
 
 		func_list.iter().enumerate().try_for_each(|(i, v)| {

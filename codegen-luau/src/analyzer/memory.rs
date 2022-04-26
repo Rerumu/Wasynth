@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use wasm_ast::{
-	node::{AnyLoad, AnyStore, Function, MemoryGrow, MemorySize},
+	node::{Intermediate, LoadAt, MemoryGrow, MemorySize, StoreAt},
 	visit::{Driver, Visitor},
 };
 
@@ -10,11 +10,11 @@ struct Visit {
 }
 
 impl Visitor for Visit {
-	fn visit_any_store(&mut self, _: &AnyStore) {
+	fn visit_store_at(&mut self, _: &StoreAt) {
 		self.result.insert(0);
 	}
 
-	fn visit_any_load(&mut self, _: &AnyLoad) {
+	fn visit_load_at(&mut self, _: &LoadAt) {
 		self.result.insert(0);
 	}
 
@@ -27,12 +27,12 @@ impl Visitor for Visit {
 	}
 }
 
-pub fn visit(func: &Function) -> BTreeSet<usize> {
+pub fn visit(ir: &Intermediate) -> BTreeSet<usize> {
 	let mut visit = Visit {
 		result: BTreeSet::new(),
 	};
 
-	func.accept(&mut visit);
+	ir.accept(&mut visit);
 
 	visit.result
 }

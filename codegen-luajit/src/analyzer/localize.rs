@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use wasm_ast::{
-	node::{AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Function},
+	node::{BinOp, CmpOp, Intermediate, LoadAt, StoreAt, UnOp},
 	visit::{Driver, Visitor},
 };
 
@@ -10,25 +10,25 @@ struct Visit {
 }
 
 impl Visitor for Visit {
-	fn visit_any_load(&mut self, v: &AnyLoad) {
-		let name = v.op.as_name();
+	fn visit_load_at(&mut self, v: &LoadAt) {
+		let name = v.what.as_name();
 
 		self.result.insert(("load", name));
 	}
 
-	fn visit_any_store(&mut self, v: &AnyStore) {
-		let name = v.op.as_name();
+	fn visit_store_at(&mut self, v: &StoreAt) {
+		let name = v.what.as_name();
 
 		self.result.insert(("store", name));
 	}
 
-	fn visit_any_unop(&mut self, v: &AnyUnOp) {
+	fn visit_un_op(&mut self, v: &UnOp) {
 		let name = v.op.as_name();
 
 		self.result.insert(name);
 	}
 
-	fn visit_any_binop(&mut self, v: &AnyBinOp) {
+	fn visit_bin_op(&mut self, v: &BinOp) {
 		if v.op.as_operator().is_some() {
 			return;
 		}
@@ -38,7 +38,7 @@ impl Visitor for Visit {
 		self.result.insert(name);
 	}
 
-	fn visit_any_cmpop(&mut self, v: &AnyCmpOp) {
+	fn visit_cmp_op(&mut self, v: &CmpOp) {
 		if v.op.as_operator().is_some() {
 			return;
 		}
@@ -49,12 +49,12 @@ impl Visitor for Visit {
 	}
 }
 
-pub fn visit(func: &Function) -> BTreeSet<(&'static str, &'static str)> {
+pub fn visit(ir: &Intermediate) -> BTreeSet<(&'static str, &'static str)> {
 	let mut visit = Visit {
 		result: BTreeSet::new(),
 	};
 
-	func.accept(&mut visit);
+	ir.accept(&mut visit);
 
 	visit.result
 }

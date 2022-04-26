@@ -1,7 +1,7 @@
 use crate::node::{
-	AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Backward, Br, BrIf, BrTable, Call,
-	CallIndirect, Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Memorize,
-	MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, Value,
+	Backward, BinOp, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Else, Expression, Forward,
+	GetGlobal, GetLocal, If, Intermediate, LoadAt, Memorize, MemoryGrow, MemorySize, Recall,
+	Return, Select, SetGlobal, SetLocal, Statement, StoreAt, UnOp, Value,
 };
 
 pub trait Visitor {
@@ -13,7 +13,7 @@ pub trait Visitor {
 
 	fn visit_get_global(&mut self, _: &GetGlobal) {}
 
-	fn visit_any_load(&mut self, _: &AnyLoad) {}
+	fn visit_load_at(&mut self, _: &LoadAt) {}
 
 	fn visit_memory_size(&mut self, _: &MemorySize) {}
 
@@ -21,11 +21,11 @@ pub trait Visitor {
 
 	fn visit_value(&mut self, _: &Value) {}
 
-	fn visit_any_unop(&mut self, _: &AnyUnOp) {}
+	fn visit_un_op(&mut self, _: &UnOp) {}
 
-	fn visit_any_binop(&mut self, _: &AnyBinOp) {}
+	fn visit_bin_op(&mut self, _: &BinOp) {}
 
-	fn visit_any_cmpop(&mut self, _: &AnyCmpOp) {}
+	fn visit_cmp_op(&mut self, _: &CmpOp) {}
 
 	fn visit_expression(&mut self, _: &Expression) {}
 
@@ -57,7 +57,7 @@ pub trait Visitor {
 
 	fn visit_set_global(&mut self, _: &SetGlobal) {}
 
-	fn visit_any_store(&mut self, _: &AnyStore) {}
+	fn visit_store_at(&mut self, _: &StoreAt) {}
 
 	fn visit_statement(&mut self, _: &Statement) {}
 }
@@ -94,11 +94,11 @@ impl<T: Visitor> Driver<T> for GetGlobal {
 	}
 }
 
-impl<T: Visitor> Driver<T> for AnyLoad {
+impl<T: Visitor> Driver<T> for LoadAt {
 	fn accept(&self, visitor: &mut T) {
 		self.pointer.accept(visitor);
 
-		visitor.visit_any_load(self);
+		visitor.visit_load_at(self);
 	}
 }
 
@@ -122,29 +122,29 @@ impl<T: Visitor> Driver<T> for Value {
 	}
 }
 
-impl<T: Visitor> Driver<T> for AnyUnOp {
+impl<T: Visitor> Driver<T> for UnOp {
 	fn accept(&self, visitor: &mut T) {
 		self.rhs.accept(visitor);
 
-		visitor.visit_any_unop(self);
+		visitor.visit_un_op(self);
 	}
 }
 
-impl<T: Visitor> Driver<T> for AnyBinOp {
+impl<T: Visitor> Driver<T> for BinOp {
 	fn accept(&self, visitor: &mut T) {
 		self.lhs.accept(visitor);
 		self.rhs.accept(visitor);
 
-		visitor.visit_any_binop(self);
+		visitor.visit_bin_op(self);
 	}
 }
 
-impl<T: Visitor> Driver<T> for AnyCmpOp {
+impl<T: Visitor> Driver<T> for CmpOp {
 	fn accept(&self, visitor: &mut T) {
 		self.lhs.accept(visitor);
 		self.rhs.accept(visitor);
 
-		visitor.visit_any_cmpop(self);
+		visitor.visit_cmp_op(self);
 	}
 }
 
@@ -155,13 +155,13 @@ impl<T: Visitor> Driver<T> for Expression {
 			Self::Select(v) => v.accept(visitor),
 			Self::GetLocal(v) => v.accept(visitor),
 			Self::GetGlobal(v) => v.accept(visitor),
-			Self::AnyLoad(v) => v.accept(visitor),
+			Self::LoadAt(v) => v.accept(visitor),
 			Self::MemorySize(v) => v.accept(visitor),
 			Self::MemoryGrow(v) => v.accept(visitor),
 			Self::Value(v) => v.accept(visitor),
-			Self::AnyUnOp(v) => v.accept(visitor),
-			Self::AnyBinOp(v) => v.accept(visitor),
-			Self::AnyCmpOp(v) => v.accept(visitor),
+			Self::UnOp(v) => v.accept(visitor),
+			Self::BinOp(v) => v.accept(visitor),
+			Self::CmpOp(v) => v.accept(visitor),
 		}
 
 		visitor.visit_expression(self);
@@ -292,12 +292,12 @@ impl<T: Visitor> Driver<T> for SetGlobal {
 	}
 }
 
-impl<T: Visitor> Driver<T> for AnyStore {
+impl<T: Visitor> Driver<T> for StoreAt {
 	fn accept(&self, visitor: &mut T) {
 		self.pointer.accept(visitor);
 		self.value.accept(visitor);
 
-		visitor.visit_any_store(self);
+		visitor.visit_store_at(self);
 	}
 }
 
@@ -317,12 +317,12 @@ impl<T: Visitor> Driver<T> for Statement {
 			Self::CallIndirect(v) => v.accept(visitor),
 			Self::SetLocal(v) => v.accept(visitor),
 			Self::SetGlobal(v) => v.accept(visitor),
-			Self::AnyStore(v) => v.accept(visitor),
+			Self::StoreAt(v) => v.accept(visitor),
 		}
 	}
 }
 
-impl<T: Visitor> Driver<T> for Function {
+impl<T: Visitor> Driver<T> for Intermediate {
 	fn accept(&self, visitor: &mut T) {
 		self.code.accept(visitor);
 	}

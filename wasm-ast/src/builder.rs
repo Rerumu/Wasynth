@@ -4,10 +4,10 @@ use parity_wasm::elements::{
 };
 
 use crate::node::{
-	AnyBinOp, AnyCmpOp, AnyLoad, AnyStore, AnyUnOp, Backward, BinOp, Br, BrIf, BrTable, Call,
-	CallIndirect, CmpOp, Else, Expression, Forward, Function, GetGlobal, GetLocal, If, Load,
-	Memorize, MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement,
-	Store, UnOp, Value,
+	Backward, BinOp, BinOpType, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType, Else,
+	Expression, Forward, GetGlobal, GetLocal, If, Intermediate, LoadAt, LoadType, Memorize,
+	MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, StoreAt,
+	StoreType, UnOp, UnOpType, Value,
 };
 
 struct Arity {
@@ -175,50 +175,48 @@ impl Stacked {
 		}
 	}
 
-	fn push_load(&mut self, op: Load, offset: u32) {
+	fn push_load(&mut self, what: LoadType, offset: u32) {
 		let pointer = Box::new(self.pop());
 
-		self.stack.push(Expression::AnyLoad(AnyLoad {
-			op,
+		self.stack.push(Expression::LoadAt(LoadAt {
+			what,
 			offset,
 			pointer,
 		}));
 	}
 
-	fn gen_store(&mut self, op: Store, offset: u32, stat: &mut Vec<Statement>) {
+	fn gen_store(&mut self, what: StoreType, offset: u32, stat: &mut Vec<Statement>) {
 		let value = self.pop();
 		let pointer = self.pop();
 
 		self.gen_leak_pending(stat);
 
-		stat.push(Statement::AnyStore(AnyStore {
-			op,
+		stat.push(Statement::StoreAt(StoreAt {
+			what,
 			offset,
 			pointer,
 			value,
 		}));
 	}
 
-	fn push_un_op(&mut self, op: UnOp) {
+	fn push_un_op(&mut self, op: UnOpType) {
 		let rhs = Box::new(self.pop());
 
-		self.stack.push(Expression::AnyUnOp(AnyUnOp { op, rhs }));
+		self.stack.push(Expression::UnOp(UnOp { op, rhs }));
 	}
 
-	fn push_bin_op(&mut self, op: BinOp) {
+	fn push_bin_op(&mut self, op: BinOpType) {
 		let rhs = Box::new(self.pop());
 		let lhs = Box::new(self.pop());
 
-		self.stack
-			.push(Expression::AnyBinOp(AnyBinOp { op, lhs, rhs }));
+		self.stack.push(Expression::BinOp(BinOp { op, lhs, rhs }));
 	}
 
-	fn push_cmp_op(&mut self, op: CmpOp) {
+	fn push_cmp_op(&mut self, op: CmpOpType) {
 		let rhs = Box::new(self.pop());
 		let lhs = Box::new(self.pop());
 
-		self.stack
-			.push(Expression::AnyCmpOp(AnyCmpOp { op, lhs, rhs }));
+		self.stack.push(Expression::CmpOp(CmpOp { op, lhs, rhs }));
 	}
 
 	// Since Eqz is the only unary comparison it's cleaner to
@@ -227,13 +225,13 @@ impl Stacked {
 		match inst {
 			Instruction::I32Eqz => {
 				self.push_constant(0_i32);
-				self.push_cmp_op(CmpOp::Eq_I32);
+				self.push_cmp_op(CmpOpType::Eq_I32);
 
 				true
 			}
 			Instruction::I64Eqz => {
 				self.push_constant(0_i64);
-				self.push_cmp_op(CmpOp::Eq_I64);
+				self.push_cmp_op(CmpOpType::Eq_I64);
 
 				true
 			}
@@ -242,15 +240,15 @@ impl Stacked {
 	}
 
 	fn try_operation(&mut self, inst: &Instruction) -> bool {
-		if let Ok(op) = UnOp::try_from(inst) {
+		if let Ok(op) = UnOpType::try_from(inst) {
 			self.push_un_op(op);
 
 			true
-		} else if let Ok(op) = BinOp::try_from(inst) {
+		} else if let Ok(op) = BinOpType::try_from(inst) {
 			self.push_bin_op(op);
 
 			true
-		} else if let Ok(op) = CmpOp::try_from(inst) {
+		} else if let Ok(op) = CmpOpType::try_from(inst) {
 			self.push_cmp_op(op);
 
 			true
@@ -291,7 +289,7 @@ impl<'a> Builder<'a> {
 	}
 
 	#[must_use]
-	pub fn consume(mut self, index: usize, func: &'a FuncBody) -> Function {
+	pub fn consume(mut self, index: usize, func: &'a FuncBody) -> Intermediate {
 		let arity = &self.type_info.arity_of(self.type_info.len_ex() + index);
 
 		self.num_result = arity.num_result;
@@ -299,7 +297,7 @@ impl<'a> Builder<'a> {
 		let code = self.new_forward(&mut func.code().elements());
 		let num_stack = self.data.last_stack;
 
-		Function {
+		Intermediate {
 			local_data: func.locals().to_vec(),
 			num_param: arity.num_param,
 			num_stack,
@@ -533,29 +531,29 @@ impl<'a> Builder<'a> {
 
 					stat.push(Statement::SetGlobal(SetGlobal { var, value }));
 				}
-				Inst::I32Load(_, o) => self.data.push_load(Load::I32, o),
-				Inst::I64Load(_, o) => self.data.push_load(Load::I64, o),
-				Inst::F32Load(_, o) => self.data.push_load(Load::F32, o),
-				Inst::F64Load(_, o) => self.data.push_load(Load::F64, o),
-				Inst::I32Load8S(_, o) => self.data.push_load(Load::I32_I8, o),
-				Inst::I32Load8U(_, o) => self.data.push_load(Load::I32_U8, o),
-				Inst::I32Load16S(_, o) => self.data.push_load(Load::I32_I16, o),
-				Inst::I32Load16U(_, o) => self.data.push_load(Load::I32_U16, o),
-				Inst::I64Load8S(_, o) => self.data.push_load(Load::I64_I8, o),
-				Inst::I64Load8U(_, o) => self.data.push_load(Load::I64_U8, o),
-				Inst::I64Load16S(_, o) => self.data.push_load(Load::I64_I16, o),
-				Inst::I64Load16U(_, o) => self.data.push_load(Load::I64_U16, o),
-				Inst::I64Load32S(_, o) => self.data.push_load(Load::I64_I32, o),
-				Inst::I64Load32U(_, o) => self.data.push_load(Load::I64_U32, o),
-				Inst::I32Store(_, o) => self.data.gen_store(Store::I32, o, &mut stat),
-				Inst::I64Store(_, o) => self.data.gen_store(Store::I64, o, &mut stat),
-				Inst::F32Store(_, o) => self.data.gen_store(Store::F32, o, &mut stat),
-				Inst::F64Store(_, o) => self.data.gen_store(Store::F64, o, &mut stat),
-				Inst::I32Store8(_, o) => self.data.gen_store(Store::I32_N8, o, &mut stat),
-				Inst::I32Store16(_, o) => self.data.gen_store(Store::I32_N16, o, &mut stat),
-				Inst::I64Store8(_, o) => self.data.gen_store(Store::I64_N8, o, &mut stat),
-				Inst::I64Store16(_, o) => self.data.gen_store(Store::I64_N16, o, &mut stat),
-				Inst::I64Store32(_, o) => self.data.gen_store(Store::I64_N32, o, &mut stat),
+				Inst::I32Load(_, o) => self.data.push_load(LoadType::I32, o),
+				Inst::I64Load(_, o) => self.data.push_load(LoadType::I64, o),
+				Inst::F32Load(_, o) => self.data.push_load(LoadType::F32, o),
+				Inst::F64Load(_, o) => self.data.push_load(LoadType::F64, o),
+				Inst::I32Load8S(_, o) => self.data.push_load(LoadType::I32_I8, o),
+				Inst::I32Load8U(_, o) => self.data.push_load(LoadType::I32_U8, o),
+				Inst::I32Load16S(_, o) => self.data.push_load(LoadType::I32_I16, o),
+				Inst::I32Load16U(_, o) => self.data.push_load(LoadType::I32_U16, o),
+				Inst::I64Load8S(_, o) => self.data.push_load(LoadType::I64_I8, o),
+				Inst::I64Load8U(_, o) => self.data.push_load(LoadType::I64_U8, o),
+				Inst::I64Load16S(_, o) => self.data.push_load(LoadType::I64_I16, o),
+				Inst::I64Load16U(_, o) => self.data.push_load(LoadType::I64_U16, o),
+				Inst::I64Load32S(_, o) => self.data.push_load(LoadType::I64_I32, o),
+				Inst::I64Load32U(_, o) => self.data.push_load(LoadType::I64_U32, o),
+				Inst::I32Store(_, o) => self.data.gen_store(StoreType::I32, o, &mut stat),
+				Inst::I64Store(_, o) => self.data.gen_store(StoreType::I64, o, &mut stat),
+				Inst::F32Store(_, o) => self.data.gen_store(StoreType::F32, o, &mut stat),
+				Inst::F64Store(_, o) => self.data.gen_store(StoreType::F64, o, &mut stat),
+				Inst::I32Store8(_, o) => self.data.gen_store(StoreType::I32_N8, o, &mut stat),
+				Inst::I32Store16(_, o) => self.data.gen_store(StoreType::I32_N16, o, &mut stat),
+				Inst::I64Store8(_, o) => self.data.gen_store(StoreType::I64_N8, o, &mut stat),
+				Inst::I64Store16(_, o) => self.data.gen_store(StoreType::I64_N16, o, &mut stat),
+				Inst::I64Store32(_, o) => self.data.gen_store(StoreType::I64_N32, o, &mut stat),
 				Inst::CurrentMemory(memory) => {
 					let memory = memory.try_into().unwrap();
 
