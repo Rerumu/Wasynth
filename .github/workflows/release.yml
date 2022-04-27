@@ -23,7 +23,9 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --target x86_64-unknown-linux-gnu --release
+        args: --target x86_64-unknown-linux-gnu --bin wasm-synth --release
     
     - name: Release
       uses: softprops/action-gh-release@v1
+      with:
+        files: target/x86_64-unknown-linux-gnu/release/wasm-synth
