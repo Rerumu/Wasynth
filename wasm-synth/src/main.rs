@@ -31,7 +31,7 @@ fn do_translate(name: &str, file: &str) {
 }
 
 fn do_help() {
-	println!("usage: program translate <lang> <file>");
+	println!("usage: program to <lang> <file>");
 	println!("  or:  program help");
 }
 
@@ -40,7 +40,7 @@ fn main() {
 
 	match args.next().as_deref().unwrap_or("help") {
 		"help" => do_help(),
-		"translate" => {
+		"to" => {
 			let lang = args.next().expect("No language specified");
 			let file = args.next().expect("No file specified");
 
