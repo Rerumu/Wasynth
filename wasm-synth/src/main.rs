@@ -12,11 +12,12 @@ fn parse_module(name: &str) -> Module {
 }
 
 fn run_translator(wasm: &Module, runtime: &str, translator: Translator) {
-	let mut pipe = std::io::stdout().lock();
+	let pipe = std::io::stdout();
+	let lock = &mut pipe.lock();
 	let type_info = TypeInfo::from_module(wasm);
 
-	write!(pipe, "local rt = (function() {runtime} end)() ").unwrap();
-	translator(wasm, &type_info, &mut pipe).unwrap();
+	write!(lock, "local rt = (function() {runtime} end)() ").unwrap();
+	translator(wasm, &type_info, lock).unwrap();
 }
 
 fn do_translate(name: &str, file: &str) {
