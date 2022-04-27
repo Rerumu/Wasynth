@@ -1,0 +1,29 @@
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  linux-build:
+    name: "Linux Build"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        target: x86_64-unknown-linux-gnu
+
+    - uses: Swatinem/rust-cache@v1
+
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --target x86_64-unknown-linux-gnu --release
+    
+    - name: Release
+      uses: softprops/action-gh-release@v1
