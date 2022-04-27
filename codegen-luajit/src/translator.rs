@@ -227,7 +227,11 @@ fn write_data_list(wasm: &Module, w: &mut dyn Write) -> Result<()> {
 }
 
 fn build_func_list(wasm: &Module, type_info: &TypeInfo) -> Vec<Intermediate> {
-	let list = wasm.code_section().unwrap().bodies();
+	let list = match wasm.code_section() {
+		Some(v) => v.bodies(),
+		None => return Vec::new(),
+	};
+
 	let iter = list.iter().enumerate();
 
 	iter.map(|f| Builder::new(type_info).consume(f.0, f.1))
