@@ -21,20 +21,17 @@ path = "../wasm-ast"
 [dependencies.codegen-luajit]
 path = "../codegen-luajit"
 
+[dependencies.codegen-luau]
+path = "../codegen-luau"
+
 [[bin]]
-name = "full_transpile"
-path = "fuzz_targets/full_transpile.rs"
+name = "luajit_translate"
+path = "fuzz_targets/luajit_translate.rs"
 test = false
 doc = false
 
 [[bin]]
-name = "just_writer"
-path = "fuzz_targets/just_writer.rs"
-test = false
-doc = false
-
-[[bin]]
-name = "just_builder"
-path = "fuzz_targets/just_builder.rs"
+name = "luau_translate"
+path = "fuzz_targets/luau_translate.rs"
 test = false
 doc = false
