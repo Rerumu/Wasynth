@@ -17,20 +17,20 @@ impl Driver for Recall {
 }
 
 impl Driver for Select {
-	fn write(&self, v: &mut Manager, w: &mut dyn Write) -> Result<()> {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "(")?;
-		write_condition(&self.cond, v, w)?;
+		write_condition(&self.cond, mng, w)?;
 		write!(w, "and ")?;
-		self.a.write(v, w)?;
+		self.a.write(mng, w)?;
 		write!(w, "or ")?;
-		self.b.write(v, w)?;
+		self.b.write(mng, w)?;
 		write!(w, ")")
 	}
 }
 
 impl Driver for GetLocal {
-	fn write(&self, v: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write_variable(self.var, v, w)
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		write_variable(self.var, mng, w)
 	}
 }
 
@@ -41,9 +41,9 @@ impl Driver for GetGlobal {
 }
 
 impl Driver for LoadAt {
-	fn write(&self, v: &mut Manager, w: &mut dyn Write) -> Result<()> {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "load_{}(memory_at_0, ", self.what.as_name())?;
-		self.pointer.write(v, w)?;
+		self.pointer.write(mng, w)?;
 		write!(w, "+ {})", self.offset)
 	}
 }
@@ -55,9 +55,9 @@ impl Driver for MemorySize {
 }
 
 impl Driver for MemoryGrow {
-	fn write(&self, v: &mut Manager, w: &mut dyn Write) -> Result<()> {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "rt.allocator.grow(memory_at_{}, ", self.memory)?;
-		self.value.write(v, w)?;
+		self.value.write(mng, w)?;
 		write!(w, ")")
 	}
 }
@@ -74,51 +74,51 @@ impl Driver for Value {
 }
 
 impl Driver for UnOp {
-	fn write(&self, v: &mut Manager, w: &mut dyn Write) -> Result<()> {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let (a, b) = self.op.as_name();
 
 		write!(w, "{a}_{b}(")?;
-		self.rhs.write(v, w)?;
+		self.rhs.write(mng, w)?;
 		write!(w, ")")
 	}
 }
 
 impl Driver for BinOp {
-	fn write(&self, v: &mut Manager, w: &mut dyn Write) -> Result<()> {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		if let Some(op) = self.op.as_operator() {
 			write!(w, "(")?;
-			self.lhs.write(v, w)?;
+			self.lhs.write(mng, w)?;
 			write!(w, "{op} ")?;
-			self.rhs.write(v, w)?;
+			self.rhs.write(mng, w)?;
 			write!(w, ")")
 		} else {
-			write_bin_call(self.op.as_name(), &self.lhs, &self.rhs, v, w)
+			write_bin_call(self.op.as_name(), &self.lhs, &self.rhs, mng, w)
 		}
 	}
 }
 
 impl Driver for CmpOp {
-	fn write(&self, v: &mut Manager, w: &mut dyn Write) -> Result<()> {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "(")?;
-		write_cmp_op(self, v, w)?;
+		write_cmp_op(self, mng, w)?;
 		write!(w, "and 1 or 0)")
 	}
 }
 
 impl Driver for Expression {
-	fn write(&self, v: &mut Manager, w: &mut dyn Write) -> Result<()> {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
-			Self::Recall(e) => e.write(v, w),
-			Self::Select(e) => e.write(v, w),
-			Self::GetLocal(e) => e.write(v, w),
-			Self::GetGlobal(e) => e.write(v, w),
-			Self::LoadAt(e) => e.write(v, w),
-			Self::MemorySize(e) => e.write(v, w),
-			Self::MemoryGrow(e) => e.write(v, w),
-			Self::Value(e) => e.write(v, w),
-			Self::UnOp(e) => e.write(v, w),
-			Self::BinOp(e) => e.write(v, w),
-			Self::CmpOp(e) => e.write(v, w),
+			Self::Recall(e) => e.write(mng, w),
+			Self::Select(e) => e.write(mng, w),
+			Self::GetLocal(e) => e.write(mng, w),
+			Self::GetGlobal(e) => e.write(mng, w),
+			Self::LoadAt(e) => e.write(mng, w),
+			Self::MemorySize(e) => e.write(mng, w),
+			Self::MemoryGrow(e) => e.write(mng, w),
+			Self::Value(e) => e.write(mng, w),
+			Self::UnOp(e) => e.write(mng, w),
+			Self::BinOp(e) => e.write(mng, w),
+			Self::CmpOp(e) => e.write(mng, w),
 		}
 	}
 }
