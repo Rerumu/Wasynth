@@ -5,9 +5,11 @@ use wasm_ast::node::{
 	UnOp, Value,
 };
 
+use crate::analyzer::operator::bin_symbol_of;
+
 use super::manager::{
-	write_bin_call, write_cmp_op, write_condition, write_f32, write_f64, write_separated,
-	write_variable, Driver, Manager,
+	write_cmp_op, write_condition, write_f32, write_f64, write_separated, write_variable, Driver,
+	Manager,
 };
 
 impl Driver for Recall {
@@ -73,6 +75,7 @@ impl Driver for Value {
 	}
 }
 
+// TODO: Implement context dependent infix comparisons
 impl Driver for UnOp {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let (a, b) = self.op.as_name();
@@ -85,14 +88,20 @@ impl Driver for UnOp {
 
 impl Driver for BinOp {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		if let Some(op) = self.op.as_operator() {
+		if let Some(symbol) = bin_symbol_of(self.op) {
 			write!(w, "(")?;
 			self.lhs.write(mng, w)?;
-			write!(w, "{op} ")?;
+			write!(w, "{symbol} ")?;
 			self.rhs.write(mng, w)?;
 			write!(w, ")")
 		} else {
-			write_bin_call(self.op.as_name(), &self.lhs, &self.rhs, mng, w)
+			let (head, tail) = self.op.as_name();
+
+			write!(w, "{head}_{tail}(")?;
+			self.lhs.write(mng, w)?;
+			write!(w, ", ")?;
+			self.rhs.write(mng, w)?;
+			write!(w, ")")
 		}
 	}
 }

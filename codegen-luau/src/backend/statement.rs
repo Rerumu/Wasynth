@@ -259,14 +259,14 @@ fn write_variable_list(ir: &Intermediate, w: &mut dyn Write) -> Result<()> {
 
 	for data in &ir.local_data {
 		let range = total..total + usize::try_from(data.count()).unwrap();
-		let typed = data.value_type();
 
 		total = range.end;
 
 		write!(w, "local ")?;
 		write_ascending("loc", range.clone(), w)?;
 		write!(w, " = ")?;
-		write_separated(range, |_, w| write!(w, "ZERO_{typed} "), w)?;
+		write_separated(range, |_, w| w.write_all(b"0"), w)?;
+		write!(w, " ")?;
 	}
 
 	if ir.num_stack != 0 {

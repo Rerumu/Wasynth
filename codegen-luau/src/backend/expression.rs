@@ -5,6 +5,8 @@ use wasm_ast::node::{
 	UnOp, Value,
 };
 
+use crate::analyzer::operator::bin_symbol_of;
+
 use super::manager::{write_f32, write_f64, write_separated, write_variable, Driver, Manager};
 
 impl Driver for Recall {
@@ -80,32 +82,22 @@ impl Driver for UnOp {
 	}
 }
 
-fn write_bin_op(bin_op: &BinOp, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-	let op = bin_op.op.as_operator().unwrap();
-
-	write!(w, "(")?;
-	bin_op.lhs.write(mng, w)?;
-	write!(w, "{op} ")?;
-	bin_op.rhs.write(mng, w)?;
-	write!(w, ")")
-}
-
-fn write_bin_op_call(bin_op: &BinOp, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-	let (a, b) = bin_op.op.as_name();
-
-	write!(w, "{a}_{b}(")?;
-	bin_op.lhs.write(mng, w)?;
-	write!(w, ", ")?;
-	bin_op.rhs.write(mng, w)?;
-	write!(w, ")")
-}
-
 impl Driver for BinOp {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		if self.op.as_operator().is_some() {
-			write_bin_op(self, mng, w)
+		if let Some(symbol) = bin_symbol_of(self.op) {
+			write!(w, "(")?;
+			self.lhs.write(mng, w)?;
+			write!(w, "{symbol} ")?;
+			self.rhs.write(mng, w)?;
+			write!(w, ")")
 		} else {
-			write_bin_op_call(self, mng, w)
+			let (head, tail) = self.op.as_name();
+
+			write!(w, "{head}_{tail}(")?;
+			self.lhs.write(mng, w)?;
+			write!(w, ", ")?;
+			self.rhs.write(mng, w)?;
+			write!(w, ")")
 		}
 	}
 }

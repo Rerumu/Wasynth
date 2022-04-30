@@ -5,6 +5,8 @@ use std::{
 
 use wasm_ast::node::{CmpOp, Expression};
 
+use crate::analyzer::operator::cmp_symbol_of;
+
 #[derive(Default)]
 pub struct Manager {
 	label_list: Vec<usize>,
@@ -85,27 +87,19 @@ pub fn write_variable(var: usize, mng: &Manager, w: &mut dyn Write) -> Result<()
 	}
 }
 
-pub fn write_bin_call(
-	name: (&str, &str),
-	lhs: &Expression,
-	rhs: &Expression,
-	mng: &mut Manager,
-	w: &mut dyn Write,
-) -> Result<()> {
-	write!(w, "{}_{}(", name.0, name.1)?;
-	lhs.write(mng, w)?;
-	write!(w, ", ")?;
-	rhs.write(mng, w)?;
-	write!(w, ")")
-}
-
 pub fn write_cmp_op(cmp: &CmpOp, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-	if let Some(op) = cmp.op.as_operator() {
+	if let Some(symbol) = cmp_symbol_of(cmp.op) {
 		cmp.lhs.write(mng, w)?;
-		write!(w, "{op} ")?;
+		write!(w, "{symbol} ")?;
 		cmp.rhs.write(mng, w)
 	} else {
-		write_bin_call(cmp.op.as_name(), &cmp.lhs, &cmp.rhs, mng, w)
+		let (head, tail) = cmp.op.as_name();
+
+		write!(w, "{head}_{tail}(")?;
+		cmp.lhs.write(mng, w)?;
+		write!(w, ", ")?;
+		cmp.rhs.write(mng, w)?;
+		write!(w, ")")
 	}
 }
 

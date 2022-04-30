@@ -309,11 +309,6 @@ pub fn translate(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Resu
 
 	write_localize_used(&func_list, w)?;
 
-	write!(w, "local ZERO_i32 = 0 ")?;
-	write!(w, "local ZERO_i64 = 0LL ")?;
-	write!(w, "local ZERO_f32 = 0.0 ")?;
-	write!(w, "local ZERO_f64 = 0.0 ")?;
-
 	write!(w, "local table_new = require(\"table.new\")")?;
 	write_named_array("FUNC_LIST", wasm.functions_space(), w)?;
 	write_named_array("TABLE_LIST", wasm.table_space(), w)?;

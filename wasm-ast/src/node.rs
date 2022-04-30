@@ -327,20 +327,6 @@ pub enum BinOpType {
 
 impl BinOpType {
 	#[must_use]
-	pub fn as_operator(self) -> Option<&'static str> {
-		let op = match self {
-			Self::Add_FN => "+",
-			Self::Sub_FN => "-",
-			Self::Mul_FN => "*",
-			Self::Div_FN => "/",
-			Self::RemS_I32 | Self::RemU_I32 | Self::RemS_I64 | Self::RemU_I64 => "%",
-			_ => return None,
-		};
-
-		Some(op)
-	}
-
-	#[must_use]
 	pub fn as_name(self) -> (&'static str, &'static str) {
 		match self {
 			Self::Add_I32 => ("add", "i32"),
@@ -469,21 +455,6 @@ pub enum CmpOpType {
 }
 
 impl CmpOpType {
-	#[must_use]
-	pub fn as_operator(self) -> Option<&'static str> {
-		let op = match self {
-			Self::Eq_I32 | Self::Eq_I64 | Self::Eq_FN => "==",
-			Self::Ne_I32 | Self::Ne_I64 | Self::Ne_FN => "~=",
-			Self::LtS_I32 | Self::LtS_I64 | Self::Lt_FN => "<",
-			Self::GtS_I32 | Self::GtS_I64 | Self::Gt_FN => ">",
-			Self::LeS_I32 | Self::LeS_I64 | Self::Le_FN => "<=",
-			Self::GeS_I32 | Self::GeS_I64 | Self::Ge_FN => ">=",
-			_ => return None,
-		};
-
-		Some(op)
-	}
-
 	#[must_use]
 	pub fn as_name(self) -> (&'static str, &'static str) {
 		match self {
