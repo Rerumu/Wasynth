@@ -25,23 +25,19 @@ do
 	local mul = {}
 	local div = {}
 
-	local num_meta = debug.getmetatable(i64)
 	local to_signed = bit.tobit
 
 	function add.i32(a, b)
 		return (to_signed(a + b))
 	end
-	add.i64 = num_meta.__add
 
 	function sub.i32(a, b)
 		return (to_signed(a - b))
 	end
-	sub.i64 = num_meta.__sub
 
 	function mul.i32(a, b)
 		return (to_signed(a * b))
 	end
-	mul.i64 = num_meta.__mul
 
 	function div.i32(lhs, rhs)
 		assert(rhs ~= 0, "division by zero")
