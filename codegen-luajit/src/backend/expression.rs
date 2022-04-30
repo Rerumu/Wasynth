@@ -46,7 +46,12 @@ impl Driver for LoadAt {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "load_{}(memory_at_0, ", self.what.as_name())?;
 		self.pointer.write(mng, w)?;
-		write!(w, "+ {})", self.offset)
+
+		if self.offset != 0 {
+			write!(w, "+ {}", self.offset)?;
+		}
+
+		write!(w, ")")
 	}
 }
 
