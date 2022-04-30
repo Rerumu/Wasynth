@@ -297,7 +297,7 @@ local function op_shift_right_unsigned(lhs, rhs)
 		local high_v = bit_rshift(high_a, count)
 
 		return from_u32(low_v, high_v)
-	elseif numBits == 32 then
+	elseif count == 32 then
 		local _, high_a = to_u32(lhs)
 
 		return from_u32(high_a, 0)
@@ -319,7 +319,7 @@ local function op_shift_right_signed(lhs, rhs)
 
 		return from_u32(low_v, high_v)
 	else
-		local low_a, high_a = to_u32(lhs)
+		local _, high_a = to_u32(lhs)
 
 		local low_v = bit_arshift(high_a, count - 32)
 		local high_v = high_a > N_2_TO_31 and N_2_TO_32 - 1 or 0
@@ -387,40 +387,41 @@ local function op_is_greater_signed(lhs, rhs)
 	end
 end
 
-local function to_bytes_le(value)
-	local low, high = to_u32(value)
-
-	return {
-		bit_band(low, 0xFF),
-		bit_band(bit_rshift(low, 8), 0xFF),
-		bit_band(bit_rshift(low, 16), 0xFF),
-		bit_band(bit_rshift(low, 24), 0xFF),
-		bit_band(high, 0xFF),
-		bit_band(bit_rshift(high, 8), 0xFF),
-		bit_band(bit_rshift(high, 16), 0xFF),
-		bit_band(bit_rshift(high, 24), 0xFF),
-	}
-end
-
 VAL_ZERO = from_f64(0)
 VAL_ONE = from_f64(1)
 VAL_2_TO_24 = from_f64(0x1000000)
 
 Numeric.from_f64 = from_f64
 Numeric.from_u32 = from_u32
+Numeric.to_f64 = to_f64
+
+Numeric.divide_unsigned = op_divide_unsigned
+
+Numeric.bit_and = op_band
+Numeric.bit_not = op_bnot
+Numeric.bit_or = op_bor
+Numeric.bit_xor = op_bxor
+
+Numeric.shift_left = op_shift_left
+Numeric.shift_right_signed = op_shift_right_signed
+Numeric.shift_right_unsigned = op_shift_right_unsigned
+
+Numeric.is_greater_signed = op_is_greater_signed
+Numeric.is_less_unsigned = op_is_less_unsigned
+Numeric.is_greater_unsigned = op_is_greater_unsigned
 
 Numeric.__add = op_add
 Numeric.__sub = op_subtract
 Numeric.__mul = op_multiply
-Numeric.__div = op_divide_unsigned
+Numeric.__div = op_divide_signed
 
 Numeric.__unm = op_negate
 
 Numeric.__eq = op_is_equal
-Numeric.__lt = op_is_less_unsigned
+Numeric.__lt = op_is_less_signed
 
 function Numeric.__le(lhs, rhs)
-	return op_is_less_unsigned(lhs, rhs) or op_is_equal(lhs, rhs)
+	return op_is_less_signed(lhs, rhs) or op_is_equal(lhs, rhs)
 end
 
 function Numeric.__tostring(value)
