@@ -36,11 +36,7 @@ function Numeric.into_u32(data)
 end
 
 function Numeric.from_u64(value)
-	if value < 0 then
-		return num_negate(from_u64(-value))
-	else
-		return from_u32(bit_and(value), math_floor(value / BIT_SET_32))
-	end
+	return from_u32(bit_and(value), math_floor(value / BIT_SET_32))
 end
 
 function Numeric.into_u64(value)
