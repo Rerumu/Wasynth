@@ -3,7 +3,7 @@ local Numeric = {}
 local BIT_SET_31 = 0x80000000
 local BIT_SET_32 = 0x100000000
 
-local K_ZERO, K_ONE, K_BIT_SET_24
+local K_ZERO, K_ONE, K_BIT_SET_26
 
 local bit_lshift = bit32.lshift
 local bit_rshift = bit32.rshift
@@ -13,6 +13,8 @@ local bit_and = bit32.band
 local bit_or = bit32.bor
 local bit_xor = bit32.bxor
 local bit_not = bit32.bnot
+
+local bit_replace = bit32.replace
 
 local math_ceil = math.ceil
 local math_floor = math.floor
@@ -111,9 +113,9 @@ function Numeric.multiply(lhs, rhs)
 	has_negative, lhs, rhs = set_absolute(lhs, rhs)
 
 	-- If both longs are small, use float multiplication
-	if num_is_less_unsigned(lhs, K_BIT_SET_24) and num_is_less_unsigned(rhs, K_BIT_SET_24) then
-		local data_l_1 = into_u32(lhs)
-		local data_r_1 = into_u32(rhs)
+	if num_is_less_unsigned(lhs, K_BIT_SET_26) and num_is_less_unsigned(rhs, K_BIT_SET_26) then
+		local data_l_1, _ = into_u32(lhs)
+		local data_r_1, _ = into_u32(rhs)
 		local result = from_u64(data_l_1 * data_r_1)
 
 		if has_negative then
@@ -138,19 +140,22 @@ function Numeric.multiply(lhs, rhs)
 	local b16 = bit_rshift(data_r_1, 16)
 	local b00 = bit_and(data_r_1, 0xFFFF)
 
-	local c48, c32, c16, c00 = 0, 0, 0, 0
+	local c00 = a00 * b00
+	local c16 = bit_rshift(c00, 16)
 
-	c00 = c00 + a00 * b00
-	c16 = c16 + bit_rshift(c00, 16)
 	c00 = bit_and(c00, 0xFFFF)
 	c16 = c16 + a16 * b00
-	c32 = c32 + bit_rshift(c16, 16)
+
+	local c32 = bit_rshift(c16, 16)
+
 	c16 = bit_and(c16, 0xFFFF)
 	c16 = c16 + a00 * b16
 	c32 = c32 + bit_rshift(c16, 16)
 	c16 = bit_and(c16, 0xFFFF)
 	c32 = c32 + a32 * b00
-	c48 = c48 + bit_rshift(c32, 16)
+
+	local c48 = bit_rshift(c32, 16)
+
 	c32 = bit_and(c32, 0xFFFF)
 	c32 = c32 + a16 * b16
 	c48 = c48 + bit_rshift(c32, 16)
@@ -161,8 +166,8 @@ function Numeric.multiply(lhs, rhs)
 	c48 = c48 + a48 * b00 + a32 * b16 + a16 * b32 + a00 * b48
 	c48 = bit_and(c48, 0xFFFF)
 
-	local data_1 = bit_or(bit_lshift(c16, 16), c00)
-	local data_2 = bit_or(bit_lshift(c48, 16), c32)
+	local data_1 = bit_replace(c00, c16, 16, 16)
+	local data_2 = bit_replace(c32, c48, 16, 16)
 	local result = from_u32(data_1, data_2)
 
 	if has_negative then
@@ -268,12 +273,14 @@ function Numeric.shift_left(lhs, rhs)
 		local data_2 = bit_or(bit_lshift(data_l_2, count), bit_rshift(data_l_1, 32 - count))
 
 		return from_u32(data_1, data_2)
+	elseif count == 32 then
+		local data_l_1, _ = into_u32(lhs)
+
+		return from_u32(0, data_l_1)
 	else
-		local _, data_l_2 = into_u32(lhs)
+		local data_l_1, _ = into_u32(lhs)
 
-		local data_2 = bit_lshift(data_l_2, count - 32)
-
-		return from_u32(0, data_2)
+		return from_u32(0, bit_lshift(data_l_1, count - 32))
 	end
 end
 
@@ -396,7 +403,7 @@ num_is_greater_unsigned = Numeric.is_greater_unsigned
 
 K_ZERO = from_u64(0)
 K_ONE = from_u64(1)
-K_BIT_SET_24 = from_u64(0x1000000)
+K_BIT_SET_26 = from_u64(0x4000000)
 
 Numeric.K_ZERO = K_ZERO
 Numeric.K_ONE = K_ONE
