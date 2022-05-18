@@ -39,7 +39,7 @@ function Numeric.from_u64(value)
 	if value < 0 then
 		return num_negate(from_u64(-value))
 	else
-		return from_u32(value % BIT_SET_32, math_floor(value / BIT_SET_32))
+		return from_u32(bit_and(value), math_floor(value / BIT_SET_32))
 	end
 end
 
@@ -267,10 +267,11 @@ function Numeric.shift_left(lhs, rhs)
 	local count = into_u64(rhs)
 
 	if count < 32 then
+		local pad = 32 - count
 		local data_l_1, data_l_2 = into_u32(lhs)
 
 		local data_1 = bit_lshift(data_l_1, count)
-		local data_2 = bit_or(bit_lshift(data_l_2, count), bit_rshift(data_l_1, 32 - count))
+		local data_2 = bit_replace(bit_rshift(data_l_1, pad), data_l_2, count, pad)
 
 		return from_u32(data_1, data_2)
 	elseif count == 32 then
@@ -290,7 +291,7 @@ function Numeric.shift_right_unsigned(lhs, rhs)
 	if count < 32 then
 		local data_l_1, data_l_2 = into_u32(lhs)
 
-		local data_1 = bit_or(bit_rshift(data_l_1, count), bit_lshift(data_l_2, 32 - count))
+		local data_1 = bit_replace(bit_rshift(data_l_1, count), data_l_2, 32 - count, count)
 		local data_2 = bit_rshift(data_l_2, count)
 
 		return from_u32(data_1, data_2)
@@ -311,7 +312,7 @@ function Numeric.shift_right_signed(lhs, rhs)
 	if count < 32 then
 		local data_l_1, data_l_2 = into_u32(lhs)
 
-		local data_1 = bit_or(bit_rshift(data_l_1, count), bit_lshift(data_l_2, 32 - count))
+		local data_1 = bit_replace(bit_rshift(data_l_1, count), data_l_2, 32 - count, count)
 		local data_2 = bit_arshift(data_l_2, count)
 
 		return from_u32(data_1, data_2)
