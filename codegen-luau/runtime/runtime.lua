@@ -428,7 +428,7 @@ do
 		return num_from_u32(data_1, data_2)
 	end
 
-	function store.i32_i8(memory, addr, value)
+	function store.i32_n8(memory, addr, value)
 		store_byte(memory.data, addr, value)
 	end
 
