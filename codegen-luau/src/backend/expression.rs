@@ -5,9 +5,11 @@ use wasm_ast::node::{
 	UnOp, Value,
 };
 
-use crate::analyzer::operator::{bin_symbol_of, cmp_symbol_of};
+use crate::analyzer::operator::bin_symbol_of;
 
-use super::manager::{write_separated, write_variable, Driver, Manager};
+use super::manager::{
+	write_cmp_op, write_condition, write_separated, write_variable, Driver, Manager,
+};
 
 impl Driver for Recall {
 	fn write(&self, _: &mut Manager, w: &mut dyn Write) -> Result<()> {
@@ -18,8 +20,8 @@ impl Driver for Recall {
 impl Driver for Select {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "(")?;
-		self.cond.write(mng, w)?;
-		write!(w, "~= 0 and ")?;
+		write_condition(&self.cond, mng, w)?;
+		write!(w, "and ")?;
 		self.a.write(mng, w)?;
 		write!(w, "or ")?;
 		self.b.write(mng, w)?;
@@ -153,21 +155,9 @@ impl Driver for BinOp {
 
 impl Driver for CmpOp {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		if let Some(symbol) = cmp_symbol_of(self.op) {
-			write!(w, "(")?;
-			self.lhs.write(mng, w)?;
-			write!(w, "{symbol} ")?;
-			self.rhs.write(mng, w)?;
-			write!(w, ")")
-		} else {
-			let (head, tail) = self.op.as_name();
-
-			write!(w, "{head}_{tail}(")?;
-			self.lhs.write(mng, w)?;
-			write!(w, ", ")?;
-			self.rhs.write(mng, w)?;
-			write!(w, ")")
-		}
+		write!(w, "(")?;
+		write_cmp_op(self, mng, w)?;
+		write!(w, "and 1 or 0)")
 	}
 }
 

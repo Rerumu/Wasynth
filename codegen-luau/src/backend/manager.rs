@@ -3,6 +3,10 @@ use std::{
 	ops::Range,
 };
 
+use wasm_ast::node::{CmpOp, Expression};
+
+use crate::analyzer::operator::cmp_symbol_of;
+
 #[derive(PartialEq, Eq)]
 pub enum Label {
 	Forward,
@@ -61,5 +65,30 @@ pub fn write_variable(var: usize, mng: &Manager, w: &mut dyn Write) -> Result<()
 		write!(w, "loc_{rem} ")
 	} else {
 		write!(w, "param_{var} ")
+	}
+}
+
+pub fn write_cmp_op(cmp: &CmpOp, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+	if let Some(symbol) = cmp_symbol_of(cmp.op) {
+		cmp.lhs.write(mng, w)?;
+		write!(w, "{symbol} ")?;
+		cmp.rhs.write(mng, w)
+	} else {
+		let (head, tail) = cmp.op.as_name();
+
+		write!(w, "{head}_{tail}(")?;
+		cmp.lhs.write(mng, w)?;
+		write!(w, ", ")?;
+		cmp.rhs.write(mng, w)?;
+		write!(w, ")")
+	}
+}
+
+pub fn write_condition(data: &Expression, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+	if let Expression::CmpOp(node) = data {
+		write_cmp_op(node, mng, w)
+	} else {
+		data.write(mng, w)?;
+		write!(w, "~= 0 ")
 	}
 }

@@ -9,7 +9,9 @@ use wasm_ast::node::{
 	Return, SetGlobal, SetLocal, Statement, StoreAt,
 };
 
-use super::manager::{write_ascending, write_separated, write_variable, Driver, Label, Manager};
+use super::manager::{
+	write_ascending, write_condition, write_separated, write_variable, Driver, Label, Manager,
+};
 
 fn br_target(level: usize, in_loop: bool, w: &mut dyn Write) -> Result<()> {
 	write!(w, "if desired then ")?;
@@ -86,8 +88,8 @@ impl Driver for If {
 
 		write!(w, "while true do ")?;
 		write!(w, "if ")?;
-		self.cond.write(mng, w)?;
-		write!(w, "~= 0 then ")?;
+		write_condition(&self.cond, mng, w)?;
+		write!(w, "then ")?;
 
 		self.truthy.iter().try_for_each(|s| s.write(mng, w))?;
 
@@ -132,8 +134,8 @@ impl Driver for Br {
 impl Driver for BrIf {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "if ")?;
-		self.cond.write(mng, w)?;
-		write!(w, "~= 0 then ")?;
+		write_condition(&self.cond, mng, w)?;
+		write!(w, "then ")?;
 		write_br_at(self.target, mng, w)?;
 		write!(w, "end ")
 	}
