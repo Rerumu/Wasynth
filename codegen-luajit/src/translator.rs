@@ -239,11 +239,7 @@ fn build_func_list(wasm: &Module, type_info: &TypeInfo) -> Vec<Intermediate> {
 }
 
 fn write_localize_used(func_list: &[Intermediate], w: &mut dyn Write) -> Result<()> {
-	let mut loc_set = BTreeSet::new();
-
-	for func in func_list {
-		loc_set.extend(localize::visit(func));
-	}
+	let loc_set: BTreeSet<_> = func_list.iter().flat_map(localize::visit).collect();
 
 	loc_set
 		.into_iter()
@@ -251,12 +247,7 @@ fn write_localize_used(func_list: &[Intermediate], w: &mut dyn Write) -> Result<
 }
 
 fn write_memory_used(func_list: &[Intermediate], w: &mut dyn Write) -> Result<Vec<usize>> {
-	let mut mem_set = BTreeSet::new();
-
-	for func in func_list {
-		mem_set.extend(memory::visit(func));
-	}
-
+	let mem_set: BTreeSet<_> = func_list.iter().flat_map(memory::visit).collect();
 	let list: Vec<_> = mem_set.into_iter().collect();
 
 	for mem in &list {
