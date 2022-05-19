@@ -294,7 +294,6 @@ fn write_module_start(wasm: &Module, mem_list: &[usize], w: &mut dyn Write) -> R
 	write_global_list(wasm, w)?;
 	write_element_list(wasm, w)?;
 	write_data_list(wasm, w)?;
-
 	write!(w, "end ")?;
 
 	write!(w, "return function(wasm)")?;
