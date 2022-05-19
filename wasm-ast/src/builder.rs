@@ -289,7 +289,22 @@ impl<'a> Builder<'a> {
 	}
 
 	#[must_use]
-	pub fn consume(mut self, index: usize, func: &'a FuncBody) -> Intermediate {
+	pub fn with_anon(mut self, mut inst: &[Instruction]) -> Intermediate {
+		self.num_result = 1;
+
+		let code = self.new_forward(&mut inst);
+		let num_stack = self.data.last_stack;
+
+		Intermediate {
+			local_data: Vec::new(),
+			num_param: 0,
+			num_stack,
+			code,
+		}
+	}
+
+	#[must_use]
+	pub fn with_index(mut self, index: usize, func: &'a FuncBody) -> Intermediate {
 		let arity = &self.type_info.arity_of(self.type_info.len_ex() + index);
 
 		self.num_result = arity.num_result;

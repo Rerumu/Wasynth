@@ -14,7 +14,7 @@ use wasm_ast::{
 
 use crate::{
 	analyzer::{localize, memory},
-	backend::manager::{write_f32, write_f64, Driver, Manager},
+	backend::manager::{Driver, Manager},
 };
 
 fn aux_internal_index(internal: Internal) -> u32 {
@@ -48,24 +48,12 @@ fn write_named_array(name: &str, len: usize, w: &mut dyn Write) -> Result<()> {
 	write!(w, "local {name} = table_new({len}, {hash})")
 }
 
-fn write_constant(code: &[Instruction], w: &mut dyn Write) -> Result<()> {
-	// FIXME: Badly generated WASM will produce the wrong constant.
-	for inst in code {
-		let result = match *inst {
-			Instruction::I32Const(v) => write!(w, "{v} "),
-			Instruction::I64Const(v) => write!(w, "{v}LL "),
-			Instruction::F32Const(v) => write_f32(f32::from_bits(v), w),
-			Instruction::F64Const(v) => write_f64(f64::from_bits(v), w),
-			Instruction::GetGlobal(i) => write!(w, "GLOBAL_LIST[{i}].value "),
-			_ => {
-				continue;
-			}
-		};
+fn write_constant(code: &[Instruction], type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
+	let func = Builder::new(type_info).with_anon(code);
 
-		return result;
-	}
-
-	write!(w, "error(\"mundane expression\")")
+	write!(w, "(")?;
+	func.write(&mut Manager::default(), w)?;
+	write!(w, ")()")
 }
 
 fn write_import_of<T>(wasm: &Module, lower: &str, cond: T, w: &mut dyn Write) -> Result<()>
@@ -154,7 +142,7 @@ fn write_memory_list(wasm: &Module, w: &mut dyn Write) -> Result<()> {
 	Ok(())
 }
 
-fn write_global_list(wasm: &Module, w: &mut dyn Write) -> Result<()> {
+fn write_global_list(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
 	let global = match wasm.global_section() {
 		Some(v) => v,
 		None => return Ok(()),
@@ -163,25 +151,27 @@ fn write_global_list(wasm: &Module, w: &mut dyn Write) -> Result<()> {
 
 	for (i, v) in global.entries().iter().enumerate() {
 		write!(w, "GLOBAL_LIST[{}] = {{ value =", i + offset)?;
-		write_constant(v.init_expr().code(), w)?;
+		write_constant(v.init_expr().code(), type_info, w)?;
 		write!(w, "}}")?;
 	}
 
 	Ok(())
 }
 
-fn write_element_list(wasm: &Module, w: &mut dyn Write) -> Result<()> {
+fn write_element_list(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
 	let element = match wasm.elements_section() {
 		Some(v) => v.entries(),
 		None => return Ok(()),
 	};
 
 	for v in element {
+		let code = v.offset().as_ref().unwrap().code();
+
 		write!(w, "do ")?;
 		write!(w, "local target = TABLE_LIST[{}].data ", v.index())?;
 		write!(w, "local offset =")?;
 
-		write_constant(v.offset().as_ref().unwrap().code(), w)?;
+		write_constant(code, type_info, w)?;
 
 		write!(w, "local data = {{")?;
 
@@ -199,18 +189,20 @@ fn write_element_list(wasm: &Module, w: &mut dyn Write) -> Result<()> {
 	Ok(())
 }
 
-fn write_data_list(wasm: &Module, w: &mut dyn Write) -> Result<()> {
+fn write_data_list(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
 	let data = match wasm.data_section() {
 		Some(v) => v.entries(),
 		None => return Ok(()),
 	};
 
 	for v in data {
+		let code = v.offset().as_ref().unwrap().code();
+
 		write!(w, "do ")?;
 		write!(w, "local target = MEMORY_LIST[{}]", v.index())?;
 		write!(w, "local offset =")?;
 
-		write_constant(v.offset().as_ref().unwrap().code(), w)?;
+		write_constant(code, type_info, w)?;
 
 		write!(w, "local data = \"")?;
 
@@ -234,7 +226,7 @@ fn build_func_list(wasm: &Module, type_info: &TypeInfo) -> Vec<Intermediate> {
 
 	let iter = list.iter().enumerate();
 
-	iter.map(|f| Builder::new(type_info).consume(f.0, f.1))
+	iter.map(|f| Builder::new(type_info).with_index(f.0, f.1))
 		.collect()
 }
 
@@ -287,13 +279,18 @@ fn write_func_list(
 	})
 }
 
-fn write_module_start(wasm: &Module, mem_list: &[usize], w: &mut dyn Write) -> Result<()> {
+fn write_module_start(
+	wasm: &Module,
+	type_info: &TypeInfo,
+	mem_list: &[usize],
+	w: &mut dyn Write,
+) -> Result<()> {
 	write!(w, "local function run_init_code()")?;
 	write_table_list(wasm, w)?;
 	write_memory_list(wasm, w)?;
-	write_global_list(wasm, w)?;
-	write_element_list(wasm, w)?;
-	write_data_list(wasm, w)?;
+	write_global_list(wasm, type_info, w)?;
+	write_element_list(wasm, type_info, w)?;
+	write_data_list(wasm, type_info, w)?;
 	write!(w, "end ")?;
 
 	write!(w, "return function(wasm)")?;
@@ -329,5 +326,5 @@ pub fn translate(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Resu
 	write_named_array("GLOBAL_LIST", wasm.globals_space(), w)?;
 
 	write_func_list(wasm, type_info, &func_list, w)?;
-	write_module_start(wasm, &mem_list, w)
+	write_module_start(wasm, type_info, &mem_list, w)
 }

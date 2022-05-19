@@ -55,30 +55,6 @@ pub fn write_ascending(prefix: &str, range: Range<usize>, w: &mut dyn Write) -> 
 	write_separated(range, |i, w| write!(w, "{prefix}_{i}"), w)
 }
 
-pub fn write_f32(number: f32, w: &mut dyn Write) -> Result<()> {
-	let sign = if number.is_sign_negative() { "-" } else { "" };
-
-	if number.is_infinite() {
-		write!(w, "{sign}math.huge ")
-	} else if number.is_nan() {
-		write!(w, "{sign}0/0 ")
-	} else {
-		write!(w, "{number:e} ")
-	}
-}
-
-pub fn write_f64(number: f64, w: &mut dyn Write) -> Result<()> {
-	let sign = if number.is_sign_negative() { "-" } else { "" };
-
-	if number.is_infinite() {
-		write!(w, "{sign}math.huge ")
-	} else if number.is_nan() {
-		write!(w, "{sign}0/0 ")
-	} else {
-		write!(w, "{number:e} ")
-	}
-}
-
 pub fn write_variable(var: usize, mng: &Manager, w: &mut dyn Write) -> Result<()> {
 	if let Some(rem) = var.checked_sub(mng.num_param) {
 		write!(w, "loc_{rem} ")

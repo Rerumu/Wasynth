@@ -7,7 +7,7 @@ use wasm_ast::node::{
 
 use crate::analyzer::operator::bin_symbol_of;
 
-use super::manager::{write_f32, write_f64, write_separated, write_variable, Driver, Manager};
+use super::manager::{write_separated, write_variable, Driver, Manager};
 
 impl Driver for Recall {
 	fn write(&self, _: &mut Manager, w: &mut dyn Write) -> Result<()> {
@@ -63,6 +63,30 @@ impl Driver for MemoryGrow {
 		write!(w, "rt.allocator.grow(memory_at_{}, ", self.memory)?;
 		self.value.write(mng, w)?;
 		write!(w, ")")
+	}
+}
+
+pub fn write_f32(number: f32, w: &mut dyn Write) -> Result<()> {
+	let sign = if number.is_sign_negative() { "-" } else { "" };
+
+	if number.is_infinite() {
+		write!(w, "{sign}math.huge ")
+	} else if number.is_nan() {
+		write!(w, "{sign}0/0 ")
+	} else {
+		write!(w, "{number:e} ")
+	}
+}
+
+pub fn write_f64(number: f64, w: &mut dyn Write) -> Result<()> {
+	let sign = if number.is_sign_negative() { "-" } else { "" };
+
+	if number.is_infinite() {
+		write!(w, "{sign}math.huge ")
+	} else if number.is_nan() {
+		write!(w, "{sign}0/0 ")
+	} else {
+		write!(w, "{number:e} ")
 	}
 }
 
