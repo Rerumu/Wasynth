@@ -8,8 +8,6 @@ use wasm_ast::node::{
 	Return, SetGlobal, SetLocal, Statement, StoreAt,
 };
 
-use crate::analyzer::memory;
-
 use super::manager::{write_ascending, write_separated, write_variable, Driver, Label, Manager};
 
 fn br_target(level: usize, in_loop: bool, w: &mut dyn Write) -> Result<()> {
@@ -286,11 +284,6 @@ fn write_variable_list(ir: &Intermediate, w: &mut dyn Write) -> Result<()> {
 impl Driver for Intermediate {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write_parameter_list(self, w)?;
-
-		for v in memory::visit(self) {
-			write!(w, "local memory_at_{v} = MEMORY_LIST[{v}]")?;
-		}
-
 		write_variable_list(self, w)?;
 
 		mng.num_param = self.num_param;

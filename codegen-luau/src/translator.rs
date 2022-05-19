@@ -13,7 +13,7 @@ use wasm_ast::{
 };
 
 use crate::{
-	analyzer::localize,
+	analyzer::{localize, memory},
 	backend::manager::{Driver, Manager},
 };
 
@@ -230,15 +230,22 @@ fn build_func_list(wasm: &Module, type_info: &TypeInfo) -> Vec<Intermediate> {
 }
 
 fn write_localize_used(func_list: &[Intermediate], w: &mut dyn Write) -> Result<()> {
-	let mut loc_set = BTreeSet::new();
-
-	for func in func_list {
-		loc_set.extend(localize::visit(func));
-	}
+	let loc_set: BTreeSet<_> = func_list.iter().flat_map(localize::visit).collect();
 
 	loc_set
 		.into_iter()
 		.try_for_each(|(a, b)| write!(w, "local {a}_{b} = rt.{a}.{b} "))
+}
+
+fn write_memory_used(func_list: &[Intermediate], w: &mut dyn Write) -> Result<Vec<usize>> {
+	let mem_set: BTreeSet<_> = func_list.iter().flat_map(memory::visit).collect();
+	let list: Vec<_> = mem_set.into_iter().collect();
+
+	for mem in &list {
+		write!(w, "local memory_at_{mem} ")?;
+	}
+
+	Ok(list)
 }
 
 fn write_func_start(wasm: &Module, index: u32, offset: u32, w: &mut dyn Write) -> Result<()> {
@@ -271,7 +278,12 @@ fn write_func_list(
 	})
 }
 
-fn write_module_start(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
+fn write_module_start(
+	wasm: &Module,
+	type_info: &TypeInfo,
+	mem_list: &[usize],
+	w: &mut dyn Write,
+) -> Result<()> {
 	write!(w, "local function run_init_code()")?;
 	write_table_list(wasm, w)?;
 	write_memory_list(wasm, w)?;
@@ -283,6 +295,10 @@ fn write_module_start(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) ->
 	write!(w, "return function(wasm)")?;
 	write_import_list(wasm, w)?;
 	write!(w, "run_init_code()")?;
+
+	for mem in mem_list {
+		write!(w, "memory_at_{mem} = MEMORY_LIST[{mem}]")?;
+	}
 
 	if let Some(start) = wasm.start_section() {
 		write!(w, "FUNC_LIST[{start}]()")?;
@@ -300,11 +316,13 @@ pub fn translate(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Resu
 
 	write_localize_used(&func_list, w)?;
 
+	let mem_list = write_memory_used(&func_list, w)?;
+
 	write_named_array("FUNC_LIST", wasm.functions_space(), w)?;
 	write_named_array("TABLE_LIST", wasm.table_space(), w)?;
 	write_named_array("MEMORY_LIST", wasm.memory_space(), w)?;
 	write_named_array("GLOBAL_LIST", wasm.globals_space(), w)?;
 
 	write_func_list(wasm, type_info, &func_list, w)?;
-	write_module_start(wasm, type_info, w)
+	write_module_start(wasm, type_info, &mem_list, w)
 }
