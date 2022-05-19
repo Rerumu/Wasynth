@@ -2,9 +2,9 @@ use wasm_ast::node::{BinOpType, CmpOpType};
 
 pub fn bin_symbol_of(op: BinOpType) -> Option<&'static str> {
 	let result = match op {
-		BinOpType::Add_I64 | BinOpType::Add_FN => "+",
-		BinOpType::Sub_I64 | BinOpType::Sub_FN => "-",
-		BinOpType::Mul_I64 | BinOpType::Mul_FN => "*",
+		BinOpType::Add_FN => "+",
+		BinOpType::Sub_FN => "-",
+		BinOpType::Mul_FN => "*",
 		BinOpType::Div_FN => "/",
 		BinOpType::RemS_I32 | BinOpType::RemU_I32 => "%",
 		_ => return None,
