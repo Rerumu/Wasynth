@@ -234,8 +234,8 @@ do
 
 	trunc.i32_f32 = truncate
 	trunc.i32_f64 = truncate
-	trunc.u32_f32 = truncate
-	trunc.u32_f64 = truncate
+	trunc.u32_f32 = math_floor
+	trunc.u32_f64 = math_floor
 	trunc.i64_f32 = i64
 	trunc.i64_f64 = i64
 	trunc.u64_f32 = i64
