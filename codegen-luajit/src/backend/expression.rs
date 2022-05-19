@@ -80,7 +80,6 @@ impl Driver for Value {
 	}
 }
 
-// TODO: Implement context dependent infix comparisons
 impl Driver for UnOp {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let (a, b) = self.op.as_name();
