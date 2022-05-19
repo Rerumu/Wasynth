@@ -2,7 +2,7 @@
 members = [
 	"codegen-luajit",
 	"codegen-luau",
-	"fuzz",
+	"dev-fuzz",
 	"wasm-ast",
 	"wasm-synth"
 ]
