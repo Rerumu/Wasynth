@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use wasm_ast::{
-	node::{BinOp, CmpOp, Intermediate, LoadAt, StoreAt, UnOp},
+	node::{BinOp, CmpOp, Intermediate, LoadAt, StoreAt, UnOp, Value},
 	visit::{Driver, Visitor},
 };
 
@@ -22,6 +22,17 @@ impl Visitor for Visit {
 		let name = v.what.as_name();
 
 		self.result.insert(("store", name));
+	}
+
+	fn visit_value(&mut self, v: &Value) {
+		let name = match v {
+			Value::I64(0) => "K_ZERO",
+			Value::I64(1) => "K_ONE",
+			Value::I64(_) => "from_u32",
+			_ => return,
+		};
+
+		self.result.insert(("num", name));
 	}
 
 	fn visit_un_op(&mut self, v: &UnOp) {

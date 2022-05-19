@@ -3,6 +3,7 @@ use std::{
 	ops::Range,
 };
 
+use parity_wasm::elements::ValueType;
 use wasm_ast::node::{
 	Backward, Br, BrIf, BrTable, Call, CallIndirect, Else, Forward, If, Intermediate, Memorize,
 	Return, SetGlobal, SetLocal, Statement, StoreAt,
@@ -262,13 +263,18 @@ fn write_variable_list(ir: &Intermediate, w: &mut dyn Write) -> Result<()> {
 
 	for data in &ir.local_data {
 		let range = total..total + usize::try_from(data.count()).unwrap();
+		let zero = if data.value_type() == ValueType::I64 {
+			"num_K_ZERO "
+		} else {
+			"0 "
+		};
 
 		total = range.end;
 
 		write!(w, "local ")?;
 		write_ascending("loc", range.clone(), w)?;
 		write!(w, " = ")?;
-		write_separated(range, |_, w| w.write_all(b"0"), w)?;
+		write_separated(range, |_, w| w.write_all(zero.as_bytes()), w)?;
 		write!(w, " ")?;
 	}
 

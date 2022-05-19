@@ -66,6 +66,20 @@ impl Driver for MemoryGrow {
 	}
 }
 
+fn write_i64(number: i64, w: &mut dyn Write) -> Result<()> {
+	match number {
+		0 => write!(w, "num_K_ZERO "),
+		1 => write!(w, "num_K_ONE "),
+		_ => {
+			let list = number.to_ne_bytes();
+			let a = u32::from_ne_bytes(list[0..4].try_into().unwrap());
+			let b = u32::from_ne_bytes(list[4..8].try_into().unwrap());
+
+			write!(w, "num_from_u32({a}, {b}) ")
+		}
+	}
+}
+
 fn write_f32(number: f32, w: &mut dyn Write) -> Result<()> {
 	let sign = if number.is_sign_negative() { "-" } else { "" };
 
@@ -94,7 +108,7 @@ impl Driver for Value {
 	fn write(&self, _: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
 			Self::I32(i) => write!(w, "{i} "),
-			Self::I64(i) => write!(w, "{i} "),
+			Self::I64(i) => write_i64(*i, w),
 			Self::F32(f) => write_f32(*f, w),
 			Self::F64(f) => write_f64(*f, w),
 		}
