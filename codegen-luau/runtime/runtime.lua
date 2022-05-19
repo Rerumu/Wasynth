@@ -98,6 +98,8 @@ do
 end
 
 do
+	local eq = {}
+	local ne = {}
 	local le = {}
 	local lt = {}
 	local ge = {}
@@ -108,6 +110,12 @@ do
 	local num_is_greater_unsigned = I64.is_greater_unsigned
 	local num_is_less_signed = I64.is_less_signed
 	local num_is_less_unsigned = I64.is_less_unsigned
+
+	eq.i64 = num_is_equal
+
+	function ne.i64(lhs, rhs)
+		return not num_is_equal(lhs, rhs)
+	end
 
 	function ge.i32(lhs, rhs)
 		return to_i32(lhs) >= to_i32(rhs)
@@ -147,6 +155,8 @@ do
 	lt.i64 = num_is_less_signed
 	lt.u64 = num_is_less_unsigned
 
+	module.eq = eq
+	module.ne = ne
 	module.le = le
 	module.lt = lt
 	module.ge = ge
