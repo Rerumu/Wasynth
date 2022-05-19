@@ -26,7 +26,7 @@ do
 	num.K_ZERO = I64.K_ZERO
 	num.K_ONE = I64.K_ONE
 
-	num.from_32 = num_from_u32
+	num.from_u32 = num_from_u32
 
 	module.num = num
 end
