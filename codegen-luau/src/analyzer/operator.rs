@@ -2,13 +2,11 @@ use wasm_ast::node::{BinOpType, CmpOpType};
 
 pub fn bin_symbol_of(op: BinOpType) -> Option<&'static str> {
 	let result = match op {
-		BinOpType::Add_I32 | BinOpType::Add_I64 | BinOpType::Add_FN => "+",
-		BinOpType::Sub_I32 | BinOpType::Sub_I64 | BinOpType::Sub_FN => "-",
-		BinOpType::Mul_I32 | BinOpType::Mul_I64 | BinOpType::Mul_FN => "*",
-		BinOpType::DivS_I32 | BinOpType::DivS_I64 | BinOpType::Div_FN => "/",
-		BinOpType::RemS_I32 | BinOpType::RemU_I32 | BinOpType::RemS_I64 | BinOpType::RemU_I64 => {
-			"%"
-		}
+		BinOpType::Add_I64 | BinOpType::Add_FN => "+",
+		BinOpType::Sub_I64 | BinOpType::Sub_FN => "-",
+		BinOpType::Mul_I64 | BinOpType::Mul_FN => "*",
+		BinOpType::Div_FN => "/",
+		BinOpType::RemS_I32 | BinOpType::RemU_I32 => "%",
 		_ => return None,
 	};
 
@@ -17,12 +15,12 @@ pub fn bin_symbol_of(op: BinOpType) -> Option<&'static str> {
 
 pub fn cmp_symbol_of(op: CmpOpType) -> Option<&'static str> {
 	let result = match op {
-		CmpOpType::Eq_I32 | CmpOpType::Eq_I64 | CmpOpType::Eq_FN => "==",
-		CmpOpType::Ne_I32 | CmpOpType::Ne_I64 | CmpOpType::Ne_FN => "~=",
-		CmpOpType::LtS_I32 | CmpOpType::LtS_I64 | CmpOpType::Lt_FN => "<",
-		CmpOpType::GtS_I32 | CmpOpType::GtS_I64 | CmpOpType::Gt_FN => ">",
-		CmpOpType::LeS_I32 | CmpOpType::LeS_I64 | CmpOpType::Le_FN => "<=",
-		CmpOpType::GeS_I32 | CmpOpType::GeS_I64 | CmpOpType::Ge_FN => ">=",
+		CmpOpType::Eq_I32 | CmpOpType::Eq_FN => "==",
+		CmpOpType::Ne_I32 | CmpOpType::Ne_FN => "~=",
+		CmpOpType::LtU_I32 | CmpOpType::Lt_FN => "<",
+		CmpOpType::GtU_I32 | CmpOpType::Gt_FN => ">",
+		CmpOpType::LeU_I32 | CmpOpType::Le_FN => "<=",
+		CmpOpType::GeU_I32 | CmpOpType::Ge_FN => ">=",
 		_ => return None,
 	};
 

@@ -5,7 +5,7 @@ use wasm_ast::node::{
 	UnOp, Value,
 };
 
-use crate::analyzer::operator::bin_symbol_of;
+use crate::analyzer::operator::{bin_symbol_of, cmp_symbol_of};
 
 use super::manager::{write_separated, write_variable, Driver, Manager};
 
@@ -133,13 +133,21 @@ impl Driver for BinOp {
 
 impl Driver for CmpOp {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let (a, b) = self.op.as_name();
+		if let Some(symbol) = cmp_symbol_of(self.op) {
+			write!(w, "(")?;
+			self.lhs.write(mng, w)?;
+			write!(w, "{symbol} ")?;
+			self.rhs.write(mng, w)?;
+			write!(w, ")")
+		} else {
+			let (head, tail) = self.op.as_name();
 
-		write!(w, "{a}_{b}(")?;
-		self.lhs.write(mng, w)?;
-		write!(w, ", ")?;
-		self.rhs.write(mng, w)?;
-		write!(w, ")")
+			write!(w, "{head}_{tail}(")?;
+			self.lhs.write(mng, w)?;
+			write!(w, ", ")?;
+			self.rhs.write(mng, w)?;
+			write!(w, ")")
+		}
 	}
 }
 
