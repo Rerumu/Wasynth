@@ -52,7 +52,7 @@ impl Target for LuaJIT {
 	}
 
 	fn write_register(post: &str, pre: &str, w: &mut dyn Write) -> IResult<()> {
-		writeln!(w, "local {} = {}", post, pre)
+		writeln!(w, "local {} = module_{}", post, pre)
 	}
 
 	fn write_runtime(w: &mut dyn Write) -> IResult<()> {
@@ -62,7 +62,7 @@ impl Target for LuaJIT {
 	}
 
 	fn write_module(data: TypedModule, w: &mut dyn Write) -> IResult<()> {
-		write!(w, "local temp_{} = (function() ", data.name)?;
+		write!(w, "local module_{} = (function() ", data.name)?;
 		codegen_luajit::translate(data.module, &data.type_info, w)?;
 		writeln!(w, "end)(nil)")
 	}
@@ -76,7 +76,7 @@ impl Target for Luau {
 	}
 
 	fn write_register(post: &str, pre: &str, w: &mut dyn Write) -> IResult<()> {
-		writeln!(w, "local {} = {}", post, pre)
+		writeln!(w, "local {} = module_{}", post, pre)
 	}
 
 	fn write_runtime(w: &mut dyn Write) -> IResult<()> {
@@ -86,7 +86,7 @@ impl Target for Luau {
 	}
 
 	fn write_module(data: TypedModule, w: &mut dyn Write) -> IResult<()> {
-		write!(w, "local temp_{} = (function() ", data.name)?;
+		write!(w, "local module_{} = (function() ", data.name)?;
 		codegen_luau::translate(data.module, &data.type_info, w)?;
 		writeln!(w, "end)(nil)")
 	}
