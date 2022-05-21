@@ -185,7 +185,12 @@ impl<T: Target> Tester<T> {
 	}
 }
 
-static DO_NOT_RUN: [&str; 3] = ["binary-leb128.wast", "conversions.wast", "names.wast"];
+static DO_NOT_RUN: [&str; 4] = [
+	"binary-leb128.wast",
+	"conversions.wast",
+	"names.wast",
+	"skip-stack-guard-page.wast",
+];
 
 #[test_generator::test_resources("dev-test/spec/*.wast")]
 fn translate_file(path: PathBuf) {
