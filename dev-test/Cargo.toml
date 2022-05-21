@@ -1,0 +1,25 @@
+[package]
+name = "dev-test"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies.test-generator]
+version = "0.3.0"
+
+[dependencies.wast]
+version = "41.0.0"
+
+[dependencies.parity-wasm]
+git = "https://github.com/paritytech/parity-wasm.git"
+features = ["multi_value", "sign_ext"]
+
+[dependencies.wasm-ast]
+path = "../wasm-ast"
+
+[dependencies.codegen-luajit]
+path = "../codegen-luajit"
+
+[dependencies.codegen-luau]
+path = "../codegen-luau"
