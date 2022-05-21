@@ -37,8 +37,12 @@ do
 	local mul = {}
 	local div = {}
 	local neg = {}
+	local copysign = {}
+	local nearest = {}
 
 	local assert = assert
+	local math_abs = math.abs
+	local math_round = math.round
 
 	function add.i32(a, b)
 		return to_u32(a + b)
@@ -81,11 +85,31 @@ do
 		return -num
 	end
 
+	function copysign.num(lhs, rhs)
+		if rhs >= 0 then
+			return (math_abs(lhs))
+		else
+			return -math_abs(lhs)
+		end
+	end
+
+	function nearest.num(num)
+		local result = math_round(num)
+
+		if math_abs(num) % 1 == 0.5 and temp_2 % 2 == 1 then
+			result = result - 1
+		end
+
+		return result
+	end
+
 	module.add = add
 	module.sub = sub
 	module.mul = mul
 	module.div = div
 	module.neg = neg
+	module.copysign = copysign
+	module.nearest = nearest
 end
 
 do

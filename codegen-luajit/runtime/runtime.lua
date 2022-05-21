@@ -25,8 +25,19 @@ do
 	local mul = {}
 	local div = {}
 	local neg = {}
+	local copysign = {}
+	local nearest = {}
 
 	local to_signed = bit.tobit
+	local math_abs = math.abs
+
+	local function round(num)
+		if num >= 0 then
+			return (math_floor(num + 0.5))
+		else
+			return (math_ceil(num - 0.5))
+		end
+	end
 
 	function add.i32(a, b)
 		return (to_signed(a + b))
@@ -65,11 +76,31 @@ do
 		return -num
 	end
 
+	function copysign.num(lhs, rhs)
+		if rhs >= 0 then
+			return (math_abs(lhs))
+		else
+			return -math_abs(lhs)
+		end
+	end
+
+	function nearest.num(num)
+		local result = round(num)
+
+		if math_abs(num) % 1 == 0.5 and temp_2 % 2 == 1 then
+			result = result - 1
+		end
+
+		return result
+	end
+
 	module.add = add
 	module.sub = sub
 	module.mul = mul
 	module.div = div
 	module.neg = neg
+	module.copysign = copysign
+	module.nearest = nearest
 end
 
 do
