@@ -23,8 +23,8 @@ fn run_translator(wasm: &Module, runtime: &str, translate: Translate) -> Result<
 fn do_translate(name: &str, file: &str) {
 	let wasm = &parse_module(file);
 	let result = match name.to_lowercase().as_str() {
-		"luajit" => run_translator(wasm, codegen_luajit::RUNTIME, codegen_luajit::translate),
-		"luau" => run_translator(wasm, codegen_luau::RUNTIME, codegen_luau::translate),
+		"luajit" => run_translator(wasm, codegen_luajit::RUNTIME, codegen_luajit::from_module),
+		"luau" => run_translator(wasm, codegen_luau::RUNTIME, codegen_luau::from_module),
 		_ => panic!("Bad language: {name}"),
 	};
 

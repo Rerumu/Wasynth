@@ -321,7 +321,15 @@ fn write_module_start(
 
 /// # Errors
 /// Returns `Err` if writing to `Write` failed.
-pub fn translate(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
+pub fn from_inst_list(code: &[Instruction], type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
+	Builder::new(type_info)
+		.with_anon(code)
+		.write(&mut Manager::default(), w)
+}
+
+/// # Errors
+/// Returns `Err` if writing to `Write` failed.
+pub fn from_module(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
 	let func_list = build_func_list(wasm, type_info);
 
 	write_localize_used(&func_list, w)?;

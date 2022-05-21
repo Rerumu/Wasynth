@@ -14,5 +14,5 @@ libfuzzer_sys::fuzz_target!(|module: Module| {
 	let type_info = TypeInfo::from_module(&wasm);
 	let sink = &mut std::io::sink();
 
-	codegen_luajit::translate(&wasm, &type_info, sink).expect("LuaJIT should succeed");
+	codegen_luajit::from_module(&wasm, &type_info, sink).expect("LuaJIT should succeed");
 });
