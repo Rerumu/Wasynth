@@ -17,7 +17,7 @@ use crate::{
 	backend::manager::{Driver, Manager},
 };
 
-fn aux_internal_index(internal: Internal) -> u32 {
+fn to_internal_index(internal: Internal) -> u32 {
 	match internal {
 		Internal::Function(v) | Internal::Table(v) | Internal::Memory(v) | Internal::Global(v) => v,
 	}
@@ -70,7 +70,7 @@ where
 		let field = v.field();
 		let module = v.module();
 
-		write!(w, "{upper}[{i}] = wasm.{module}.{lower}.{field} ")?;
+		write!(w, r#"{upper}[{i}] = wasm["{module}"].{lower}["{field}"]"#)?;
 	}
 
 	Ok(())
@@ -90,9 +90,9 @@ where
 
 	for v in export.iter().filter(|v| cond(v.internal())) {
 		let field = v.field();
-		let index = aux_internal_index(*v.internal());
+		let index = to_internal_index(*v.internal());
 
-		write!(w, "[\"{field}\"] = {upper}[{index}],")?;
+		write!(w, r#"["{field}"] = {upper}[{index}],"#)?;
 	}
 
 	write!(w, "}},")
