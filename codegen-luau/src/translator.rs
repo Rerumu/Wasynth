@@ -229,12 +229,22 @@ fn build_func_list(wasm: &Module, type_info: &TypeInfo) -> Vec<Intermediate> {
 		.collect()
 }
 
+fn write_local_operation(head: &str, tail: &str, w: &mut dyn Write) -> Result<()> {
+	match (head, tail) {
+		("abs" | "ceil" | "floor" | "sqrt" | "min" | "max", _)
+		| ("band" | "bor" | "bxor", "i32") => {
+			write!(w, "local {head}_{tail} = math.{head} ")
+		}
+		_ => write!(w, "local {head}_{tail} = rt.{head}.{tail} "),
+	}
+}
+
 fn write_localize_used(func_list: &[Intermediate], w: &mut dyn Write) -> Result<()> {
 	let loc_set: BTreeSet<_> = func_list.iter().flat_map(localize::visit).collect();
 
 	loc_set
 		.into_iter()
-		.try_for_each(|(a, b)| write!(w, "local {a}_{b} = rt.{a}.{b} "))
+		.try_for_each(|(a, b)| write_local_operation(a, b, w))
 }
 
 fn write_memory_used(func_list: &[Intermediate], w: &mut dyn Write) -> Result<Vec<usize>> {

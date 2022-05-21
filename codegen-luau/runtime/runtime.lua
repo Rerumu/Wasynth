@@ -180,16 +180,13 @@ do
 	local bxor = {}
 	local bnot = {}
 
-	band.i32 = bit32.band
 	band.i64 = I64.bit_and
 
 	bnot.i32 = bit32.bnot
 	bnot.i64 = I64.bit_not
 
-	bor.i32 = bit32.bor
 	bor.i64 = I64.bit_or
 
-	bxor.i32 = bit32.bxor
 	bxor.i64 = I64.bit_xor
 
 	module.band = band

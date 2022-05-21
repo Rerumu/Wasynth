@@ -159,26 +159,11 @@ do
 end
 
 do
-	local band = {}
-	local bor = {}
-	local bxor = {}
 	local bnot = {}
-
-	band.i32 = bit.band
-	band.i64 = bit.band
 
 	bnot.i32 = bit.bnot
 	bnot.i64 = bit.bnot
 
-	bor.i32 = bit.bor
-	bor.i64 = bit.bor
-
-	bxor.i32 = bit.bxor
-	bxor.i64 = bit.bxor
-
-	module.band = band
-	module.bor = bor
-	module.bxor = bxor
 	module.bnot = bnot
 end
 
