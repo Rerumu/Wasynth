@@ -117,6 +117,8 @@ fn parse_and_validate<'a>(buffer: &'a ParseBuffer) -> Option<Wast<'a>> {
 	observer.then(|| loaded)
 }
 
+static TEMP_DIR: &str = env!("CARGO_TARGET_TMPDIR");
+
 struct Tester<T> {
 	_marker: PhantomData<T>,
 }
@@ -124,7 +126,7 @@ struct Tester<T> {
 impl<T: Target> Tester<T> {
 	fn test(name: &str, source: &str) -> IResult<()> {
 		if let Some(data) = Self::run_generation(source)? {
-			let temp = std::env::temp_dir().join("wasm-test-".to_string() + name);
+			let temp = PathBuf::from(TEMP_DIR).join("west-".to_string() + name);
 
 			std::fs::write(&temp, &data)?;
 			Self::run_command(&temp)?;

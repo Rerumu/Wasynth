@@ -2,24 +2,34 @@
 name = "dev-test"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[package.metadata]
+cargo-fuzz = true
 
-[dependencies.test-generator]
-version = "0.3.0"
-
-[dependencies.wast]
-version = "41.0.0"
+[dependencies]
+libfuzzer-sys = "0.4"
+wasm-smith = "0.8.0"
+wasm-ast = { path = "../wasm-ast" }
+codegen-luajit = { path = "../codegen-luajit" }
+codegen-luau = { path = "../codegen-luau" }
 
 [dependencies.parity-wasm]
 git = "https://github.com/paritytech/parity-wasm.git"
 features = ["multi_value", "sign_ext"]
 
-[dependencies.wasm-ast]
-path = "../wasm-ast"
+[dev-dependencies]
+test-generator = "0.3.0"
+wast = "41.0.0"
 
-[dependencies.codegen-luajit]
-path = "../codegen-luajit"
+[[bin]]
+name = "luajit_translate"
+path = "fuzz_targets/luajit_translate.rs"
+test = false
+doc = false
 
-[dependencies.codegen-luau]
-path = "../codegen-luau"
+[[bin]]
+name = "luau_translate"
+path = "fuzz_targets/luau_translate.rs"
+test = false
+doc = false
