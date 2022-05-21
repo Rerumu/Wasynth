@@ -24,6 +24,7 @@ do
 	local sub = {}
 	local mul = {}
 	local div = {}
+	local neg = {}
 
 	local to_signed = bit.tobit
 
@@ -60,10 +61,15 @@ do
 		return (i64(u64(lhs) / u64(rhs)))
 	end
 
+	function neg.num(num)
+		return -num
+	end
+
 	module.add = add
 	module.sub = sub
 	module.mul = mul
 	module.div = div
+	module.neg = neg
 end
 
 do
@@ -200,6 +206,8 @@ do
 	local trunc = {}
 	local extend = {}
 	local convert = {}
+	local promote = {}
+	local demote = {}
 	local reinterpret = {}
 
 	-- This would surely be an issue in a multi-thread environment...
@@ -267,6 +275,14 @@ do
 		return (to_number(u64(num)))
 	end
 
+	function demote.f32_f64(num)
+		return num
+	end
+
+	function promote.f64_f32(num)
+		return num
+	end
+
 	function reinterpret.i32_f32(num)
 		RE_INSTANCE.f32 = num
 
@@ -295,6 +311,8 @@ do
 	module.trunc = trunc
 	module.extend = extend
 	module.convert = convert
+	module.demote = demote
+	module.promote = promote
 	module.reinterpret = reinterpret
 end
 

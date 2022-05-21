@@ -36,6 +36,7 @@ do
 	local sub = {}
 	local mul = {}
 	local div = {}
+	local neg = {}
 
 	local assert = assert
 
@@ -76,10 +77,15 @@ do
 
 	div.u64 = I64.divide_unsigned
 
+	function neg.num(num)
+		return -num
+	end
+
 	module.add = add
 	module.sub = sub
 	module.mul = mul
 	module.div = div
+	module.neg = neg
 end
 
 do
@@ -228,6 +234,8 @@ do
 	local trunc = {}
 	local extend = {}
 	local convert = {}
+	local demote = {}
+	local promote = {}
 	local reinterpret = {}
 
 	local math_ceil = math.ceil
@@ -323,6 +331,10 @@ do
 
 	convert.f64_u64 = num_into_u64
 
+	demote.f32_f64 = no_op
+
+	promote.f64_f32 = no_op
+
 	function reinterpret.i32_f32(num)
 		local packed = string_pack("f", num)
 
@@ -353,6 +365,8 @@ do
 	module.trunc = trunc
 	module.extend = extend
 	module.convert = convert
+	module.demote = demote
+	module.promote = promote
 	module.reinterpret = reinterpret
 end
 
