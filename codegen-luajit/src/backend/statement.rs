@@ -74,8 +74,8 @@ impl Driver for If {
 			s.write(mng, w)?;
 		}
 
-		write!(w, "::continue_at_{label}::")?;
 		write!(w, "end ")?;
+		write!(w, "::continue_at_{label}::")?;
 
 		mng.pop_label();
 
