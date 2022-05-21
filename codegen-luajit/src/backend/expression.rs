@@ -68,7 +68,7 @@ impl Driver for MemoryGrow {
 	}
 }
 
-pub fn write_f32(number: f32, w: &mut dyn Write) -> Result<()> {
+fn write_f32(number: f32, w: &mut dyn Write) -> Result<()> {
 	let sign = if number.is_sign_negative() { "-" } else { "" };
 
 	if number.is_infinite() {
@@ -80,7 +80,7 @@ pub fn write_f32(number: f32, w: &mut dyn Write) -> Result<()> {
 	}
 }
 
-pub fn write_f64(number: f64, w: &mut dyn Write) -> Result<()> {
+fn write_f64(number: f64, w: &mut dyn Write) -> Result<()> {
 	let sign = if number.is_sign_negative() { "-" } else { "" };
 
 	if number.is_infinite() {
