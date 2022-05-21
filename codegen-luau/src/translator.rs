@@ -91,7 +91,7 @@ where
 		let field = v.field();
 		let index = aux_internal_index(*v.internal());
 
-		write!(w, "{field} = {upper}[{index}],")?;
+		write!(w, "[\"{field}\"] = {upper}[{index}],")?;
 	}
 
 	write!(w, "}},")
