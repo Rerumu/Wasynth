@@ -52,17 +52,18 @@ impl Target for LuaJIT {
 	}
 
 	fn write_register(post: &str, pre: &str, w: &mut dyn Write) -> IResult<()> {
-		writeln!(w, "local {} = module_{}", post, pre)
+		writeln!(w, "storage[\"{}\"] = storage[\"${}\"]", post, pre)
 	}
 
 	fn write_runtime(w: &mut dyn Write) -> IResult<()> {
 		let runtime = codegen_luajit::RUNTIME;
 
-		writeln!(w, "local rt = (function() {runtime} end)()")
+		writeln!(w, "local rt = (function() {runtime} end)()")?;
+		writeln!(w, "local storage = {{}}")
 	}
 
 	fn write_module(data: TypedModule, w: &mut dyn Write) -> IResult<()> {
-		write!(w, "local module_{} = (function() ", data.name)?;
+		write!(w, "storage[\"${}\"] = (function() ", data.name)?;
 		codegen_luajit::translate(data.module, &data.type_info, w)?;
 		writeln!(w, "end)(nil)")
 	}
@@ -76,17 +77,18 @@ impl Target for Luau {
 	}
 
 	fn write_register(post: &str, pre: &str, w: &mut dyn Write) -> IResult<()> {
-		writeln!(w, "local {} = module_{}", post, pre)
+		writeln!(w, "storage[\"{}\"] = storage[\"${}\"]", post, pre)
 	}
 
 	fn write_runtime(w: &mut dyn Write) -> IResult<()> {
 		let runtime = codegen_luau::RUNTIME;
 
-		writeln!(w, "local rt = (function() {runtime} end)()")
+		writeln!(w, "local rt = (function() {runtime} end)()")?;
+		writeln!(w, "local storage = {{}}")
 	}
 
 	fn write_module(data: TypedModule, w: &mut dyn Write) -> IResult<()> {
-		write!(w, "local module_{} = (function() ", data.name)?;
+		write!(w, "storage[\"${}\"] = (function() ", data.name)?;
 		codegen_luau::translate(data.module, &data.type_info, w)?;
 		writeln!(w, "end)(nil)")
 	}
