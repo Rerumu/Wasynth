@@ -129,9 +129,16 @@ fn condense_jump_table(list: &[u32]) -> Vec<(usize, usize, u32)> {
 
 impl Driver for BrTable {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		let default = self.data.default.try_into().unwrap();
+
+		// Our condition should be pure so we probably don't need
+		// to emit it in this case.
+		if self.data.table.is_empty() {
+			return write_br_at(default, mng, w);
+		}
+
 		write!(w, "temp = ")?;
 		self.cond.write(mng, w)?;
-		write!(w, " ")?;
 
 		for (start, end, dest) in condense_jump_table(&self.data.table) {
 			if start == end {
@@ -145,7 +152,7 @@ impl Driver for BrTable {
 		}
 
 		write!(w, " ")?;
-		write_br_at(self.data.default.try_into().unwrap(), mng, w)?;
+		write_br_at(default, mng, w)?;
 		write!(w, "end ")
 	}
 }
