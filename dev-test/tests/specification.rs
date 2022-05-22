@@ -64,7 +64,7 @@ impl Target for LuaJIT {
 
 	fn write_module(data: TypedModule, w: &mut dyn Write) -> IResult<()> {
 		write!(w, "storage[\"${}\"] = (function() ", data.name)?;
-		codegen_luajit::translate(data.module, &data.type_info, w)?;
+		codegen_luajit::from_module_typed(data.module, &data.type_info, w)?;
 		writeln!(w, "end)(nil)")
 	}
 }
@@ -89,7 +89,7 @@ impl Target for Luau {
 
 	fn write_module(data: TypedModule, w: &mut dyn Write) -> IResult<()> {
 		write!(w, "storage[\"${}\"] = (function() ", data.name)?;
-		codegen_luau::translate(data.module, &data.type_info, w)?;
+		codegen_luau::from_module_typed(data.module, &data.type_info, w)?;
 		writeln!(w, "end)(nil)")
 	}
 }

@@ -9,9 +9,6 @@ edition = "2021"
 git = "https://github.com/paritytech/parity-wasm.git"
 features = ["multi_value", "sign_ext"]
 
-[dependencies.wasm-ast]
-path = "../wasm-ast"
-
 [dependencies.codegen-luajit]
 path = "../codegen-luajit"
 

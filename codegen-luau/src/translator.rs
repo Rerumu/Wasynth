@@ -329,7 +329,7 @@ pub fn from_inst_list(code: &[Instruction], type_info: &TypeInfo, w: &mut dyn Wr
 
 /// # Errors
 /// Returns `Err` if writing to `Write` failed.
-pub fn from_module(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
+pub fn from_module_typed(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
 	let func_list = build_func_list(wasm, type_info);
 
 	write_localize_used(&func_list, w)?;
@@ -343,4 +343,12 @@ pub fn from_module(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Re
 
 	write_func_list(wasm, type_info, &func_list, w)?;
 	write_module_start(wasm, type_info, &mem_list, w)
+}
+
+/// # Errors
+/// Returns `Err` if writing to `Write` failed.
+pub fn from_module_untyped(wasm: &Module, w: &mut dyn Write) -> Result<()> {
+	let type_info = TypeInfo::from_module(wasm);
+
+	from_module_typed(wasm, &type_info, w)
 }

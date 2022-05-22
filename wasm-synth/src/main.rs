@@ -1,31 +1,34 @@
 use std::io::{Result, Write};
 
 use parity_wasm::{deserialize_file, elements::Module};
-use wasm_ast::builder::TypeInfo;
 
-type Translate = fn(&Module, &TypeInfo, &mut dyn Write) -> Result<()>;
+type FromUntyped = fn(&Module, &mut dyn Write) -> Result<()>;
 
-fn parse_module(name: &str) -> Module {
-	let wasm = deserialize_file(name).expect("Failed to parse Wasm file");
+fn run_with(file: &str, runtime: &str, from_untyped: FromUntyped) -> Result<()> {
+	let wasm = deserialize_file(file)
+		.expect("Failed to parse Wasm file")
+		.parse_names()
+		.unwrap_or_else(|v| v.1);
 
-	wasm.parse_names().unwrap_or_else(|v| v.1)
-}
-
-fn run_translator(wasm: &Module, runtime: &str, translate: Translate) -> Result<()> {
-	let pipe = std::io::stdout();
-	let lock = &mut pipe.lock();
-	let type_info = TypeInfo::from_module(wasm);
+	let lock = &mut std::io::stdout().lock();
 
 	write!(lock, "local rt = (function() {runtime} end)() ")?;
-	translate(wasm, &type_info, lock)
+	from_untyped(&wasm, lock)
 }
 
-fn do_translate(name: &str, file: &str) {
-	let wasm = &parse_module(file);
-	let result = match name.to_lowercase().as_str() {
-		"luajit" => run_translator(wasm, codegen_luajit::RUNTIME, codegen_luajit::from_module),
-		"luau" => run_translator(wasm, codegen_luau::RUNTIME, codegen_luau::from_module),
-		_ => panic!("Bad language: {name}"),
+fn do_translate(lang: &str, file: &str) {
+	let result = match lang.to_lowercase().as_str() {
+		"luajit" => run_with(
+			file,
+			codegen_luajit::RUNTIME,
+			codegen_luajit::from_module_untyped,
+		),
+		"luau" => run_with(
+			file,
+			codegen_luau::RUNTIME,
+			codegen_luau::from_module_untyped,
+		),
+		_ => panic!("Bad language: {lang}"),
 	};
 
 	result.expect("Failed to translate file");

@@ -1,6 +1,5 @@
 #![no_main]
 
-use wasm_ast::builder::TypeInfo;
 use wasm_smith::Module;
 
 // We are not interested in parity_wasm errors.
@@ -11,8 +10,7 @@ libfuzzer_sys::fuzz_target!(|module: Module| {
 		Err(_) => return,
 	};
 
-	let type_info = TypeInfo::from_module(&wasm);
 	let sink = &mut std::io::sink();
 
-	codegen_luau::from_module(&wasm, &type_info, sink).expect("Luau should succeed");
+	codegen_luau::from_module_untyped(&wasm, sink).expect("Luau should succeed");
 });
