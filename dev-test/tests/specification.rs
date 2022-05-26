@@ -9,10 +9,36 @@ use std::{
 
 use parity_wasm::elements::Module as BinModule;
 use wast::{
-	core::Module as AstModule, parser::ParseBuffer, token::Id, QuoteWat, Wast, WastDirective, Wat,
+	core::{Expression, Instruction, Module as AstModule},
+	parser::ParseBuffer,
+	token::{Float32, Float64, Id},
+	AssertExpression, NanPattern, QuoteWat, Wast, WastDirective, WastExecute, WastInvoke, Wat,
 };
 
 use wasm_ast::builder::TypeInfo;
+
+macro_rules! write_assert_number {
+	($name:ident, $generic:ty, $reader:ty) => {
+		fn $name(data: &NanPattern<$generic>, w: &mut dyn Write) -> IResult<()> {
+			match data {
+				NanPattern::CanonicalNan => write!(w, "LUA_NAN_CANONICAL"),
+				NanPattern::ArithmeticNan => write!(w, "LUA_NAN_ARITHMETIC"),
+				NanPattern::Value(data) => {
+					let number = <$reader>::from_bits(data.bits);
+					let sign = if number.is_sign_negative() { "-" } else { "" };
+
+					if number.is_infinite() {
+						write!(w, "{sign}LUA_INFINITY")
+					} else if number.is_nan() {
+						write!(w, "{sign}LUA_NAN_DEFAULT")
+					} else {
+						write!(w, "{number}")
+					}
+				}
+			}
+		}
+	};
+}
 
 struct TypedModule<'a> {
 	name: &'a str,
@@ -39,12 +65,68 @@ trait Target: Sized {
 
 	fn write_register(post: &str, pre: &str, w: &mut dyn Write) -> IResult<()>;
 
+	fn write_invoke(data: &WastInvoke, w: &mut dyn Write) -> IResult<()>;
+
+	fn write_assert_trap(data: &WastExecute, w: &mut dyn Write) -> IResult<()>;
+
+	fn write_assert_return(
+		data: &WastExecute,
+		result: &[AssertExpression],
+		w: &mut dyn Write,
+	) -> IResult<()>;
+
+	fn write_assert_exhaustion(data: &WastInvoke, w: &mut dyn Write) -> IResult<()>;
+
 	fn write_runtime(w: &mut dyn Write) -> IResult<()>;
 
-	fn write_module(data: TypedModule, w: &mut dyn Write) -> IResult<()>;
+	fn write_module(typed: &TypedModule, w: &mut dyn Write) -> IResult<()>;
 }
 
 struct LuaJIT;
+
+impl LuaJIT {
+	fn write_expression(data: &Expression, w: &mut dyn Write) -> IResult<()> {
+		let data = &data.instrs;
+
+		assert_eq!(data.len(), 1, "Only one instruction supported");
+
+		match &data[0] {
+			Instruction::I32Const(v) => write!(w, "{v}"),
+			Instruction::I64Const(v) => write!(w, "{v}LL"),
+			Instruction::F32Const(v) => write!(w, "{}", f32::from_bits(v.bits)),
+			Instruction::F64Const(v) => write!(w, "{}", f64::from_bits(v.bits)),
+			_ => panic!("Unsupported instruction"),
+		}
+	}
+
+	write_assert_number!(write_assert_maybe_f32, Float32, f32);
+	write_assert_number!(write_assert_maybe_f64, Float64, f64);
+
+	fn write_simple_expression(data: &AssertExpression, w: &mut dyn Write) -> IResult<()> {
+		match data {
+			AssertExpression::I32(v) => write!(w, "{v}"),
+			AssertExpression::I64(v) => write!(w, "{v}LL"),
+			AssertExpression::F32(v) => Self::write_assert_maybe_f32(v, w),
+			AssertExpression::F64(v) => Self::write_assert_maybe_f64(v, w),
+			_ => panic!("Unsupported expression"),
+		}
+	}
+
+	fn write_call_of(handler: &str, data: &WastInvoke, w: &mut dyn Write) -> IResult<()> {
+		let name = TypedModule::resolve_id(data.module);
+		let func = data.name;
+
+		write!(w, "{handler}(")?;
+		write!(w, r#"loaded["{name}"].func_list["{func}"]"#)?;
+
+		data.args.iter().try_for_each(|v| {
+			write!(w, ", ")?;
+			Self::write_expression(v, w)
+		})?;
+
+		write!(w, ")")
+	}
+}
 
 impl Target for LuaJIT {
 	fn executable() -> String {
@@ -52,20 +134,80 @@ impl Target for LuaJIT {
 	}
 
 	fn write_register(post: &str, pre: &str, w: &mut dyn Write) -> IResult<()> {
-		writeln!(w, "storage[\"{}\"] = storage[\"${}\"]", post, pre)
+		writeln!(w, r#"linked["{post}"] = loaded["{pre}"]"#)
+	}
+
+	fn write_invoke(data: &WastInvoke, w: &mut dyn Write) -> IResult<()> {
+		Self::write_call_of("raw_invoke", data, w)?;
+		writeln!(w)
+	}
+
+	fn write_assert_trap(data: &WastExecute, w: &mut dyn Write) -> IResult<()> {
+		match data {
+			WastExecute::Invoke(data) => {
+				Self::write_call_of("assert_trap", data, w)?;
+				writeln!(w)
+			}
+			WastExecute::Get { module, global } => {
+				let name = TypedModule::resolve_id(*module);
+
+				write!(w, "assert_neq(")?;
+				write!(w, r#"loaded["{name}"].global_list["{global}"].value"#)?;
+				writeln!(w, ", nil)")
+			}
+			WastExecute::Wat(_) => panic!("Wat not supported"),
+		}
+	}
+
+	fn write_assert_return(
+		data: &WastExecute,
+		result: &[AssertExpression],
+		w: &mut dyn Write,
+	) -> IResult<()> {
+		match data {
+			WastExecute::Invoke(data) => {
+				write!(w, "assert_return(")?;
+				write!(w, "{{")?;
+				Self::write_call_of("raw_invoke", data, w)?;
+				write!(w, "}}, {{")?;
+
+				for v in result {
+					Self::write_simple_expression(v, w)?;
+					write!(w, ", ")?;
+				}
+
+				writeln!(w, "}})")
+			}
+			WastExecute::Get { module, global } => {
+				let name = TypedModule::resolve_id(*module);
+
+				write!(w, "assert_eq(")?;
+				write!(w, r#"loaded["{name}"].global_list["{global}"].value"#)?;
+				write!(w, ", ")?;
+				Self::write_simple_expression(&result[0], w)?;
+				writeln!(w, ")")
+			}
+			WastExecute::Wat(_) => panic!("Wat not supported"),
+		}
+	}
+
+	fn write_assert_exhaustion(data: &WastInvoke, w: &mut dyn Write) -> IResult<()> {
+		Self::write_call_of("assert_exhaustion", data, w)?;
+		writeln!(w)
 	}
 
 	fn write_runtime(w: &mut dyn Write) -> IResult<()> {
 		let runtime = codegen_luajit::RUNTIME;
 
 		writeln!(w, "local rt = (function() {runtime} end)()")?;
-		writeln!(w, "local storage = {{}}")
+		writeln!(w, "local loaded = {{}}")?;
+		writeln!(w, "local linked = {{}}")
 	}
 
-	fn write_module(data: TypedModule, w: &mut dyn Write) -> IResult<()> {
-		write!(w, "storage[\"${}\"] = (function() ", data.name)?;
-		codegen_luajit::from_module_typed(data.module, &data.type_info, w)?;
-		writeln!(w, "end)(nil)")
+	fn write_module(typed: &TypedModule, w: &mut dyn Write) -> IResult<()> {
+		write!(w, r#"loaded["{}"] = (function() "#, typed.name)?;
+		codegen_luajit::from_module_typed(typed.module, &typed.type_info, w)?;
+		writeln!(w, "end)()(nil)")
 	}
 }
 
@@ -77,20 +219,41 @@ impl Target for Luau {
 	}
 
 	fn write_register(post: &str, pre: &str, w: &mut dyn Write) -> IResult<()> {
-		writeln!(w, "storage[\"{}\"] = storage[\"${}\"]", post, pre)
+		writeln!(w, r#"linked["{post}"] = loaded["{pre}"]"#)
+	}
+
+	fn write_invoke(data: &WastInvoke, w: &mut dyn Write) -> IResult<()> {
+		todo!();
+	}
+
+	fn write_assert_trap(data: &WastExecute, w: &mut dyn Write) -> IResult<()> {
+		todo!();
+	}
+
+	fn write_assert_return(
+		data: &WastExecute,
+		result: &[AssertExpression],
+		w: &mut dyn Write,
+	) -> IResult<()> {
+		todo!();
+	}
+
+	fn write_assert_exhaustion(data: &WastInvoke, w: &mut dyn Write) -> IResult<()> {
+		todo!();
 	}
 
 	fn write_runtime(w: &mut dyn Write) -> IResult<()> {
 		let runtime = codegen_luau::RUNTIME;
 
 		writeln!(w, "local rt = (function() {runtime} end)()")?;
-		writeln!(w, "local storage = {{}}")
+		writeln!(w, "local loaded = {{}}")?;
+		writeln!(w, "local linked = {{}}")
 	}
 
-	fn write_module(data: TypedModule, w: &mut dyn Write) -> IResult<()> {
-		write!(w, "storage[\"${}\"] = (function() ", data.name)?;
-		codegen_luau::from_module_typed(data.module, &data.type_info, w)?;
-		writeln!(w, "end)(nil)")
+	fn write_module(typed: &TypedModule, w: &mut dyn Write) -> IResult<()> {
+		write!(w, r#"loaded["{}"] = (function() "#, typed.name)?;
+		codegen_luau::from_module_typed(typed.module, &typed.type_info, w)?;
+		writeln!(w, "end)()(nil)")
 	}
 }
 
@@ -104,8 +267,8 @@ fn try_into_ast_module(data: QuoteWat) -> Option<AstModule> {
 
 // Only proceed with tests that observe any state.
 fn parse_and_validate<'a>(buffer: &'a ParseBuffer) -> Option<Wast<'a>> {
-	let loaded: Wast = wast::parser::parse(buffer).unwrap();
-	let observer = loaded.directives.iter().any(|v| {
+	let parsed: Wast = wast::parser::parse(buffer).unwrap();
+	let observer = parsed.directives.iter().any(|v| {
 		matches!(
 			v,
 			WastDirective::AssertTrap { .. }
@@ -114,7 +277,7 @@ fn parse_and_validate<'a>(buffer: &'a ParseBuffer) -> Option<Wast<'a>> {
 		)
 	});
 
-	observer.then(|| loaded)
+	observer.then(|| parsed)
 }
 
 static TEMP_DIR: &str = env!("CARGO_TARGET_TMPDIR");
@@ -141,19 +304,31 @@ impl<T: Target> Tester<T> {
 				let mut ast = try_into_ast_module(data).expect("Must be a module");
 				let bytes = ast.encode().unwrap();
 				let temp = parity_wasm::deserialize_buffer(&bytes).unwrap();
-				let data = TypedModule::from_id(ast.id, &temp);
+				let typed = TypedModule::from_id(ast.id, &temp);
 
-				T::write_module(data, w)
+				T::write_module(&typed, w)?;
 			}
 			WastDirective::Register { name, module, .. } => {
-				T::write_register(name, TypedModule::resolve_id(module), w)
+				let pre = TypedModule::resolve_id(module);
+
+				T::write_register(name, pre, w)?;
 			}
-			// WastDirective::Invoke(_) => todo!(),
-			// WastDirective::AssertTrap { exec, message, .. } => todo!(),
-			// WastDirective::AssertReturn { exec, results, .. } => todo!(),
-			// WastDirective::AssertExhaustion { call, message, .. } => todo!(),
-			_ => Ok(()),
+			WastDirective::Invoke(data) => {
+				T::write_invoke(&data, w)?;
+			}
+			WastDirective::AssertTrap { exec, .. } => {
+				T::write_assert_trap(&exec, w)?;
+			}
+			WastDirective::AssertReturn { exec, results, .. } => {
+				T::write_assert_return(&exec, &results, w)?;
+			}
+			WastDirective::AssertExhaustion { call, .. } => {
+				T::write_assert_exhaustion(&call, w)?;
+			}
+			_ => {}
 		}
+
+		Ok(())
 	}
 
 	fn run_command(file: &Path) -> IResult<()> {
