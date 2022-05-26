@@ -506,7 +506,7 @@ do
 	end
 
 	function allocator.init(memory, addr, data)
-		ffi.copy(by_offset(memory.data, addr), data, #data - 1)
+		ffi.copy(by_offset(memory.data, addr), data, #data)
 	end
 
 	function allocator.grow(memory, num)
