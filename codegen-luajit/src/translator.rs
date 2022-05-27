@@ -232,9 +232,13 @@ fn build_func_list(wasm: &Module, type_info: &TypeInfo) -> Vec<Intermediate> {
 
 fn write_local_operation(head: &str, tail: &str, w: &mut dyn Write) -> Result<()> {
 	match (head, tail) {
-		("abs" | "ceil" | "floor" | "sqrt" | "min" | "max", _) | ("band" | "bor" | "bxor", _) => {
+		("band" | "bor" | "bxor", _) => {
+			write!(w, "local {head}_{tail} = bit.{head} ")
+		}
+		("abs" | "ceil" | "floor" | "sqrt" | "min" | "max", _) => {
 			write!(w, "local {head}_{tail} = math.{head} ")
 		}
+
 		_ => write!(w, "local {head}_{tail} = rt.{head}.{tail} "),
 	}
 }
