@@ -17,6 +17,8 @@ use wast::{
 
 use wasm_ast::builder::TypeInfo;
 
+static ASSERTION: &str = include_str!("assertion.lua");
+
 macro_rules! write_assert_number {
 	($name:ident, $generic:ty, $reader:ty) => {
 		fn $name(data: &NanPattern<$generic>, w: &mut dyn Write) -> IResult<()> {
@@ -199,9 +201,8 @@ impl Target for LuaJIT {
 	fn write_runtime(w: &mut dyn Write) -> IResult<()> {
 		let runtime = codegen_luajit::RUNTIME;
 
-		writeln!(w, "local rt = (function() {runtime} end)()")?;
-		writeln!(w, "local loaded = {{}}")?;
-		writeln!(w, "local linked = {{}}")
+		writeln!(w, "{ASSERTION}")?;
+		writeln!(w, "local rt = (function() {runtime} end)()")
 	}
 
 	fn write_module(typed: &TypedModule, w: &mut dyn Write) -> IResult<()> {
@@ -245,9 +246,8 @@ impl Target for Luau {
 	fn write_runtime(w: &mut dyn Write) -> IResult<()> {
 		let runtime = codegen_luau::RUNTIME;
 
-		writeln!(w, "local rt = (function() {runtime} end)()")?;
-		writeln!(w, "local loaded = {{}}")?;
-		writeln!(w, "local linked = {{}}")
+		writeln!(w, "{ASSERTION}")?;
+		writeln!(w, "local rt = (function() {runtime} end)()")
 	}
 
 	fn write_module(typed: &TypedModule, w: &mut dyn Write) -> IResult<()> {
@@ -362,9 +362,13 @@ impl<T: Target> Tester<T> {
 	}
 }
 
-static DO_NOT_RUN: [&str; 4] = [
+static DO_NOT_RUN: [&str; 8] = [
 	"binary-leb128.wast",
 	"conversions.wast",
+	"float_exprs.wast",
+	"float_literals.wast",
+	"float_memory.wast",
+	"float_misc.wast",
 	"names.wast",
 	"skip-stack-guard-page.wast",
 ];
