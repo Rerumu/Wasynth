@@ -280,8 +280,6 @@ fn parse_and_validate<'a>(buffer: &'a ParseBuffer) -> Option<Wast<'a>> {
 	observer.then(|| parsed)
 }
 
-static TEMP_DIR: &str = env!("CARGO_TARGET_TMPDIR");
-
 struct Tester<T> {
 	_marker: PhantomData<T>,
 }
@@ -289,7 +287,9 @@ struct Tester<T> {
 impl<T: Target> Tester<T> {
 	fn test(name: &str, source: &str) -> IResult<()> {
 		if let Some(data) = Self::run_generation(source)? {
-			let temp = PathBuf::from(TEMP_DIR).join("west-".to_string() + name);
+			let temp = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
+				.join(name)
+				.with_extension("wast.lua");
 
 			std::fs::write(&temp, &data)?;
 			Self::run_command(&temp)?;
