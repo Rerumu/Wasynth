@@ -1,8 +1,8 @@
 use std::io::{Result, Write};
 
 use wasm_ast::node::{
-	BinOp, CmpOp, Expression, GetGlobal, GetLocal, LoadAt, MemoryGrow, MemorySize, Recall, Select,
-	UnOp, Value,
+	BinOp, CmpOp, Expression, GetGlobal, GetLocal, GetTemporary, LoadAt, MemoryGrow, MemorySize,
+	Select, UnOp, Value,
 };
 
 use crate::analyzer::operator::bin_symbol_of;
@@ -10,12 +10,6 @@ use crate::analyzer::operator::bin_symbol_of;
 use super::manager::{
 	write_cmp_op, write_condition, write_separated, write_variable, Driver, Manager,
 };
-
-impl Driver for Recall {
-	fn write(&self, _: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "reg_{} ", self.var)
-	}
-}
 
 impl Driver for Select {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
@@ -26,6 +20,12 @@ impl Driver for Select {
 		write!(w, "or ")?;
 		self.b.write(mng, w)?;
 		write!(w, ")")
+	}
+}
+
+impl Driver for GetTemporary {
+	fn write(&self, _: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		write!(w, "reg_{} ", self.var)
 	}
 }
 
@@ -164,8 +164,8 @@ impl Driver for CmpOp {
 impl Driver for Expression {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
-			Self::Recall(e) => e.write(mng, w),
 			Self::Select(e) => e.write(mng, w),
+			Self::GetTemporary(e) => e.write(mng, w),
 			Self::GetLocal(e) => e.write(mng, w),
 			Self::GetGlobal(e) => e.write(mng, w),
 			Self::LoadAt(e) => e.write(mng, w),

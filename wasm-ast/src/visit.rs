@@ -1,13 +1,13 @@
 use crate::node::{
 	Backward, BinOp, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Else, Expression, Forward,
-	GetGlobal, GetLocal, If, Intermediate, LoadAt, Memorize, MemoryGrow, MemorySize, Recall,
-	Return, Select, SetGlobal, SetLocal, Statement, StoreAt, UnOp, Value,
+	GetGlobal, GetLocal, GetTemporary, If, Intermediate, LoadAt, MemoryGrow, MemorySize, Return,
+	Select, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, UnOp, Value,
 };
 
 pub trait Visitor {
-	fn visit_recall(&mut self, _: &Recall) {}
-
 	fn visit_select(&mut self, _: &Select) {}
+
+	fn visit_get_temporary(&mut self, _: &GetTemporary) {}
 
 	fn visit_get_local(&mut self, _: &GetLocal) {}
 
@@ -31,8 +31,6 @@ pub trait Visitor {
 
 	fn visit_unreachable(&mut self) {}
 
-	fn visit_memorize(&mut self, _: &Memorize) {}
-
 	fn visit_forward(&mut self, _: &Forward) {}
 
 	fn visit_backward(&mut self, _: &Backward) {}
@@ -53,6 +51,8 @@ pub trait Visitor {
 
 	fn visit_call_indirect(&mut self, _: &CallIndirect) {}
 
+	fn visit_set_temporary(&mut self, _: &SetTemporary) {}
+
 	fn visit_set_local(&mut self, _: &SetLocal) {}
 
 	fn visit_set_global(&mut self, _: &SetGlobal) {}
@@ -66,12 +66,6 @@ pub trait Driver<T: Visitor> {
 	fn accept(&self, visitor: &mut T);
 }
 
-impl<T: Visitor> Driver<T> for Recall {
-	fn accept(&self, visitor: &mut T) {
-		visitor.visit_recall(self);
-	}
-}
-
 impl<T: Visitor> Driver<T> for Select {
 	fn accept(&self, visitor: &mut T) {
 		self.cond.accept(visitor);
@@ -79,6 +73,12 @@ impl<T: Visitor> Driver<T> for Select {
 		self.b.accept(visitor);
 
 		visitor.visit_select(self);
+	}
+}
+
+impl<T: Visitor> Driver<T> for GetTemporary {
+	fn accept(&self, visitor: &mut T) {
+		visitor.visit_get_temporary(self);
 	}
 }
 
@@ -151,8 +151,8 @@ impl<T: Visitor> Driver<T> for CmpOp {
 impl<T: Visitor> Driver<T> for Expression {
 	fn accept(&self, visitor: &mut T) {
 		match self {
-			Self::Recall(v) => v.accept(visitor),
 			Self::Select(v) => v.accept(visitor),
+			Self::GetTemporary(v) => v.accept(visitor),
 			Self::GetLocal(v) => v.accept(visitor),
 			Self::GetGlobal(v) => v.accept(visitor),
 			Self::LoadAt(v) => v.accept(visitor),
@@ -165,14 +165,6 @@ impl<T: Visitor> Driver<T> for Expression {
 		}
 
 		visitor.visit_expression(self);
-	}
-}
-
-impl<T: Visitor> Driver<T> for Memorize {
-	fn accept(&self, visitor: &mut T) {
-		self.value.accept(visitor);
-
-		visitor.visit_memorize(self);
 	}
 }
 
@@ -276,6 +268,14 @@ impl<T: Visitor> Driver<T> for CallIndirect {
 	}
 }
 
+impl<T: Visitor> Driver<T> for SetTemporary {
+	fn accept(&self, visitor: &mut T) {
+		self.value.accept(visitor);
+
+		visitor.visit_set_temporary(self);
+	}
+}
+
 impl<T: Visitor> Driver<T> for SetLocal {
 	fn accept(&self, visitor: &mut T) {
 		self.value.accept(visitor);
@@ -305,7 +305,6 @@ impl<T: Visitor> Driver<T> for Statement {
 	fn accept(&self, visitor: &mut T) {
 		match self {
 			Self::Unreachable => visitor.visit_unreachable(),
-			Self::Memorize(v) => v.accept(visitor),
 			Self::Forward(v) => v.accept(visitor),
 			Self::Backward(v) => v.accept(visitor),
 			Self::If(v) => v.accept(visitor),
@@ -315,6 +314,7 @@ impl<T: Visitor> Driver<T> for Statement {
 			Self::Return(v) => v.accept(visitor),
 			Self::Call(v) => v.accept(visitor),
 			Self::CallIndirect(v) => v.accept(visitor),
+			Self::SetTemporary(v) => v.accept(visitor),
 			Self::SetLocal(v) => v.accept(visitor),
 			Self::SetGlobal(v) => v.accept(visitor),
 			Self::StoreAt(v) => v.accept(visitor),

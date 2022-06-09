@@ -531,7 +531,7 @@ impl TryFrom<&Instruction> for CmpOpType {
 }
 
 #[derive(Clone)]
-pub struct Recall {
+pub struct GetTemporary {
 	pub var: usize,
 }
 
@@ -614,8 +614,8 @@ pub struct CmpOp {
 }
 
 pub enum Expression {
-	Recall(Recall),
 	Select(Select),
+	GetTemporary(GetTemporary),
 	GetLocal(GetLocal),
 	GetGlobal(GetGlobal),
 	LoadAt(LoadAt),
@@ -629,25 +629,20 @@ pub enum Expression {
 
 impl Expression {
 	#[must_use]
-	pub fn is_recalling(&self, wanted: usize) -> bool {
+	pub fn is_temporary(&self, wanted: usize) -> bool {
 		match self {
-			Expression::Recall(v) => v.var == wanted,
+			Expression::GetTemporary(v) => v.var == wanted,
 			_ => false,
 		}
 	}
 
 	#[must_use]
-	pub fn clone_recall(&self) -> Self {
+	pub fn clone_temporary(&self) -> Self {
 		match self {
-			Expression::Recall(v) => Expression::Recall(v.clone()),
-			_ => unreachable!("clone_recall called on non-recall"),
+			Expression::GetTemporary(v) => Expression::GetTemporary(v.clone()),
+			_ => unreachable!("not a temporary"),
 		}
 	}
-}
-
-pub struct Memorize {
-	pub var: usize,
-	pub value: Expression,
 }
 
 pub struct Forward {
@@ -699,6 +694,11 @@ pub struct CallIndirect {
 	pub param_list: Vec<Expression>,
 }
 
+pub struct SetTemporary {
+	pub var: usize,
+	pub value: Expression,
+}
+
 pub struct SetLocal {
 	pub var: usize,
 	pub value: Expression,
@@ -718,7 +718,6 @@ pub struct StoreAt {
 
 pub enum Statement {
 	Unreachable,
-	Memorize(Memorize),
 	Forward(Forward),
 	Backward(Backward),
 	If(If),
@@ -728,6 +727,7 @@ pub enum Statement {
 	Return(Return),
 	Call(Call),
 	CallIndirect(CallIndirect),
+	SetTemporary(SetTemporary),
 	SetLocal(SetLocal),
 	SetGlobal(SetGlobal),
 	StoreAt(StoreAt),

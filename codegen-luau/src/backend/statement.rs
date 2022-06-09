@@ -5,8 +5,8 @@ use std::{
 
 use parity_wasm::elements::ValueType;
 use wasm_ast::node::{
-	Backward, Br, BrIf, BrTable, Call, CallIndirect, Else, Forward, If, Intermediate, Memorize,
-	Return, SetGlobal, SetLocal, Statement, StoreAt,
+	Backward, Br, BrIf, BrTable, Call, CallIndirect, Else, Forward, If, Intermediate, Return,
+	SetGlobal, SetLocal, SetTemporary, Statement, StoreAt,
 };
 
 use super::manager::{
@@ -32,13 +32,6 @@ fn write_br_gadget(label_list: &[Label], rem: usize, w: &mut dyn Write) -> Resul
 		Some(Label::Forward | Label::If) => br_target(rem, false, w),
 		Some(Label::Backward) => br_target(rem, true, w),
 		None => Ok(()),
-	}
-}
-
-impl Driver for Memorize {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "reg_{} = ", self.var)?;
-		self.value.write(mng, w)
 	}
 }
 
@@ -203,6 +196,13 @@ impl Driver for CallIndirect {
 	}
 }
 
+impl Driver for SetTemporary {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		write!(w, "reg_{} = ", self.var)?;
+		self.value.write(mng, w)
+	}
+}
+
 impl Driver for SetLocal {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write_variable(self.var, mng, w)?;
@@ -237,7 +237,6 @@ impl Driver for Statement {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
 			Self::Unreachable => write!(w, "error(\"out of code bounds\")"),
-			Self::Memorize(s) => s.write(mng, w),
 			Self::Forward(s) => s.write(mng, w),
 			Self::Backward(s) => s.write(mng, w),
 			Self::If(s) => s.write(mng, w),
@@ -247,6 +246,7 @@ impl Driver for Statement {
 			Self::Return(s) => s.write(mng, w),
 			Self::Call(s) => s.write(mng, w),
 			Self::CallIndirect(s) => s.write(mng, w),
+			Self::SetTemporary(s) => s.write(mng, w),
 			Self::SetLocal(s) => s.write(mng, w),
 			Self::SetGlobal(s) => s.write(mng, w),
 			Self::StoreAt(s) => s.write(mng, w),

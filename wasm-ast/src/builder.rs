@@ -5,8 +5,8 @@ use parity_wasm::elements::{
 
 use crate::node::{
 	Backward, BinOp, BinOpType, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType, Else,
-	Expression, Forward, GetGlobal, GetLocal, If, Intermediate, LoadAt, LoadType, Memorize,
-	MemoryGrow, MemorySize, Recall, Return, Select, SetGlobal, SetLocal, Statement, StoreAt,
+	Expression, Forward, GetGlobal, GetLocal, GetTemporary, If, Intermediate, LoadAt, LoadType,
+	MemoryGrow, MemorySize, Return, Select, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt,
 	StoreType, UnOp, UnOpType, Value,
 };
 
@@ -125,22 +125,22 @@ impl Stacked {
 			.stack
 			.iter_mut()
 			.enumerate()
-			.filter(|v| !v.1.is_recalling(v.0))
+			.filter(|v| !v.1.is_temporary(v.0))
 		{
-			let new = Expression::Recall(Recall { var: i });
-			let mem = Memorize {
+			let get = Expression::GetTemporary(GetTemporary { var: i });
+			let set = Statement::SetTemporary(SetTemporary {
 				var: i,
-				value: std::mem::replace(v, new),
-			};
+				value: std::mem::replace(v, get),
+			});
 
-			stat.push(Statement::Memorize(mem));
+			stat.push(set);
 		}
 	}
 
 	// Pending expressions are put to sleep before entering
 	// a control structure so that they are not lost.
 	fn save_pending(&mut self) {
-		let cloned = self.stack.iter().map(Expression::clone_recall).collect();
+		let cloned = self.stack.iter().map(Expression::clone_temporary).collect();
 
 		self.pending_list.push(cloned);
 	}
@@ -167,11 +167,12 @@ impl Stacked {
 		self.stack.push(value);
 	}
 
-	fn push_recall(&mut self, num: usize) {
+	fn push_temporary(&mut self, num: usize) {
 		let len = self.stack.len();
 
 		for var in len..len + num {
-			self.stack.push(Expression::Recall(Recall { var }));
+			self.stack
+				.push(Expression::GetTemporary(GetTemporary { var }));
 		}
 	}
 
@@ -333,7 +334,7 @@ impl<'a> Builder<'a> {
 			}
 		};
 
-		self.data.push_recall(num);
+		self.data.push_temporary(num);
 	}
 
 	fn gen_return(&mut self, stat: &mut Vec<Statement>) {
@@ -351,7 +352,7 @@ impl<'a> Builder<'a> {
 		let first = self.data.stack.len();
 		let result = first..first + arity.num_result;
 
-		self.data.push_recall(arity.num_result);
+		self.data.push_temporary(arity.num_result);
 		self.data.gen_leak_pending(stat);
 
 		stat.push(Statement::Call(Call {
@@ -369,7 +370,7 @@ impl<'a> Builder<'a> {
 		let first = self.data.stack.len();
 		let result = first..first + arity.num_result;
 
-		self.data.push_recall(arity.num_result);
+		self.data.push_temporary(arity.num_result);
 		self.data.gen_leak_pending(stat);
 
 		stat.push(Statement::CallIndirect(CallIndirect {
@@ -532,7 +533,7 @@ impl<'a> Builder<'a> {
 					let var = var.try_into().unwrap();
 					let value = self.data.pop();
 
-					self.data.push(value.clone_recall());
+					self.data.push(value.clone_temporary());
 					stat.push(Statement::SetLocal(SetLocal { var, value }));
 				}
 				Inst::GetGlobal(var) => {
