@@ -5,8 +5,8 @@ use std::{
 
 use parity_wasm::elements::ValueType;
 use wasm_ast::node::{
-	Backward, Br, BrIf, BrTable, Call, CallIndirect, Else, Forward, If, Intermediate, Return,
-	SetGlobal, SetLocal, SetTemporary, Statement, StoreAt,
+	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, If, Intermediate, Return, SetGlobal,
+	SetLocal, SetTemporary, Statement, StoreAt,
 };
 
 use super::manager::{
@@ -45,14 +45,6 @@ impl Driver for Backward {
 	}
 }
 
-impl Driver for Else {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "else ")?;
-
-		self.body.iter().try_for_each(|s| s.write(mng, w))
-	}
-}
-
 impl Driver for If {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let label = mng.push_label();
@@ -63,8 +55,10 @@ impl Driver for If {
 
 		self.truthy.iter().try_for_each(|s| s.write(mng, w))?;
 
-		if let Some(s) = &self.falsey {
-			s.write(mng, w)?;
+		if !self.falsey.is_empty() {
+			write!(w, "else ")?;
+
+			self.falsey.iter().try_for_each(|s| s.write(mng, w))?;
 		}
 
 		write!(w, "end ")?;

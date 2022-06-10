@@ -653,14 +653,10 @@ pub struct Backward {
 	pub body: Vec<Statement>,
 }
 
-pub struct Else {
-	pub body: Vec<Statement>,
-}
-
 pub struct If {
 	pub cond: Expression,
 	pub truthy: Vec<Statement>,
-	pub falsey: Option<Else>,
+	pub falsey: Vec<Statement>,
 }
 
 pub struct Br {

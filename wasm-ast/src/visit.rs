@@ -1,7 +1,7 @@
 use crate::node::{
-	Backward, BinOp, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Else, Expression, Forward,
-	GetGlobal, GetLocal, GetTemporary, If, Intermediate, LoadAt, MemoryGrow, MemorySize, Return,
-	Select, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, UnOp, Value,
+	Backward, BinOp, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Expression, Forward, GetGlobal,
+	GetLocal, GetTemporary, If, Intermediate, LoadAt, MemoryGrow, MemorySize, Return, Select,
+	SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, UnOp, Value,
 };
 
 pub trait Visitor {
@@ -34,8 +34,6 @@ pub trait Visitor {
 	fn visit_forward(&mut self, _: &Forward) {}
 
 	fn visit_backward(&mut self, _: &Backward) {}
-
-	fn visit_else(&mut self, _: &Else) {}
 
 	fn visit_if(&mut self, _: &If) {}
 
@@ -188,16 +186,6 @@ impl<T: Visitor> Driver<T> for Backward {
 	}
 }
 
-impl<T: Visitor> Driver<T> for Else {
-	fn accept(&self, visitor: &mut T) {
-		for v in &self.body {
-			v.accept(visitor);
-		}
-
-		visitor.visit_else(self);
-	}
-}
-
 impl<T: Visitor> Driver<T> for If {
 	fn accept(&self, visitor: &mut T) {
 		self.cond.accept(visitor);
@@ -206,7 +194,7 @@ impl<T: Visitor> Driver<T> for If {
 			v.accept(visitor);
 		}
 
-		if let Some(v) = &self.falsey {
+		for v in &self.falsey {
 			v.accept(visitor);
 		}
 

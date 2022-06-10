@@ -4,7 +4,7 @@ use parity_wasm::elements::{
 };
 
 use crate::node::{
-	Backward, BinOp, BinOpType, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType, Else,
+	Backward, BinOp, BinOpType, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType,
 	Expression, Forward, GetGlobal, GetLocal, GetTemporary, If, Intermediate, LoadAt, LoadType,
 	MemoryGrow, MemorySize, Return, Select, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt,
 	StoreType, UnOp, UnOpType, Value,
@@ -605,18 +605,14 @@ impl<'a> Builder<'a> {
 		stat
 	}
 
-	fn new_else(&mut self, list: &mut &[Instruction]) -> Else {
-		Else {
-			body: self.new_stored_body(list),
-		}
-	}
-
 	fn new_if(&mut self, cond: Expression, list: &mut &[Instruction]) -> If {
 		let copied = <&[Instruction]>::clone(list);
 		let truthy = self.new_stored_body(list);
 
 		let end = copied.len() - list.len() - 1;
-		let falsey = is_else_stat(&copied[end]).then(|| self.new_else(list));
+		let falsey = is_else_stat(&copied[end])
+			.then(|| self.new_stored_body(list))
+			.unwrap_or_default();
 
 		If {
 			cond,
