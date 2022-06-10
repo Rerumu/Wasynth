@@ -62,8 +62,8 @@ local function assert_trap(func, ...)
 end
 
 local function assert_return(data, wanted)
-	for i, v in ipairs(data) do
-		assert_eq(v, wanted[i], "Result mismatch at " .. i, 2)
+	for i, v in ipairs(wanted) do
+		assert_eq(data[i], v, "Result mismatch at " .. i, 2)
 	end
 end
 
