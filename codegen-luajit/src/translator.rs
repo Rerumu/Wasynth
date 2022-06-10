@@ -49,7 +49,7 @@ fn write_named_array(name: &str, len: usize, w: &mut dyn Write) -> Result<()> {
 }
 
 fn write_constant(code: &[Instruction], type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
-	let func = Builder::new(type_info).with_anon(code);
+	let func = Builder::from_type_info(type_info).build_anonymous(code);
 
 	write!(w, "(")?;
 	func.write(&mut Manager::default(), w)?;
@@ -226,7 +226,7 @@ fn build_func_list(wasm: &Module, type_info: &TypeInfo) -> Vec<Intermediate> {
 
 	let iter = list.iter().enumerate();
 
-	iter.map(|f| Builder::new(type_info).with_index(f.0, f.1))
+	iter.map(|f| Builder::from_type_info(type_info).build_indexed(f.0, f.1))
 		.collect()
 }
 
@@ -326,8 +326,8 @@ fn write_module_start(
 /// # Errors
 /// Returns `Err` if writing to `Write` failed.
 pub fn from_inst_list(code: &[Instruction], type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
-	Builder::new(type_info)
-		.with_anon(code)
+	Builder::from_type_info(type_info)
+		.build_anonymous(code)
 		.write(&mut Manager::default(), w)
 }
 

@@ -629,19 +629,34 @@ pub enum Expression {
 
 impl Expression {
 	#[must_use]
-	pub fn is_temporary(&self, wanted: usize) -> bool {
-		match self {
-			Expression::GetTemporary(v) => v.var == wanted,
-			_ => false,
-		}
+	pub fn has_side_effect(&self) -> bool {
+		matches!(self, Expression::MemorySize(_))
 	}
 
 	#[must_use]
-	pub fn clone_temporary(&self) -> Self {
-		match self {
-			Expression::GetTemporary(v) => Expression::GetTemporary(v.clone()),
-			_ => unreachable!("not a temporary"),
-		}
+	pub fn is_temporary(&self, id: usize) -> bool {
+		matches!(self, Expression::GetTemporary(v) if v.var == id)
+	}
+
+	#[must_use]
+	pub fn is_local_read(&self, id: usize) -> bool {
+		matches!(self, Expression::GetLocal(v) if v.var == id)
+	}
+
+	#[must_use]
+	pub fn is_global_read(&self, id: usize) -> bool {
+		matches!(self, Expression::GetGlobal(v) if v.var == id)
+	}
+
+	#[must_use]
+	pub fn is_memory_size(&self, id: usize) -> bool {
+		matches!(self, Expression::MemorySize(v) if v.memory == id)
+	}
+
+	#[must_use]
+	pub fn is_memory_ref(&self, id: usize) -> bool {
+		matches!(self, Expression::MemoryGrow(v) if v.memory == id)
+			|| (id == 0 && matches!(self, Expression::LoadAt(_)))
 	}
 }
 
