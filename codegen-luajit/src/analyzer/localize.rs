@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use wasm_ast::{
-	node::{BinOp, CmpOp, Intermediate, LoadAt, StoreAt, UnOp},
+	node::{BinOp, CmpOp, FuncData, LoadAt, StoreAt, UnOp},
 	visit::{Driver, Visitor},
 };
 
@@ -51,12 +51,12 @@ impl Visitor for Visit {
 	}
 }
 
-pub fn visit(ir: &Intermediate) -> BTreeSet<(&'static str, &'static str)> {
+pub fn visit(ast: &FuncData) -> BTreeSet<(&'static str, &'static str)> {
 	let mut visit = Visit {
 		result: BTreeSet::new(),
 	};
 
-	ir.accept(&mut visit);
+	ast.accept(&mut visit);
 
 	visit.result
 }

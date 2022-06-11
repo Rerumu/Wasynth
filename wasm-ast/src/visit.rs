@@ -1,6 +1,6 @@
 use crate::node::{
-	Backward, BinOp, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Expression, Forward, GetGlobal,
-	GetLocal, GetTemporary, If, Intermediate, LoadAt, MemoryGrow, MemorySize, Return, Select,
+	Backward, BinOp, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Expression, Forward, FuncData,
+	GetGlobal, GetLocal, GetTemporary, If, LoadAt, MemoryGrow, MemorySize, Return, Select,
 	SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, Terminator, UnOp, Value,
 };
 
@@ -328,7 +328,7 @@ impl<T: Visitor> Driver<T> for Statement {
 	}
 }
 
-impl<T: Visitor> Driver<T> for Intermediate {
+impl<T: Visitor> Driver<T> for FuncData {
 	fn accept(&self, visitor: &mut T) {
 		self.code.accept(visitor);
 	}

@@ -751,7 +751,7 @@ pub enum Statement {
 	StoreAt(StoreAt),
 }
 
-pub struct Intermediate {
+pub struct FuncData {
 	pub local_data: Vec<Local>,
 	pub num_param: usize,
 	pub num_stack: usize,

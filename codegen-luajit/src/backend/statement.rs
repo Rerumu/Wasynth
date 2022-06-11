@@ -5,7 +5,7 @@ use std::{
 
 use parity_wasm::elements::ValueType;
 use wasm_ast::node::{
-	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, If, Intermediate, Return, SetGlobal,
+	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, FuncData, If, Return, SetGlobal,
 	SetLocal, SetTemporary, Statement, StoreAt, Terminator,
 };
 
@@ -256,16 +256,16 @@ impl Driver for Statement {
 	}
 }
 
-fn write_parameter_list(ir: &Intermediate, w: &mut dyn Write) -> Result<()> {
+fn write_parameter_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 	write!(w, "function(")?;
-	write_ascending("param", 0..ir.num_param, w)?;
+	write_ascending("param", 0..ast.num_param, w)?;
 	write!(w, ")")
 }
 
-fn write_variable_list(ir: &Intermediate, w: &mut dyn Write) -> Result<()> {
+fn write_variable_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 	let mut total = 0;
 
-	for data in &ir.local_data {
+	for data in &ast.local_data {
 		let range = total..total + usize::try_from(data.count()).unwrap();
 		let typed = if data.value_type() == ValueType::I64 {
 			"0LL"
@@ -283,16 +283,16 @@ fn write_variable_list(ir: &Intermediate, w: &mut dyn Write) -> Result<()> {
 		write!(w, " ")?;
 	}
 
-	if ir.num_stack != 0 {
+	if ast.num_stack != 0 {
 		write!(w, "local ")?;
-		write_ascending("reg", 0..ir.num_stack, w)?;
+		write_ascending("reg", 0..ast.num_stack, w)?;
 		write!(w, " ")?;
 	}
 
 	Ok(())
 }
 
-impl Driver for Intermediate {
+impl Driver for FuncData {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write_parameter_list(self, w)?;
 		write_variable_list(self, w)?;

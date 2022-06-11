@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use wasm_ast::{
-	node::{Intermediate, LoadAt, MemoryGrow, MemorySize, StoreAt},
+	node::{FuncData, LoadAt, MemoryGrow, MemorySize, StoreAt},
 	visit::{Driver, Visitor},
 };
 
@@ -27,12 +27,12 @@ impl Visitor for Visit {
 	}
 }
 
-pub fn visit(ir: &Intermediate) -> BTreeSet<usize> {
+pub fn visit(ast: &FuncData) -> BTreeSet<usize> {
 	let mut visit = Visit {
 		result: BTreeSet::new(),
 	};
 
-	ir.accept(&mut visit);
+	ast.accept(&mut visit);
 
 	visit.result
 }

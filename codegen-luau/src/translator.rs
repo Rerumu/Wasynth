@@ -9,7 +9,7 @@ use parity_wasm::elements::{
 
 use wasm_ast::{
 	builder::{Builder, TypeInfo},
-	node::Intermediate,
+	node::FuncData,
 };
 
 use crate::{
@@ -217,7 +217,7 @@ fn write_data_list(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Re
 	Ok(())
 }
 
-fn build_func_list(wasm: &Module, type_info: &TypeInfo) -> Vec<Intermediate> {
+fn build_func_list(wasm: &Module, type_info: &TypeInfo) -> Vec<FuncData> {
 	let list = match wasm.code_section() {
 		Some(v) => v.bodies(),
 		None => return Vec::new(),
@@ -241,7 +241,7 @@ fn write_local_operation(head: &str, tail: &str, w: &mut dyn Write) -> Result<()
 	}
 }
 
-fn write_localize_used(func_list: &[Intermediate], w: &mut dyn Write) -> Result<()> {
+fn write_localize_used(func_list: &[FuncData], w: &mut dyn Write) -> Result<()> {
 	let loc_set: BTreeSet<_> = func_list.iter().flat_map(localize::visit).collect();
 
 	loc_set
@@ -249,7 +249,7 @@ fn write_localize_used(func_list: &[Intermediate], w: &mut dyn Write) -> Result<
 		.try_for_each(|(a, b)| write_local_operation(a, b, w))
 }
 
-fn write_memory_used(func_list: &[Intermediate], w: &mut dyn Write) -> Result<Vec<usize>> {
+fn write_memory_used(func_list: &[FuncData], w: &mut dyn Write) -> Result<Vec<usize>> {
 	let mem_set: BTreeSet<_> = func_list.iter().flat_map(memory::visit).collect();
 	let list: Vec<_> = mem_set.into_iter().collect();
 
@@ -278,7 +278,7 @@ fn write_func_start(wasm: &Module, index: u32, offset: u32, w: &mut dyn Write) -
 fn write_func_list(
 	wasm: &Module,
 	type_info: &TypeInfo,
-	func_list: &[Intermediate],
+	func_list: &[FuncData],
 	w: &mut dyn Write,
 ) -> Result<()> {
 	let offset = type_info.len_ex().try_into().unwrap();

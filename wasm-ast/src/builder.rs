@@ -5,7 +5,7 @@ use parity_wasm::elements::{
 
 use crate::node::{
 	Backward, BinOp, BinOpType, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType,
-	Expression, Forward, GetGlobal, GetLocal, GetTemporary, If, Intermediate, LoadAt, LoadType,
+	Expression, Forward, FuncData, GetGlobal, GetLocal, GetTemporary, If, LoadAt, LoadType,
 	MemoryGrow, MemorySize, Return, Select, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt,
 	StoreType, Terminator, UnOp, UnOpType, Value,
 };
@@ -328,10 +328,10 @@ impl<'a> Builder<'a> {
 	}
 
 	#[must_use]
-	pub fn build_anonymous(mut self, list: &[Instruction]) -> Intermediate {
+	pub fn build_anonymous(mut self, list: &[Instruction]) -> FuncData {
 		let data = self.build_stat_list(list, 1);
 
-		Intermediate {
+		FuncData {
 			local_data: Vec::new(),
 			num_param: 0,
 			num_stack: data.num_stack,
@@ -340,11 +340,11 @@ impl<'a> Builder<'a> {
 	}
 
 	#[must_use]
-	pub fn build_indexed(mut self, index: usize, func: &FuncBody) -> Intermediate {
+	pub fn build_indexed(mut self, index: usize, func: &FuncBody) -> FuncData {
 		let arity = &self.type_info.rel_arity_of(self.type_info.len_ex() + index);
 		let data = self.build_stat_list(func.code().elements(), arity.num_result);
 
-		Intermediate {
+		FuncData {
 			local_data: func.locals().to_vec(),
 			num_param: arity.num_param,
 			num_stack: data.num_stack,
