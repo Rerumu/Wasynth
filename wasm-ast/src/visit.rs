@@ -1,7 +1,7 @@
 use crate::node::{
 	Backward, BinOp, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Expression, Forward, GetGlobal,
 	GetLocal, GetTemporary, If, Intermediate, LoadAt, MemoryGrow, MemorySize, Return, Select,
-	SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, UnOp, Value,
+	SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, Terminator, UnOp, Value,
 };
 
 pub trait Visitor {
@@ -31,19 +31,21 @@ pub trait Visitor {
 
 	fn visit_unreachable(&mut self) {}
 
+	fn visit_br(&mut self, _: &Br) {}
+
+	fn visit_br_table(&mut self, _: &BrTable) {}
+
+	fn visit_return(&mut self, _: &Return) {}
+
+	fn visit_terminator(&mut self, _: &Terminator) {}
+
 	fn visit_forward(&mut self, _: &Forward) {}
 
 	fn visit_backward(&mut self, _: &Backward) {}
 
 	fn visit_if(&mut self, _: &If) {}
 
-	fn visit_br(&mut self, _: &Br) {}
-
 	fn visit_br_if(&mut self, _: &BrIf) {}
-
-	fn visit_br_table(&mut self, _: &BrTable) {}
-
-	fn visit_return(&mut self, _: &Return) {}
 
 	fn visit_call(&mut self, _: &Call) {}
 
@@ -166,53 +168,9 @@ impl<T: Visitor> Driver<T> for Expression {
 	}
 }
 
-impl<T: Visitor> Driver<T> for Forward {
-	fn accept(&self, visitor: &mut T) {
-		for v in &self.body {
-			v.accept(visitor);
-		}
-
-		visitor.visit_forward(self);
-	}
-}
-
-impl<T: Visitor> Driver<T> for Backward {
-	fn accept(&self, visitor: &mut T) {
-		for v in &self.body {
-			v.accept(visitor);
-		}
-
-		visitor.visit_backward(self);
-	}
-}
-
-impl<T: Visitor> Driver<T> for If {
-	fn accept(&self, visitor: &mut T) {
-		self.cond.accept(visitor);
-
-		for v in &self.truthy {
-			v.accept(visitor);
-		}
-
-		for v in &self.falsey {
-			v.accept(visitor);
-		}
-
-		visitor.visit_if(self);
-	}
-}
-
 impl<T: Visitor> Driver<T> for Br {
 	fn accept(&self, visitor: &mut T) {
 		visitor.visit_br(self);
-	}
-}
-
-impl<T: Visitor> Driver<T> for BrIf {
-	fn accept(&self, visitor: &mut T) {
-		self.cond.accept(visitor);
-
-		visitor.visit_br_if(self);
 	}
 }
 
@@ -231,6 +189,68 @@ impl<T: Visitor> Driver<T> for Return {
 		}
 
 		visitor.visit_return(self);
+	}
+}
+
+impl<T: Visitor> Driver<T> for Terminator {
+	fn accept(&self, visitor: &mut T) {
+		match self {
+			Self::Unreachable => visitor.visit_unreachable(),
+			Self::Br(v) => v.accept(visitor),
+			Self::BrTable(v) => v.accept(visitor),
+			Self::Return(v) => v.accept(visitor),
+		}
+
+		visitor.visit_terminator(self);
+	}
+}
+
+impl<T: Visitor> Driver<T> for Forward {
+	fn accept(&self, visitor: &mut T) {
+		for v in &self.code {
+			v.accept(visitor);
+		}
+
+		if let Some(v) = &self.last {
+			v.accept(visitor);
+		}
+
+		visitor.visit_forward(self);
+	}
+}
+
+impl<T: Visitor> Driver<T> for Backward {
+	fn accept(&self, visitor: &mut T) {
+		for v in &self.code {
+			v.accept(visitor);
+		}
+
+		if let Some(v) = &self.last {
+			v.accept(visitor);
+		}
+
+		visitor.visit_backward(self);
+	}
+}
+
+impl<T: Visitor> Driver<T> for If {
+	fn accept(&self, visitor: &mut T) {
+		self.cond.accept(visitor);
+		self.truthy.accept(visitor);
+
+		if let Some(v) = &self.falsey {
+			v.accept(visitor);
+		}
+
+		visitor.visit_if(self);
+	}
+}
+
+impl<T: Visitor> Driver<T> for BrIf {
+	fn accept(&self, visitor: &mut T) {
+		self.cond.accept(visitor);
+
+		visitor.visit_br_if(self);
 	}
 }
 
@@ -292,14 +312,10 @@ impl<T: Visitor> Driver<T> for StoreAt {
 impl<T: Visitor> Driver<T> for Statement {
 	fn accept(&self, visitor: &mut T) {
 		match self {
-			Self::Unreachable => visitor.visit_unreachable(),
 			Self::Forward(v) => v.accept(visitor),
 			Self::Backward(v) => v.accept(visitor),
 			Self::If(v) => v.accept(visitor),
-			Self::Br(v) => v.accept(visitor),
 			Self::BrIf(v) => v.accept(visitor),
-			Self::BrTable(v) => v.accept(visitor),
-			Self::Return(v) => v.accept(visitor),
 			Self::Call(v) => v.accept(visitor),
 			Self::CallIndirect(v) => v.accept(visitor),
 			Self::SetTemporary(v) => v.accept(visitor),

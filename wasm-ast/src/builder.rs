@@ -7,7 +7,7 @@ use crate::node::{
 	Backward, BinOp, BinOpType, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType,
 	Expression, Forward, GetGlobal, GetLocal, GetTemporary, If, Intermediate, LoadAt, LoadType,
 	MemoryGrow, MemorySize, Return, Select, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt,
-	StoreType, UnOp, UnOpType, Value,
+	StoreType, Terminator, UnOp, UnOpType, Value,
 };
 
 macro_rules! leak_with_predicate {
@@ -112,8 +112,9 @@ impl<'a> TypeInfo<'a> {
 
 #[derive(Default)]
 struct StatList {
-	code: Vec<Statement>,
 	stack: Vec<Expression>,
+	code: Vec<Statement>,
+	last: Option<Terminator>,
 
 	num_result: usize,
 	num_stack: usize,
@@ -286,6 +287,24 @@ impl StatList {
 	}
 }
 
+impl From<StatList> for Forward {
+	fn from(stat: StatList) -> Self {
+		Self {
+			code: stat.code,
+			last: stat.last,
+		}
+	}
+}
+
+impl From<StatList> for Backward {
+	fn from(stat: StatList) -> Self {
+		Self {
+			code: stat.code,
+			last: stat.last,
+		}
+	}
+}
+
 pub struct Builder<'a> {
 	type_info: &'a TypeInfo<'a>,
 
@@ -316,7 +335,7 @@ impl<'a> Builder<'a> {
 			local_data: Vec::new(),
 			num_param: 0,
 			num_stack: data.num_stack,
-			code: Forward { body: data.code },
+			code: data.into(),
 		}
 	}
 
@@ -329,10 +348,11 @@ impl<'a> Builder<'a> {
 			local_data: func.locals().to_vec(),
 			num_param: arity.num_param,
 			num_stack: data.num_stack,
-			code: Forward { body: data.code },
+			code: data.into(),
 		}
 	}
 
+	// FIXME: Sets up temporaries except when used in a weird way
 	fn start_block(&mut self, typ: BlockType) {
 		let mut old = std::mem::take(&mut self.target);
 
@@ -360,10 +380,10 @@ impl<'a> Builder<'a> {
 		self.target.num_stack = now.num_stack;
 
 		match self.target.code.last_mut().unwrap() {
-			Statement::Forward(data) => data.body = now.code,
-			Statement::Backward(data) => data.body = now.code,
-			Statement::If(data) if now.is_else => data.falsey = now.code,
-			Statement::If(data) if !now.is_else => data.truthy = now.code,
+			Statement::Forward(data) => *data = now.into(),
+			Statement::Backward(data) => *data = now.into(),
+			Statement::If(data) if !now.is_else => data.truthy = now.into(),
+			Statement::If(data) if now.is_else => data.falsey = Some(now.into()),
 			_ => unreachable!(),
 		}
 	}
@@ -408,13 +428,13 @@ impl<'a> Builder<'a> {
 		self.target.code.push(data);
 	}
 
-	fn add_return(&mut self) {
-		let data = Statement::Return(Return {
+	fn set_return(&mut self) {
+		let data = Terminator::Return(Return {
 			list: self.target.pop_len(self.num_result),
 		});
 
 		self.target.leak_all();
-		self.target.code.push(data);
+		self.target.last = Some(data);
 	}
 
 	#[cold]
@@ -444,17 +464,17 @@ impl<'a> Builder<'a> {
 		match *inst {
 			Inst::Unreachable => {
 				self.nested_unreachable += 1;
-				self.target.code.push(Statement::Unreachable);
+				self.target.last = Some(Terminator::Unreachable);
 			}
 			Inst::Nop => {}
 			Inst::Block(typ) => {
-				let data = Statement::Forward(Forward { body: Vec::new() });
+				let data = Statement::Forward(Forward::default());
 
 				self.start_block(typ);
 				self.pending.last_mut().unwrap().code.push(data);
 			}
 			Inst::Loop(typ) => {
-				let data = Statement::Backward(Backward { body: Vec::new() });
+				let data = Statement::Backward(Backward::default());
 
 				self.start_block(typ);
 				self.pending.last_mut().unwrap().code.push(data);
@@ -462,8 +482,8 @@ impl<'a> Builder<'a> {
 			Inst::If(typ) => {
 				let data = Statement::If(If {
 					cond: self.target.pop_required(),
-					truthy: Vec::new(),
-					falsey: Vec::new(),
+					truthy: Forward::default(),
+					falsey: None,
 				});
 
 				self.start_block(typ);
@@ -486,12 +506,12 @@ impl<'a> Builder<'a> {
 			Inst::Br(v) => {
 				self.nested_unreachable += 1;
 
-				let data = Statement::Br(Br {
+				let data = Terminator::Br(Br {
 					target: v.try_into().unwrap(),
 				});
 
 				self.target.leak_all();
-				self.target.code.push(data);
+				self.target.last = Some(data);
 			}
 			Inst::BrIf(v) => {
 				let data = Statement::BrIf(BrIf {
@@ -506,17 +526,17 @@ impl<'a> Builder<'a> {
 			Inst::BrTable(ref v) => {
 				self.nested_unreachable += 1;
 
-				let data = Statement::BrTable(BrTable {
+				let data = Terminator::BrTable(BrTable {
 					cond: self.target.pop_required(),
 					data: *v.clone(),
 				});
 
 				self.target.leak_all();
-				self.target.code.push(data);
+				self.target.last = Some(data);
 			}
 			Inst::Return => {
 				self.nested_unreachable += 1;
-				self.add_return();
+				self.set_return();
 			}
 			Inst::Call(i) => {
 				self.add_call(i.try_into().unwrap());
@@ -651,7 +671,7 @@ impl<'a> Builder<'a> {
 		}
 
 		if self.nested_unreachable == 0 && num_result != 0 {
-			self.add_return();
+			self.set_return();
 		}
 
 		std::mem::take(&mut self.target)

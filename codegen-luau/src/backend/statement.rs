@@ -6,92 +6,12 @@ use std::{
 use parity_wasm::elements::ValueType;
 use wasm_ast::node::{
 	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, If, Intermediate, Return, SetGlobal,
-	SetLocal, SetTemporary, Statement, StoreAt,
+	SetLocal, SetTemporary, Statement, StoreAt, Terminator,
 };
 
 use super::manager::{
 	write_ascending, write_condition, write_separated, write_variable, Driver, Label, Manager,
 };
-
-fn br_target(level: usize, in_loop: bool, w: &mut dyn Write) -> Result<()> {
-	write!(w, "if desired then ")?;
-	write!(w, "if desired == {level} then ")?;
-	write!(w, "desired = nil ")?;
-
-	if in_loop {
-		write!(w, "continue ")?;
-	}
-
-	write!(w, "end ")?;
-	write!(w, "break ")?;
-	write!(w, "end ")
-}
-
-fn write_br_gadget(label_list: &[Label], rem: usize, w: &mut dyn Write) -> Result<()> {
-	match label_list.last() {
-		Some(Label::Forward | Label::If) => br_target(rem, false, w),
-		Some(Label::Backward) => br_target(rem, true, w),
-		None => Ok(()),
-	}
-}
-
-impl Driver for Forward {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let rem = mng.push_label(Label::Forward);
-
-		write!(w, "while true do ")?;
-
-		self.body.iter().try_for_each(|s| s.write(mng, w))?;
-
-		write!(w, "break ")?;
-		write!(w, "end ")?;
-
-		mng.pop_label();
-		write_br_gadget(mng.label_list(), rem, w)
-	}
-}
-
-impl Driver for Backward {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let rem = mng.push_label(Label::Backward);
-
-		write!(w, "while true do ")?;
-
-		self.body.iter().try_for_each(|s| s.write(mng, w))?;
-
-		write!(w, "break ")?;
-		write!(w, "end ")?;
-
-		mng.pop_label();
-		write_br_gadget(mng.label_list(), rem, w)
-	}
-}
-
-impl Driver for If {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let rem = mng.push_label(Label::If);
-
-		write!(w, "while true do ")?;
-		write!(w, "if ")?;
-		write_condition(&self.cond, mng, w)?;
-		write!(w, "then ")?;
-
-		self.truthy.iter().try_for_each(|s| s.write(mng, w))?;
-
-		if !self.falsey.is_empty() {
-			write!(w, "else ")?;
-
-			self.falsey.iter().try_for_each(|s| s.write(mng, w))?;
-		}
-
-		write!(w, "end ")?;
-		write!(w, "break ")?;
-		write!(w, "end ")?;
-
-		mng.pop_label();
-		write_br_gadget(mng.label_list(), rem, w)
-	}
-}
 
 fn write_br_at(up: usize, mng: &Manager, w: &mut dyn Write) -> Result<()> {
 	write!(w, "do ")?;
@@ -115,16 +35,6 @@ fn write_br_at(up: usize, mng: &Manager, w: &mut dyn Write) -> Result<()> {
 impl Driver for Br {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write_br_at(self.target, mng, w)
-	}
-}
-
-impl Driver for BrIf {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "if ")?;
-		write_condition(&self.cond, mng, w)?;
-		write!(w, "then ")?;
-		write_br_at(self.target, mng, w)?;
-		write!(w, "end ")
 	}
 }
 
@@ -155,6 +65,115 @@ impl Driver for Return {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "do return ")?;
 		self.list.as_slice().write(mng, w)?;
+		write!(w, "end ")
+	}
+}
+
+impl Driver for Terminator {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		match self {
+			Self::Unreachable => write!(w, "error(\"out of code bounds\")"),
+			Self::Br(s) => s.write(mng, w),
+			Self::BrTable(s) => s.write(mng, w),
+			Self::Return(s) => s.write(mng, w),
+		}
+	}
+}
+
+fn br_target(level: usize, in_loop: bool, w: &mut dyn Write) -> Result<()> {
+	write!(w, "if desired then ")?;
+	write!(w, "if desired == {level} then ")?;
+	write!(w, "desired = nil ")?;
+
+	if in_loop {
+		write!(w, "continue ")?;
+	}
+
+	write!(w, "end ")?;
+	write!(w, "break ")?;
+	write!(w, "end ")
+}
+
+fn write_br_gadget(label_list: &[Label], rem: usize, w: &mut dyn Write) -> Result<()> {
+	match label_list.last() {
+		Some(Label::Forward | Label::If) => br_target(rem, false, w),
+		Some(Label::Backward) => br_target(rem, true, w),
+		None => Ok(()),
+	}
+}
+
+impl Driver for Forward {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		let rem = mng.push_label(Label::Forward);
+
+		write!(w, "while true do ")?;
+
+		self.code.iter().try_for_each(|s| s.write(mng, w))?;
+
+		if let Some(v) = &self.last {
+			v.write(mng, w)?;
+		}
+
+		write!(w, "break ")?;
+		write!(w, "end ")?;
+
+		mng.pop_label();
+		write_br_gadget(mng.label_list(), rem, w)
+	}
+}
+
+impl Driver for Backward {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		let rem = mng.push_label(Label::Backward);
+
+		write!(w, "while true do ")?;
+
+		self.code.iter().try_for_each(|s| s.write(mng, w))?;
+
+		if let Some(v) = &self.last {
+			v.write(mng, w)?;
+		}
+
+		write!(w, "break ")?;
+		write!(w, "end ")?;
+
+		mng.pop_label();
+		write_br_gadget(mng.label_list(), rem, w)
+	}
+}
+
+impl Driver for If {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		let rem = mng.push_label(Label::If);
+
+		write!(w, "while true do ")?;
+		write!(w, "if ")?;
+		write_condition(&self.cond, mng, w)?;
+		write!(w, "then ")?;
+
+		self.truthy.write(mng, w)?;
+
+		if let Some(falsey) = &self.falsey {
+			write!(w, "else ")?;
+
+			falsey.write(mng, w)?;
+		}
+
+		write!(w, "end ")?;
+		write!(w, "break ")?;
+		write!(w, "end ")?;
+
+		mng.pop_label();
+		write_br_gadget(mng.label_list(), rem, w)
+	}
+}
+
+impl Driver for BrIf {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		write!(w, "if ")?;
+		write_condition(&self.cond, mng, w)?;
+		write!(w, "then ")?;
+		write_br_at(self.target, mng, w)?;
 		write!(w, "end ")
 	}
 }
@@ -230,14 +249,10 @@ impl Driver for StoreAt {
 impl Driver for Statement {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
-			Self::Unreachable => write!(w, "error(\"out of code bounds\")"),
 			Self::Forward(s) => s.write(mng, w),
 			Self::Backward(s) => s.write(mng, w),
 			Self::If(s) => s.write(mng, w),
-			Self::Br(s) => s.write(mng, w),
 			Self::BrIf(s) => s.write(mng, w),
-			Self::BrTable(s) => s.write(mng, w),
-			Self::Return(s) => s.write(mng, w),
 			Self::Call(s) => s.write(mng, w),
 			Self::CallIndirect(s) => s.write(mng, w),
 			Self::SetTemporary(s) => s.write(mng, w),

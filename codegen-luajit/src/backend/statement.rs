@@ -6,69 +6,12 @@ use std::{
 use parity_wasm::elements::ValueType;
 use wasm_ast::node::{
 	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, If, Intermediate, Return, SetGlobal,
-	SetLocal, SetTemporary, Statement, StoreAt,
+	SetLocal, SetTemporary, Statement, StoreAt, Terminator,
 };
 
 use super::manager::{
 	write_ascending, write_condition, write_separated, write_variable, Driver, Manager,
 };
-
-impl Driver for Forward {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let label = mng.push_label();
-
-		self.body.iter().try_for_each(|s| s.write(mng, w))?;
-
-		write!(w, "::continue_at_{label}::")?;
-
-		mng.pop_label();
-
-		Ok(())
-	}
-}
-
-impl Driver for Backward {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let label = mng.push_label();
-
-		write!(w, "::continue_at_{label}::")?;
-		write!(w, "while true do ")?;
-
-		self.body.iter().try_for_each(|s| s.write(mng, w))?;
-
-		write!(w, "break ")?;
-		write!(w, "end ")?;
-
-		mng.pop_label();
-
-		Ok(())
-	}
-}
-
-impl Driver for If {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let label = mng.push_label();
-
-		write!(w, "if ")?;
-		write_condition(&self.cond, mng, w)?;
-		write!(w, "then ")?;
-
-		self.truthy.iter().try_for_each(|s| s.write(mng, w))?;
-
-		if !self.falsey.is_empty() {
-			write!(w, "else ")?;
-
-			self.falsey.iter().try_for_each(|s| s.write(mng, w))?;
-		}
-
-		write!(w, "end ")?;
-		write!(w, "::continue_at_{label}::")?;
-
-		mng.pop_label();
-
-		Ok(())
-	}
-}
 
 fn write_br_at(up: usize, mng: &Manager, w: &mut dyn Write) -> Result<()> {
 	let level = mng.label_list().iter().nth_back(up).unwrap();
@@ -79,16 +22,6 @@ fn write_br_at(up: usize, mng: &Manager, w: &mut dyn Write) -> Result<()> {
 impl Driver for Br {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write_br_at(self.target, mng, w)
-	}
-}
-
-impl Driver for BrIf {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "if ")?;
-		write_condition(&self.cond, mng, w)?;
-		write!(w, "then ")?;
-		write_br_at(self.target, mng, w)?;
-		write!(w, "end ")
 	}
 }
 
@@ -148,6 +81,92 @@ impl Driver for Return {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "do return ")?;
 		self.list.as_slice().write(mng, w)?;
+		write!(w, "end ")
+	}
+}
+
+impl Driver for Terminator {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		match self {
+			Self::Unreachable => write!(w, "error(\"out of code bounds\")"),
+			Self::Br(s) => s.write(mng, w),
+			Self::BrTable(s) => s.write(mng, w),
+			Self::Return(s) => s.write(mng, w),
+		}
+	}
+}
+
+impl Driver for Forward {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		let label = mng.push_label();
+
+		self.code.iter().try_for_each(|s| s.write(mng, w))?;
+
+		if let Some(v) = &self.last {
+			v.write(mng, w)?;
+		}
+
+		write!(w, "::continue_at_{label}::")?;
+
+		mng.pop_label();
+
+		Ok(())
+	}
+}
+
+impl Driver for Backward {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		let label = mng.push_label();
+
+		write!(w, "::continue_at_{label}::")?;
+		write!(w, "while true do ")?;
+
+		self.code.iter().try_for_each(|s| s.write(mng, w))?;
+
+		if let Some(v) = &self.last {
+			v.write(mng, w)?;
+		}
+
+		write!(w, "break ")?;
+		write!(w, "end ")?;
+
+		mng.pop_label();
+
+		Ok(())
+	}
+}
+
+impl Driver for If {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		let label = mng.push_label();
+
+		write!(w, "if ")?;
+		write_condition(&self.cond, mng, w)?;
+		write!(w, "then ")?;
+
+		self.truthy.write(mng, w)?;
+
+		if let Some(falsey) = &self.falsey {
+			write!(w, "else ")?;
+
+			falsey.write(mng, w)?;
+		}
+
+		write!(w, "end ")?;
+		write!(w, "::continue_at_{label}::")?;
+
+		mng.pop_label();
+
+		Ok(())
+	}
+}
+
+impl Driver for BrIf {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		write!(w, "if ")?;
+		write_condition(&self.cond, mng, w)?;
+		write!(w, "then ")?;
+		write_br_at(self.target, mng, w)?;
 		write!(w, "end ")
 	}
 }
@@ -223,14 +242,10 @@ impl Driver for StoreAt {
 impl Driver for Statement {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
-			Self::Unreachable => write!(w, "error(\"out of code bounds\")"),
 			Self::Forward(s) => s.write(mng, w),
 			Self::Backward(s) => s.write(mng, w),
 			Self::If(s) => s.write(mng, w),
-			Self::Br(s) => s.write(mng, w),
 			Self::BrIf(s) => s.write(mng, w),
-			Self::BrTable(s) => s.write(mng, w),
-			Self::Return(s) => s.write(mng, w),
 			Self::Call(s) => s.write(mng, w),
 			Self::CallIndirect(s) => s.write(mng, w),
 			Self::SetTemporary(s) => s.write(mng, w),

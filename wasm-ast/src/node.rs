@@ -660,26 +660,7 @@ impl Expression {
 	}
 }
 
-pub struct Forward {
-	pub body: Vec<Statement>,
-}
-
-pub struct Backward {
-	pub body: Vec<Statement>,
-}
-
-pub struct If {
-	pub cond: Expression,
-	pub truthy: Vec<Statement>,
-	pub falsey: Vec<Statement>,
-}
-
 pub struct Br {
-	pub target: usize,
-}
-
-pub struct BrIf {
-	pub cond: Expression,
 	pub target: usize,
 }
 
@@ -690,6 +671,36 @@ pub struct BrTable {
 
 pub struct Return {
 	pub list: Vec<Expression>,
+}
+
+pub enum Terminator {
+	Unreachable,
+	Br(Br),
+	BrTable(BrTable),
+	Return(Return),
+}
+
+#[derive(Default)]
+pub struct Forward {
+	pub code: Vec<Statement>,
+	pub last: Option<Terminator>,
+}
+
+#[derive(Default)]
+pub struct Backward {
+	pub code: Vec<Statement>,
+	pub last: Option<Terminator>,
+}
+
+pub struct If {
+	pub cond: Expression,
+	pub truthy: Forward,
+	pub falsey: Option<Forward>,
+}
+
+pub struct BrIf {
+	pub cond: Expression,
+	pub target: usize,
 }
 
 pub struct Call {
@@ -728,14 +739,10 @@ pub struct StoreAt {
 }
 
 pub enum Statement {
-	Unreachable,
 	Forward(Forward),
 	Backward(Backward),
 	If(If),
-	Br(Br),
 	BrIf(BrIf),
-	BrTable(BrTable),
-	Return(Return),
 	Call(Call),
 	CallIndirect(CallIndirect),
 	SetTemporary(SetTemporary),
