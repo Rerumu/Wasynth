@@ -323,6 +323,8 @@ impl<T: Visitor> Driver<T> for Statement {
 			Self::SetGlobal(v) => v.accept(visitor),
 			Self::StoreAt(v) => v.accept(visitor),
 		}
+
+		visitor.visit_statement(self);
 	}
 }
 
