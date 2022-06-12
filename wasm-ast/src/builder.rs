@@ -186,8 +186,10 @@ impl StatList {
 	fn push_temporary(&mut self, num: usize) {
 		let len = self.stack.len();
 
-		for var in len..len + num {
-			let data = Expression::GetTemporary(GetTemporary { var });
+		for i in len..len + num {
+			let data = Expression::GetTemporary(GetTemporary {
+				var: self.num_previous + i,
+			});
 
 			self.push_tracked(data);
 		}
