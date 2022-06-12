@@ -515,12 +515,18 @@ impl<'a> Builder<'a> {
 			Instruction::Block(_) | Instruction::Loop(_) | Instruction::If(_) => {
 				self.nested_unreachable += 1;
 			}
-			Instruction::End => {
+			Instruction::Else if self.nested_unreachable == 1 => {
 				self.nested_unreachable -= 1;
 
-				if self.nested_unreachable == 0 {
-					self.end_block();
-				}
+				self.start_else();
+			}
+			Instruction::End if self.nested_unreachable == 1 => {
+				self.nested_unreachable -= 1;
+
+				self.end_block();
+			}
+			Instruction::End => {
+				self.nested_unreachable -= 1;
 			}
 			_ => {}
 		}
