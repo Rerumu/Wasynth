@@ -5,7 +5,7 @@ use std::{
 
 use parity_wasm::elements::ValueType;
 use wasm_ast::node::{
-	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, FuncData, If, SetGlobal, SetLocal,
+	Backward, Br, BrTable, Call, CallIndirect, Forward, FuncData, If, SetGlobal, SetLocal,
 	SetTemporary, Statement, StoreAt, Terminator,
 };
 
@@ -159,16 +159,6 @@ impl Driver for If {
 	}
 }
 
-impl Driver for BrIf {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "if ")?;
-		write_condition(&self.cond, mng, w)?;
-		write!(w, "then ")?;
-		write_br_at(self.target, mng, w)?;
-		write!(w, "end ")
-	}
-}
-
 fn write_call_store(result: Range<usize>, w: &mut dyn Write) -> Result<()> {
 	if result.is_empty() {
 		return Ok(());
@@ -243,7 +233,6 @@ impl Driver for Statement {
 			Self::Forward(s) => s.write(mng, w),
 			Self::Backward(s) => s.write(mng, w),
 			Self::If(s) => s.write(mng, w),
-			Self::BrIf(s) => s.write(mng, w),
 			Self::Call(s) => s.write(mng, w),
 			Self::CallIndirect(s) => s.write(mng, w),
 			Self::SetTemporary(s) => s.write(mng, w),

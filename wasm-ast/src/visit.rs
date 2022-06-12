@@ -1,5 +1,5 @@
 use crate::node::{
-	Backward, BinOp, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Expression, Forward, FuncData,
+	Backward, BinOp, Br, BrTable, Call, CallIndirect, CmpOp, Expression, Forward, FuncData,
 	GetGlobal, GetLocal, GetTemporary, If, LoadAt, MemoryGrow, MemorySize, Select, SetGlobal,
 	SetLocal, SetTemporary, Statement, StoreAt, Terminator, UnOp, Value,
 };
@@ -42,8 +42,6 @@ pub trait Visitor {
 	fn visit_backward(&mut self, _: &Backward) {}
 
 	fn visit_if(&mut self, _: &If) {}
-
-	fn visit_br_if(&mut self, _: &BrIf) {}
 
 	fn visit_call(&mut self, _: &Call) {}
 
@@ -233,14 +231,6 @@ impl<T: Visitor> Driver<T> for If {
 	}
 }
 
-impl<T: Visitor> Driver<T> for BrIf {
-	fn accept(&self, visitor: &mut T) {
-		self.cond.accept(visitor);
-
-		visitor.visit_br_if(self);
-	}
-}
-
 impl<T: Visitor> Driver<T> for Call {
 	fn accept(&self, visitor: &mut T) {
 		for v in &self.param_list {
@@ -302,7 +292,6 @@ impl<T: Visitor> Driver<T> for Statement {
 			Self::Forward(v) => v.accept(visitor),
 			Self::Backward(v) => v.accept(visitor),
 			Self::If(v) => v.accept(visitor),
-			Self::BrIf(v) => v.accept(visitor),
 			Self::Call(v) => v.accept(visitor),
 			Self::CallIndirect(v) => v.accept(visitor),
 			Self::SetTemporary(v) => v.accept(visitor),

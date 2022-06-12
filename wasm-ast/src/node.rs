@@ -693,11 +693,6 @@ pub struct If {
 	pub falsey: Option<Forward>,
 }
 
-pub struct BrIf {
-	pub cond: Expression,
-	pub target: usize,
-}
-
 pub struct Call {
 	pub func: usize,
 	pub result: Range<usize>,
@@ -737,7 +732,6 @@ pub enum Statement {
 	Forward(Forward),
 	Backward(Backward),
 	If(If),
-	BrIf(BrIf),
 	Call(Call),
 	CallIndirect(CallIndirect),
 	SetTemporary(SetTemporary),

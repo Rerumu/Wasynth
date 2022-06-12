@@ -4,10 +4,10 @@ use parity_wasm::elements::{
 };
 
 use crate::node::{
-	Backward, BinOp, BinOpType, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType,
-	Expression, Forward, FuncData, GetGlobal, GetLocal, GetTemporary, If, LoadAt, LoadType,
-	MemoryGrow, MemorySize, Select, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt,
-	StoreType, Terminator, UnOp, UnOpType, Value,
+	Backward, BinOp, BinOpType, Br, BrTable, Call, CallIndirect, CmpOp, CmpOpType, Expression,
+	Forward, FuncData, GetGlobal, GetLocal, GetTemporary, If, LoadAt, LoadType, MemoryGrow,
+	MemorySize, Select, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, StoreType,
+	Terminator, UnOp, UnOpType, Value,
 };
 
 macro_rules! leak_with_predicate {
@@ -574,13 +574,17 @@ impl<'a> Builder<'a> {
 				self.set_br_to_block(target);
 			}
 			Inst::BrIf(v) => {
-				let data = Statement::BrIf(BrIf {
+				let target: usize = v.try_into().unwrap();
+				let data = Statement::If(If {
 					cond: self.target.pop_required(),
-					target: v.try_into().unwrap(),
+					truthy: Forward::default(),
+					falsey: None,
 				});
 
-				// FIXME: Does not push results unless true
-				self.target.code.push(data);
+				self.start_block(BlockType::NoResult);
+				self.pending.last_mut().unwrap().code.push(data);
+				self.set_br_to_block(target + 1);
+				self.end_block();
 			}
 			Inst::BrTable(ref v) => {
 				self.nested_unreachable += 1;
