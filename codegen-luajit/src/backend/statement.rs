@@ -129,8 +129,6 @@ impl Driver for Backward {
 
 impl Driver for If {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let label = mng.push_label();
-
 		write!(w, "if ")?;
 		write_condition(&self.cond, mng, w)?;
 		write!(w, "then ")?;
@@ -144,9 +142,6 @@ impl Driver for If {
 		}
 
 		write!(w, "end ")?;
-		write!(w, "::continue_at_{label}::")?;
-
-		mng.pop_label();
 
 		Ok(())
 	}
