@@ -382,7 +382,7 @@ impl<'a> Builder<'a> {
 		}
 	}
 
-	fn start_block(&mut self, typ: BlockType) {
+	fn start_block(&mut self, typ: BlockType, stat: Statement) {
 		let (num_param, num_result) = match typ {
 			BlockType::NoResult => (0, 0),
 			BlockType::Value(_) => (0, 1),
@@ -397,6 +397,7 @@ impl<'a> Builder<'a> {
 		let mut old = std::mem::take(&mut self.target);
 
 		old.leak_all();
+		old.code.push(stat);
 
 		self.target.stack = old.pop_len(num_param);
 		self.target.num_result = num_result;
@@ -540,26 +541,23 @@ impl<'a> Builder<'a> {
 			}
 			Inst::Nop => {}
 			Inst::Block(typ) => {
-				let data = Statement::Forward(Forward::default());
+				let stat = Statement::Forward(Forward::default());
 
-				self.start_block(typ);
-				self.pending.last_mut().unwrap().code.push(data);
+				self.start_block(typ, stat);
 			}
 			Inst::Loop(typ) => {
-				let data = Statement::Backward(Backward::default());
+				let stat = Statement::Backward(Backward::default());
 
-				self.start_block(typ);
-				self.pending.last_mut().unwrap().code.push(data);
+				self.start_block(typ, stat);
 			}
 			Inst::If(typ) => {
-				let data = Statement::If(If {
+				let stat = Statement::If(If {
 					cond: self.target.pop_required(),
 					truthy: Forward::default(),
 					falsey: None,
 				});
 
-				self.start_block(typ);
-				self.pending.last_mut().unwrap().code.push(data);
+				self.start_block(typ, stat);
 			}
 			Inst::Else => {
 				self.set_return_data(0);
@@ -576,16 +574,17 @@ impl<'a> Builder<'a> {
 			}
 			Inst::BrIf(v) => {
 				let target: usize = v.try_into().unwrap();
-				let data = Statement::If(If {
+				let stat = Statement::If(If {
 					cond: self.target.pop_required(),
 					truthy: Forward::default(),
 					falsey: None,
 				});
 
-				self.start_block(BlockType::NoResult);
-				self.pending.last_mut().unwrap().code.push(data);
+				self.start_block(BlockType::NoResult, stat);
 				self.set_br_to_block(target + 1);
 				self.end_block();
+
+				self.nested_unreachable -= 1;
 			}
 			Inst::BrTable(ref v) => {
 				self.nested_unreachable += 1;
