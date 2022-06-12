@@ -415,7 +415,7 @@ impl<'a> Builder<'a> {
 			..Default::default()
 		};
 
-		temp.push_temporary(self.target.num_result);
+		temp.push_temporary(self.target.num_param);
 
 		self.end_block();
 
