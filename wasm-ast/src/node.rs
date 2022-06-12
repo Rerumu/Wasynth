@@ -669,15 +669,10 @@ pub struct BrTable {
 	pub data: BrTableData,
 }
 
-pub struct Return {
-	pub list: Vec<Expression>,
-}
-
 pub enum Terminator {
 	Unreachable,
 	Br(Br),
 	BrTable(BrTable),
-	Return(Return),
 }
 
 #[derive(Default)]
@@ -753,6 +748,7 @@ pub enum Statement {
 
 pub struct FuncData {
 	pub local_data: Vec<Local>,
+	pub num_result: usize,
 	pub num_param: usize,
 	pub num_stack: usize,
 	pub code: Forward,

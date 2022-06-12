@@ -5,8 +5,8 @@ use std::{
 
 use parity_wasm::elements::ValueType;
 use wasm_ast::node::{
-	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, FuncData, If, Return, SetGlobal,
-	SetLocal, SetTemporary, Statement, StoreAt, Terminator,
+	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, FuncData, If, SetGlobal, SetLocal,
+	SetTemporary, Statement, StoreAt, Terminator,
 };
 
 use super::manager::{
@@ -61,21 +61,12 @@ impl Driver for BrTable {
 	}
 }
 
-impl Driver for Return {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "do return ")?;
-		self.list.as_slice().write(mng, w)?;
-		write!(w, "end ")
-	}
-}
-
 impl Driver for Terminator {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
 			Self::Unreachable => write!(w, "error(\"out of code bounds\")"),
 			Self::Br(s) => s.write(mng, w),
 			Self::BrTable(s) => s.write(mng, w),
-			Self::Return(s) => s.write(mng, w),
 		}
 	}
 }
@@ -305,6 +296,12 @@ impl Driver for FuncData {
 
 		mng.num_param = self.num_param;
 		self.code.write(mng, w)?;
+
+		if self.num_result != 0 {
+			write!(w, "return ")?;
+			write_ascending("reg", 0..self.num_result, w)?;
+			write!(w, " ")?;
+		}
 
 		write!(w, "end ")
 	}

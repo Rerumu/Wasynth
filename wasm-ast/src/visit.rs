@@ -1,7 +1,7 @@
 use crate::node::{
 	Backward, BinOp, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Expression, Forward, FuncData,
-	GetGlobal, GetLocal, GetTemporary, If, LoadAt, MemoryGrow, MemorySize, Return, Select,
-	SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, Terminator, UnOp, Value,
+	GetGlobal, GetLocal, GetTemporary, If, LoadAt, MemoryGrow, MemorySize, Select, SetGlobal,
+	SetLocal, SetTemporary, Statement, StoreAt, Terminator, UnOp, Value,
 };
 
 pub trait Visitor {
@@ -34,8 +34,6 @@ pub trait Visitor {
 	fn visit_br(&mut self, _: &Br) {}
 
 	fn visit_br_table(&mut self, _: &BrTable) {}
-
-	fn visit_return(&mut self, _: &Return) {}
 
 	fn visit_terminator(&mut self, _: &Terminator) {}
 
@@ -182,23 +180,12 @@ impl<T: Visitor> Driver<T> for BrTable {
 	}
 }
 
-impl<T: Visitor> Driver<T> for Return {
-	fn accept(&self, visitor: &mut T) {
-		for v in &self.list {
-			v.accept(visitor);
-		}
-
-		visitor.visit_return(self);
-	}
-}
-
 impl<T: Visitor> Driver<T> for Terminator {
 	fn accept(&self, visitor: &mut T) {
 		match self {
 			Self::Unreachable => visitor.visit_unreachable(),
 			Self::Br(v) => v.accept(visitor),
 			Self::BrTable(v) => v.accept(visitor),
-			Self::Return(v) => v.accept(visitor),
 		}
 
 		visitor.visit_terminator(self);
