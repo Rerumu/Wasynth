@@ -407,22 +407,21 @@ impl<'a> Builder<'a> {
 	}
 
 	fn start_else(&mut self) {
-		let num_result = self.target.num_result;
-		let num_param = self.target.num_param;
-		let num_previous = self.target.num_previous;
+		let mut temp = StatList {
+			num_result: self.target.num_result,
+			num_param: self.target.num_param,
+			num_previous: self.target.num_previous,
+			is_else: true,
+			..Default::default()
+		};
+
+		temp.push_temporary(self.target.num_result);
 
 		self.end_block();
 
-		let old = std::mem::take(&mut self.target);
+		let old = std::mem::replace(&mut self.target, temp);
 
 		self.pending.push(old);
-
-		self.target.num_result = num_result;
-		self.target.num_param = num_param;
-		self.target.num_previous = num_previous;
-		self.target.is_else = true;
-
-		self.target.push_temporary(num_result);
 	}
 
 	fn end_block(&mut self) {
