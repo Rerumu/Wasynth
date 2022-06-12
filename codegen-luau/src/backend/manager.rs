@@ -11,7 +11,6 @@ use crate::analyzer::operator::cmp_symbol_of;
 pub enum Label {
 	Forward,
 	Backward,
-	If,
 }
 
 #[derive(Default)]

@@ -87,7 +87,7 @@ fn br_target(level: usize, in_loop: bool, w: &mut dyn Write) -> Result<()> {
 
 fn write_br_gadget(label_list: &[Label], rem: usize, w: &mut dyn Write) -> Result<()> {
 	match label_list.last() {
-		Some(Label::Forward | Label::If) => br_target(rem, false, w),
+		Some(Label::Forward) => br_target(rem, false, w),
 		Some(Label::Backward) => br_target(rem, true, w),
 		None => Ok(()),
 	}
