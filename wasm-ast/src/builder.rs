@@ -413,12 +413,13 @@ impl<'a> Builder<'a> {
 		let mut temp = StatList {
 			num_result: self.target.num_result,
 			num_param: self.target.num_param,
+			num_stack: self.target.num_stack,
 			num_previous: self.target.num_previous,
 			is_else: true,
 			..Default::default()
 		};
 
-		temp.push_temporary(self.target.num_param);
+		temp.push_temporary(temp.num_param);
 
 		self.end_block();
 
