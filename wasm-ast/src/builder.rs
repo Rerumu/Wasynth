@@ -4,10 +4,10 @@ use parity_wasm::elements::{
 };
 
 use crate::node::{
-	Backward, BinOp, BinOpType, Br, BrTable, Call, CallIndirect, CmpOp, CmpOpType, Expression,
-	Forward, FuncData, GetGlobal, GetLocal, GetTemporary, If, LoadAt, LoadType, MemoryGrow,
-	MemorySize, Select, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, StoreType,
-	Terminator, UnOp, UnOpType, Value,
+	Align, Backward, BinOp, BinOpType, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType,
+	Expression, Forward, FuncData, GetGlobal, GetLocal, GetTemporary, If, LoadAt, LoadType,
+	MemoryGrow, MemorySize, Select, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt,
+	StoreType, Terminator, UnOp, UnOpType, Value,
 };
 
 macro_rules! leak_with_predicate {
@@ -291,27 +291,21 @@ impl StatList {
 		}
 	}
 
-	// Return values from a block by leaking the stack and then
-	// adjusting the start if necessary.
-	fn set_return_data(&mut self, par_previous: usize, par_result: usize) {
+	// Return the alignment necessary for this block to branch out to a
+	// another given block
+	fn get_br_alignment(&self, par_start: usize, par_result: usize) -> Align {
+		let start = self.stack.len() + self.num_previous - par_result;
+
+		Align {
+			new: par_start,
+			old: start,
+			length: par_result,
+		}
+	}
+
+	fn set_terminator(&mut self, term: Terminator) {
 		self.leak_all();
-
-		// If the start of our copy and parent frame are the same our results
-		// are already in the right registers.
-		let start = self.num_previous + self.stack.len() - par_result;
-
-		if start == par_previous {
-			return;
-		}
-
-		for i in 0..par_result {
-			let data = Statement::SetTemporary(SetTemporary {
-				var: par_previous + i,
-				value: Expression::GetTemporary(GetTemporary { var: start + i }),
-			});
-
-			self.code.push(data);
-		}
+		self.last = Some(term);
 	}
 }
 
@@ -443,6 +437,25 @@ impl<'a> Builder<'a> {
 		}
 	}
 
+	fn get_relative_block(&self, index: usize) -> Option<&StatList> {
+		if index == 0 {
+			Some(&self.target)
+		} else {
+			self.pending.get(self.pending.len() - index)
+		}
+	}
+
+	fn get_br_terminator(&self, target: usize) -> Br {
+		let (par_start, par_result) = match self.get_relative_block(target) {
+			Some(v) => (v.num_previous, v.num_result),
+			None => (0, self.num_result),
+		};
+
+		let align = self.target.get_br_alignment(par_start, par_result);
+
+		Br { target, align }
+	}
+
 	fn add_call(&mut self, func: usize) {
 		let arity = self.type_info.rel_arity_of(func);
 		let param_list = self.target.pop_len(arity.num_param);
@@ -483,32 +496,6 @@ impl<'a> Builder<'a> {
 		self.target.code.push(data);
 	}
 
-	fn get_relative_block(&self, index: usize) -> Option<&StatList> {
-		if index == 0 {
-			Some(&self.target)
-		} else {
-			self.pending.get(self.pending.len() - index)
-		}
-	}
-
-	fn set_return_data(&mut self, target: usize) {
-		let (par_previous, par_result) = match self.get_relative_block(target) {
-			Some(v) => (v.num_previous, v.num_result),
-			None => (0, self.num_result),
-		};
-
-		self.target.set_return_data(par_previous, par_result);
-	}
-
-	fn set_br_to_block(&mut self, target: usize) {
-		self.nested_unreachable += 1;
-
-		let data = Terminator::Br(Br { target });
-
-		self.set_return_data(target);
-		self.target.last = Some(data);
-	}
-
 	#[cold]
 	fn drop_unreachable(&mut self, inst: &Instruction) {
 		match inst {
@@ -543,8 +530,7 @@ impl<'a> Builder<'a> {
 			Inst::Unreachable => {
 				self.nested_unreachable += 1;
 
-				self.target.leak_all();
-				self.target.last = Some(Terminator::Unreachable);
+				self.target.set_terminator(Terminator::Unreachable);
 			}
 			Inst::Nop => {}
 			Inst::Block(typ) => {
@@ -567,48 +553,55 @@ impl<'a> Builder<'a> {
 				self.start_block(typ, stat);
 			}
 			Inst::Else => {
-				self.set_return_data(0);
+				self.target.leak_all();
 				self.start_else();
 			}
 			Inst::End => {
-				self.set_return_data(0);
+				self.target.leak_all();
 				self.end_block();
 			}
 			Inst::Br(v) => {
 				let target = v.try_into().unwrap();
+				let term = Terminator::Br(self.get_br_terminator(target));
 
-				self.set_br_to_block(target);
+				self.target.set_terminator(term);
+				self.nested_unreachable += 1;
 			}
 			Inst::BrIf(v) => {
-				let target: usize = v.try_into().unwrap();
-				let stat = Statement::If(If {
+				let data = Statement::BrIf(BrIf {
 					cond: self.target.pop_required(),
-					truthy: Forward::default(),
-					falsey: None,
+					target: self.get_br_terminator(v.try_into().unwrap()),
 				});
 
-				self.start_block(BlockType::NoResult, stat);
-				self.set_br_to_block(target + 1);
-				self.end_block();
-
-				self.nested_unreachable -= 1;
+				self.target.leak_all();
+				self.target.code.push(data);
 			}
 			Inst::BrTable(ref v) => {
-				self.nested_unreachable += 1;
+				let cond = self.target.pop_required();
+				let data = v
+					.table
+					.iter()
+					.copied()
+					.map(|v| self.get_br_terminator(v.try_into().unwrap()))
+					.collect();
 
-				let default = v.default.try_into().unwrap();
-				let data = Terminator::BrTable(BrTable {
-					cond: self.target.pop_required(),
-					data: *v.clone(),
+				let default = self.get_br_terminator(v.default.try_into().unwrap());
+
+				let term = Terminator::BrTable(BrTable {
+					cond,
+					data,
+					default,
 				});
 
-				self.set_return_data(default);
-				self.target.last = Some(data);
+				self.target.set_terminator(term);
+				self.nested_unreachable += 1;
 			}
 			Inst::Return => {
 				let target = self.pending.len();
+				let term = Terminator::Br(self.get_br_terminator(target));
 
-				self.set_br_to_block(target);
+				self.target.set_terminator(term);
+				self.nested_unreachable += 1;
 			}
 			Inst::Call(i) => {
 				self.add_call(i.try_into().unwrap());
@@ -744,7 +737,7 @@ impl<'a> Builder<'a> {
 		}
 
 		if self.nested_unreachable == 0 {
-			self.set_return_data(0);
+			self.target.leak_all();
 		}
 
 		std::mem::take(&mut self.target)

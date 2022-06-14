@@ -5,7 +5,7 @@ use std::{
 
 use parity_wasm::elements::ValueType;
 use wasm_ast::node::{
-	Backward, Br, BrTable, Call, CallIndirect, Forward, FuncData, If, SetGlobal, SetLocal,
+	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, FuncData, If, SetGlobal, SetLocal,
 	SetTemporary, Statement, StoreAt, Terminator,
 };
 
@@ -13,50 +13,53 @@ use super::manager::{
 	write_ascending, write_condition, write_separated, write_variable, Driver, Label, Manager,
 };
 
-fn write_br_at(up: usize, mng: &Manager, w: &mut dyn Write) -> Result<()> {
-	write!(w, "do ")?;
-
-	if up == 0 {
-		if let Some(&Label::Backward) = mng.label_list().last() {
-			write!(w, "continue ")?;
-		} else {
-			write!(w, "break ")?;
-		}
-	} else {
-		let level = mng.label_list().len() - 1 - up;
-
-		write!(w, "desired = {level} ")?;
-		write!(w, "break ")?;
-	}
-
-	write!(w, "end ")
-}
-
 impl Driver for Br {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write_br_at(self.target, mng, w)
+		write!(w, "do ")?;
+
+		if !self.align.is_aligned() {
+			write_ascending("reg", self.align.new_range(), w)?;
+			write!(w, " = ")?;
+			write_ascending("reg", self.align.old_range(), w)?;
+			write!(w, " ")?;
+		}
+
+		if self.target == 0 {
+			if let Some(&Label::Backward) = mng.label_list().last() {
+				write!(w, "continue ")?;
+			} else {
+				write!(w, "break ")?;
+			}
+		} else {
+			let level = mng.label_list().len() - 1 - self.target;
+
+			write!(w, "desired = {level} ")?;
+			write!(w, "break ")?;
+		}
+
+		write!(w, "end ")
 	}
 }
 
 impl Driver for BrTable {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "do ")?;
-		write!(w, "local temp = {{")?;
+		write!(w, "temp = ")?;
+		self.cond.write(mng, w)?;
 
-		if !self.data.table.is_empty() {
-			write!(w, "[0] =")?;
-
-			for d in self.data.table.iter() {
-				write!(w, "{d}, ")?;
-			}
+		// Our condition should be pure so we probably don't need
+		// to emit it in this case.
+		if self.data.is_empty() {
+			return self.default.write(mng, w);
 		}
 
-		write!(w, "}} ")?;
+		for (case, dest) in self.data.iter().enumerate() {
+			write!(w, "if temp == {case} then ")?;
+			dest.write(mng, w)?;
+			write!(w, "else")?;
+		}
 
-		write!(w, "desired = temp[")?;
-		self.cond.write(mng, w)?;
-		write!(w, "] or {} ", self.data.default)?;
-		write!(w, "break ")?;
+		write!(w, " ")?;
+		self.default.write(mng, w)?;
 		write!(w, "end ")
 	}
 }
@@ -130,6 +133,16 @@ impl Driver for Backward {
 
 		mng.pop_label();
 		write_br_gadget(mng.label_list(), rem, w)
+	}
+}
+
+impl Driver for BrIf {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		write!(w, "if ")?;
+		write_condition(&self.cond, mng, w)?;
+		write!(w, "then ")?;
+		self.target.write(mng, w)?;
+		write!(w, "end ")
 	}
 }
 
@@ -227,6 +240,7 @@ impl Driver for Statement {
 		match self {
 			Self::Forward(s) => s.write(mng, w),
 			Self::Backward(s) => s.write(mng, w),
+			Self::BrIf(s) => s.write(mng, w),
 			Self::If(s) => s.write(mng, w),
 			Self::Call(s) => s.write(mng, w),
 			Self::CallIndirect(s) => s.write(mng, w),

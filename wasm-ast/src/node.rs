@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use parity_wasm::elements::{BrTableData, Instruction, Local, SignExtInstruction};
+use parity_wasm::elements::{Instruction, Local, SignExtInstruction};
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
@@ -660,13 +660,38 @@ impl Expression {
 	}
 }
 
+pub struct Align {
+	pub new: usize,
+	pub old: usize,
+	pub length: usize,
+}
+
+impl Align {
+	#[must_use]
+	pub fn is_aligned(&self) -> bool {
+		self.length == 0 || self.new == self.old
+	}
+
+	#[must_use]
+	pub fn new_range(&self) -> Range<usize> {
+		self.new..self.new + self.length
+	}
+
+	#[must_use]
+	pub fn old_range(&self) -> Range<usize> {
+		self.old..self.old + self.length
+	}
+}
+
 pub struct Br {
 	pub target: usize,
+	pub align: Align,
 }
 
 pub struct BrTable {
 	pub cond: Expression,
-	pub data: BrTableData,
+	pub data: Vec<Br>,
+	pub default: Br,
 }
 
 pub enum Terminator {
@@ -685,6 +710,11 @@ pub struct Forward {
 pub struct Backward {
 	pub code: Vec<Statement>,
 	pub last: Option<Terminator>,
+}
+
+pub struct BrIf {
+	pub cond: Expression,
+	pub target: Br,
 }
 
 pub struct If {
@@ -731,6 +761,7 @@ pub struct StoreAt {
 pub enum Statement {
 	Forward(Forward),
 	Backward(Backward),
+	BrIf(BrIf),
 	If(If),
 	Call(Call),
 	CallIndirect(CallIndirect),
