@@ -5,7 +5,6 @@ use std::{
 
 use wast::{
 	core::{Expression, Instruction},
-	token::{Float32, Float64},
 	AssertExpression, WastExecute, WastInvoke,
 };
 
@@ -22,7 +21,7 @@ impl Luau {
 		let data_1 = (data & 0xFFFFFFFF) as u32;
 		let data_2 = (data >> 32 & 0xFFFFFFFF) as u32;
 
-		write!(w, "rt.num.from_u32({data_1}, {data_2})")
+		write!(w, "{{{data_1}, {data_2}}}")
 	}
 
 	fn write_expression(data: &Expression, w: &mut dyn Write) -> Result<()> {
@@ -33,21 +32,18 @@ impl Luau {
 		match &data[0] {
 			Instruction::I32Const(v) => write!(w, "{v}"),
 			Instruction::I64Const(v) => Self::write_i64(*v, w),
-			Instruction::F32Const(v) => write!(w, "{}", f32::from_bits(v.bits)),
-			Instruction::F64Const(v) => write!(w, "{}", f64::from_bits(v.bits)),
+			Instruction::F32Const(v) => target::write_f32(f32::from_bits(v.bits), w),
+			Instruction::F64Const(v) => target::write_f64(f64::from_bits(v.bits), w),
 			_ => panic!("Unsupported instruction"),
 		}
 	}
-
-	write_assert_number!(write_assert_maybe_f32, Float32, f32);
-	write_assert_number!(write_assert_maybe_f64, Float64, f64);
 
 	fn write_simple_expression(data: &AssertExpression, w: &mut dyn Write) -> Result<()> {
 		match data {
 			AssertExpression::I32(v) => write!(w, "{v}"),
 			AssertExpression::I64(v) => Self::write_i64(*v, w),
-			AssertExpression::F32(v) => Self::write_assert_maybe_f32(v, w),
-			AssertExpression::F64(v) => Self::write_assert_maybe_f64(v, w),
+			AssertExpression::F32(v) => target::write_f32_nan(v, w),
+			AssertExpression::F64(v) => target::write_f64_nan(v, w),
 			_ => panic!("Unsupported expression"),
 		}
 	}

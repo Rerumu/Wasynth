@@ -4,6 +4,7 @@ local linked = {}
 local LUA_NAN_ARITHMETIC = 0 / 0
 local LUA_NAN_CANONICAL = 0 / 0
 local LUA_NAN_DEFAULT = 0 / 0
+local LUA_INFINITY = math.huge
 
 local function is_number_equality(lhs, rhs)
 	if type(lhs) ~= "number" or type(rhs) ~= "number" then

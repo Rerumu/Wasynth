@@ -12,31 +12,38 @@ use wast::{
 
 use wasm_ast::builder::TypeInfo;
 
-#[macro_export]
-macro_rules! write_assert_number {
-	($name:ident, $generic:ty, $reader:ty) => {
-		fn $name(data: &wast::NanPattern<$generic>, w: &mut dyn Write) -> Result<()> {
+macro_rules! impl_write_number_nan {
+	($name:ident, $name_nan:ident, $numeric:ty, $pattern:ty) => {
+		pub fn $name(number: $numeric, w: &mut dyn Write) -> Result<()> {
+			let sign = if number.is_sign_negative() { "-" } else { "" };
+
+			if number.is_infinite() {
+				write!(w, "{sign}LUA_INFINITY")
+			} else if number.is_nan() {
+				write!(w, "{sign}LUA_NAN_DEFAULT")
+			} else {
+				write!(w, "{number}")
+			}
+		}
+
+		pub fn $name_nan(data: &wast::NanPattern<$pattern>, w: &mut dyn Write) -> Result<()> {
 			use wast::NanPattern;
 
 			match data {
 				NanPattern::CanonicalNan => write!(w, "LUA_NAN_CANONICAL"),
 				NanPattern::ArithmeticNan => write!(w, "LUA_NAN_ARITHMETIC"),
 				NanPattern::Value(data) => {
-					let number = <$reader>::from_bits(data.bits);
-					let sign = if number.is_sign_negative() { "-" } else { "" };
+					let number = <$numeric>::from_bits(data.bits);
 
-					if number.is_infinite() {
-						write!(w, "{sign}LUA_INFINITY")
-					} else if number.is_nan() {
-						write!(w, "{sign}LUA_NAN_DEFAULT")
-					} else {
-						write!(w, "{number}")
-					}
+					$name(number, w)
 				}
 			}
 		}
 	};
 }
+
+impl_write_number_nan!(write_f32, write_f32_nan, f32, wast::token::Float32);
+impl_write_number_nan!(write_f64, write_f64_nan, f64, wast::token::Float64);
 
 pub struct TypedModule<'a> {
 	name: &'a str,
