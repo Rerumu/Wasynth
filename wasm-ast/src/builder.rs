@@ -369,7 +369,6 @@ pub struct Builder<'a> {
 	pending: Vec<StatList>,
 	target: StatList,
 
-	num_result: usize,
 	nested_unreachable: usize,
 }
 
@@ -380,7 +379,6 @@ impl<'a> Builder<'a> {
 			type_info,
 			pending: Vec::new(),
 			target: StatList::new(),
-			num_result: 0,
 			nested_unreachable: 0,
 		}
 	}
@@ -482,29 +480,24 @@ impl<'a> Builder<'a> {
 		self.target.code.push(stat);
 	}
 
-	fn get_relative_block(&self, index: usize) -> Option<&StatList> {
+	fn get_relative_block(&self, index: usize) -> &StatList {
 		if index == 0 {
-			Some(&self.target)
+			&self.target
 		} else {
-			self.pending.get(self.pending.len() - index)
+			&self.pending[self.pending.len() - index]
 		}
 	}
 
 	fn get_br_terminator(&self, target: usize) -> Br {
-		let (par_start, par_result) = match self.get_relative_block(target) {
-			Some(v) => (
-				v.num_previous,
-				match v.block_data {
-					BlockData::Forward { num_result } => num_result,
-					BlockData::Backward { num_param } => num_param,
-					BlockData::If { num_result, .. } => num_result,
-					BlockData::Else { num_result } => num_result,
-				},
-			),
-			None => (0, self.num_result),
+		let block = self.get_relative_block(target);
+		let par_result = match block.block_data {
+			BlockData::Forward { num_result } => num_result,
+			BlockData::Backward { num_param } => num_param,
+			BlockData::If { num_result, .. } => num_result,
+			BlockData::Else { num_result } => num_result,
 		};
 
-		let align = self.target.get_br_alignment(par_start, par_result);
+		let align = self.target.get_br_alignment(block.num_previous, par_result);
 
 		Br { target, align }
 	}
@@ -770,7 +763,6 @@ impl<'a> Builder<'a> {
 
 	fn build_stat_list(&mut self, list: &[Instruction], num_result: usize) -> StatList {
 		self.nested_unreachable = 0;
-		self.num_result = num_result;
 		self.target.block_data = BlockData::Forward { num_result };
 
 		for inst in list.iter().take(list.len() - 1) {
