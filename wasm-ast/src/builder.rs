@@ -128,6 +128,7 @@ impl<'a> TypeInfo<'a> {
 	}
 }
 
+#[derive(Clone, Copy)]
 enum BlockVariant {
 	Forward,
 	Backward,
@@ -491,10 +492,10 @@ impl<'a> Builder<'a> {
 	fn get_br_terminator(&self, target: usize) -> Br {
 		let block = self.get_relative_block(target);
 		let par_result = match block.block_data {
-			BlockData::Forward { num_result } => num_result,
+			BlockData::Forward { num_result }
+			| BlockData::If { num_result, .. }
+			| BlockData::Else { num_result } => num_result,
 			BlockData::Backward { num_param } => num_param,
-			BlockData::If { num_result, .. } => num_result,
-			BlockData::Else { num_result } => num_result,
 		};
 
 		let align = self.target.get_br_alignment(block.num_previous, par_result);
@@ -565,6 +566,7 @@ impl<'a> Builder<'a> {
 		}
 	}
 
+	#[allow(clippy::too_many_lines)]
 	fn add_instruction(&mut self, inst: &Instruction) {
 		use Instruction as Inst;
 
