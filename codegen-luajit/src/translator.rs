@@ -264,7 +264,7 @@ fn write_memory_used(func_list: &[FuncData], w: &mut dyn Write) -> Result<Vec<us
 	Ok(list)
 }
 
-fn write_func_start(wasm: &Module, index: u32, offset: u32, w: &mut dyn Write) -> Result<()> {
+fn write_func_start(wasm: &Module, index: u32, w: &mut dyn Write) -> Result<()> {
 	let opt = wasm
 		.names_section()
 		.and_then(NameSection::functions)
@@ -273,10 +273,10 @@ fn write_func_start(wasm: &Module, index: u32, offset: u32, w: &mut dyn Write) -
 	write!(w, "FUNC_LIST")?;
 
 	if let Some(name) = opt {
-		write!(w, "--[[{name}]]")?;
+		write!(w, "--[[ {name} ]]")?;
 	}
 
-	write!(w, "[{}] =", index + offset)
+	write!(w, "[{index}] =")
 }
 
 fn write_func_list(
@@ -285,10 +285,10 @@ fn write_func_list(
 	func_list: &[FuncData],
 	w: &mut dyn Write,
 ) -> Result<()> {
-	let offset = type_info.len_ex().try_into().unwrap();
-
 	func_list.iter().enumerate().try_for_each(|(i, v)| {
-		write_func_start(wasm, i.try_into().unwrap(), offset, w)?;
+		let index = (type_info.len_ex() + i).try_into().unwrap();
+
+		write_func_start(wasm, index, w)?;
 
 		v.write(&mut Manager::default(), w)
 	})
