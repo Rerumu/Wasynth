@@ -16,6 +16,27 @@ mod target;
 
 static ASSERTION: &str = include_str!("assertion.lua");
 
+static SPEC_TEST: &str = "
+linked.spectest = {
+	func_list = {
+		print = print,
+		print_f32 = print,
+		print_f64 = print,
+		print_f64_f64 = print,
+		print_i32 = print,
+		print_i32_f32 = print,
+	},
+	global_list = {
+		global_f32 = { value = 666 },
+		global_f64 = { value = 666 },
+		global_i32 = { value = 666 },
+		global_i64 = { value = 666LL },
+	},
+	table_list = { table = { data = {} } },
+	memory_list = { memory = rt.allocator.new(1, 2) },
+}
+";
+
 struct LuaJIT;
 
 impl LuaJIT {
@@ -135,7 +156,8 @@ impl Target for LuaJIT {
 		let runtime = codegen_luajit::RUNTIME;
 
 		writeln!(w, "{ASSERTION}")?;
-		writeln!(w, "local rt = (function() {runtime} end)()")
+		writeln!(w, "local rt = (function() {runtime} end)()")?;
+		writeln!(w, "{SPEC_TEST}")
 	}
 
 	fn write_module(data: &Module, name: Option<&str>, w: &mut dyn Write) -> Result<()> {
