@@ -153,13 +153,9 @@ impl Target for LuaJIT {
 	}
 }
 
-static DO_NOT_RUN: [&str; 8] = [
+static DO_NOT_RUN: [&str; 4] = [
 	"binary-leb128.wast",
 	"conversions.wast",
-	"float_exprs.wast",
-	"float_literals.wast",
-	"float_memory.wast",
-	"float_misc.wast",
 	"names.wast",
 	"skip-stack-guard-page.wast",
 ];
