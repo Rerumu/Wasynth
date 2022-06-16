@@ -11,6 +11,9 @@ local math_ceil = math.ceil
 local math_floor = math.floor
 local to_number = tonumber
 
+local ID_ZERO = i64(0)
+local ID_ONE = i64(1)
+
 local function truncate(num)
 	if num >= 0 then
 		return (math_floor(num))
@@ -32,7 +35,6 @@ do
 	local to_signed = bit.tobit
 	local math_abs = math.abs
 
-	local ID_ONE = i64(1)
 	local RE_INSTANCE = ffi.new([[union {
 		double f64;
 		struct { int32_t a32, b32; };
@@ -171,6 +173,41 @@ do
 		return count
 	end
 
+	function clz.i64(num)
+		for i = 0, 63 do
+			local mask = lj_lshift(ID_ONE, 63 - i)
+
+			if lj_band(num, mask) ~= ID_ZERO then
+				return i * ID_ONE
+			end
+		end
+
+		return 64 * ID_ONE
+	end
+
+	function ctz.i64(num)
+		for i = 0, 63 do
+			local mask = lj_lshift(ID_ONE, i)
+
+			if lj_band(num, mask) ~= ID_ZERO then
+				return i * ID_ONE
+			end
+		end
+
+		return 64 * ID_ONE
+	end
+
+	function popcnt.i64(num)
+		local count = ID_ZERO
+
+		while num ~= ID_ZERO do
+			num = lj_band(num, num - 1)
+			count = count + ID_ONE
+		end
+
+		return count
+	end
+
 	module.clz = clz
 	module.ctz = ctz
 	module.popcnt = popcnt
@@ -293,7 +330,7 @@ do
 	extend.i64_i32 = i64
 
 	function extend.u64_i32(num)
-		RE_INSTANCE.i64 = 0
+		RE_INSTANCE.i64 = ID_ZERO
 		RE_INSTANCE.i32 = num
 
 		return RE_INSTANCE.i64
