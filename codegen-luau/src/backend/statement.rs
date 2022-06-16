@@ -81,8 +81,9 @@ fn br_target(level: usize, in_loop: bool, w: &mut dyn Write) -> Result<()> {
 		write!(w, "continue ")?;
 	}
 
-	write!(w, "end ")?;
+	write!(w, "else ")?;
 	write!(w, "break ")?;
+	write!(w, "end ")?;
 	write!(w, "end ")
 }
 
@@ -288,6 +289,7 @@ impl Driver for FuncData {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write_parameter_list(self, w)?;
 		write_variable_list(self, w)?;
+		write!(w, "local desired, temp ")?;
 
 		mng.num_param = self.num_param;
 		self.code.write(mng, w)?;
