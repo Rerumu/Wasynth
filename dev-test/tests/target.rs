@@ -50,21 +50,6 @@ fn try_into_ast_module(data: QuoteWat) -> Option<AstModule> {
 	}
 }
 
-// Only proceed with tests that observe any state.
-fn parse_and_validate<'a>(buffer: &'a ParseBuffer) -> Option<Wast<'a>> {
-	let parsed: Wast = wast::parser::parse(buffer).unwrap();
-	let observer = parsed.directives.iter().any(|v| {
-		matches!(
-			v,
-			WastDirective::AssertTrap { .. }
-				| WastDirective::AssertReturn { .. }
-				| WastDirective::AssertExhaustion { .. }
-		)
-	});
-
-	observer.then(|| parsed)
-}
-
 pub fn get_name_from_id(id: Option<Id>) -> &str {
 	id.as_ref().map_or("temp", Id::name)
 }
@@ -136,12 +121,9 @@ pub trait Target: Sized {
 		}
 	}
 
-	fn run_generation(source: &str) -> Result<Option<Vec<u8>>> {
+	fn run_generation(source: &str) -> Result<Vec<u8>> {
 		let lexed = ParseBuffer::new(source).expect("Failed to tokenize");
-		let parsed = match parse_and_validate(&lexed) {
-			Some(v) => v,
-			None => return Ok(None),
-		};
+		let parsed: Wast = wast::parser::parse(&lexed).unwrap();
 
 		let mut data = Vec::new();
 
@@ -151,19 +133,16 @@ pub trait Target: Sized {
 			Self::write_variant(variant, &mut data)?;
 		}
 
-		Ok(Some(data))
+		Ok(data)
 	}
 
 	fn test(name: &str, source: &str) -> Result<()> {
-		if let Some(data) = Self::run_generation(source)? {
-			let temp = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
-				.join(name)
-				.with_extension("wast.lua");
+		let data = Self::run_generation(source)?;
+		let temp = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
+			.join(name)
+			.with_extension("wast.lua");
 
-			std::fs::write(&temp, &data)?;
-			Self::run_command(&temp)?;
-		}
-
-		Ok(())
+		std::fs::write(&temp, &data)?;
+		Self::run_command(&temp)
 	}
 }
