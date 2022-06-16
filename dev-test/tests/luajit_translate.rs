@@ -3,12 +3,14 @@ use std::{
 	path::PathBuf,
 };
 
+use parity_wasm::elements::Module;
+use wasm_ast::builder::TypeInfo;
 use wast::{
 	core::{Expression, Instruction},
 	AssertExpression, WastExecute, WastInvoke,
 };
 
-use target::{Target, TypedModule};
+use target::{get_name_from_id, Target};
 
 mod target;
 
@@ -42,7 +44,7 @@ impl LuaJIT {
 	}
 
 	fn write_call_of(handler: &str, data: &WastInvoke, w: &mut dyn Write) -> Result<()> {
-		let name = TypedModule::resolve_id(data.module);
+		let name = get_name_from_id(data.module);
 		let func = data.name;
 
 		write!(w, "{handler}(")?;
@@ -78,7 +80,7 @@ impl Target for LuaJIT {
 				writeln!(w)
 			}
 			WastExecute::Get { module, global } => {
-				let name = TypedModule::resolve_id(*module);
+				let name = get_name_from_id(*module);
 
 				write!(w, "assert_neq(")?;
 				write!(w, r#"loaded["{name}"].global_list["{global}"].value"#)?;
@@ -108,7 +110,7 @@ impl Target for LuaJIT {
 				writeln!(w, "}})")
 			}
 			WastExecute::Get { module, global } => {
-				let name = TypedModule::resolve_id(*module);
+				let name = get_name_from_id(*module);
 
 				write!(w, "assert_eq(")?;
 				write!(w, r#"loaded["{name}"].global_list["{global}"].value"#)?;
@@ -132,10 +134,18 @@ impl Target for LuaJIT {
 		writeln!(w, "local rt = (function() {runtime} end)()")
 	}
 
-	fn write_module(typed: &TypedModule, w: &mut dyn Write) -> Result<()> {
-		write!(w, r#"loaded["{}"] = (function() "#, typed.name())?;
-		codegen_luajit::from_module_typed(typed.module(), typed.type_info(), w)?;
-		writeln!(w, "end)()(nil)")
+	fn write_module(data: &Module, name: Option<&str>, w: &mut dyn Write) -> Result<()> {
+		let type_info = TypeInfo::from_module(data);
+
+		write!(w, r#"loaded["temp"] = (function() "#)?;
+		codegen_luajit::from_module_typed(data, &type_info, w)?;
+		writeln!(w, "end)()(linked)")?;
+
+		if let Some(name) = name {
+			writeln!(w, r#"loaded["{name}"] = loaded["temp"]"#)?;
+		}
+
+		Ok(())
 	}
 }
 

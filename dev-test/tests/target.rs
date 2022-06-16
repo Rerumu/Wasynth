@@ -11,8 +11,6 @@ use wast::{
 	WastDirective, WastExecute, WastInvoke, Wat,
 };
 
-use wasm_ast::builder::TypeInfo;
-
 macro_rules! impl_write_number_nan {
 	($name:ident, $name_nan:ident, $numeric:ty, $pattern:ty) => {
 		pub fn $name(number: $numeric, w: &mut dyn Write) -> Result<()> {
@@ -44,38 +42,6 @@ macro_rules! impl_write_number_nan {
 impl_write_number_nan!(write_f32, write_f32_nan, f32, wast::token::Float32);
 impl_write_number_nan!(write_f64, write_f64_nan, f64, wast::token::Float64);
 
-pub struct TypedModule<'a> {
-	name: &'a str,
-	module: &'a BinModule,
-	type_info: TypeInfo<'a>,
-}
-
-impl<'a> TypedModule<'a> {
-	pub fn resolve_id(id: Option<Id>) -> &str {
-		id.map_or("temp", |v| v.name())
-	}
-
-	pub fn name(&self) -> &str {
-		self.name
-	}
-
-	pub fn module(&self) -> &BinModule {
-		self.module
-	}
-
-	pub fn type_info(&self) -> &TypeInfo<'a> {
-		&self.type_info
-	}
-
-	fn from_id(id: Option<Id<'a>>, module: &'a BinModule) -> Self {
-		Self {
-			module,
-			name: Self::resolve_id(id),
-			type_info: TypeInfo::from_module(module),
-		}
-	}
-}
-
 fn try_into_ast_module(data: QuoteWat) -> Option<AstModule> {
 	if let QuoteWat::Wat(Wat::Module(data)) = data {
 		Some(data)
@@ -99,6 +65,10 @@ fn parse_and_validate<'a>(buffer: &'a ParseBuffer) -> Option<Wast<'a>> {
 	observer.then(|| parsed)
 }
 
+pub fn get_name_from_id(id: Option<Id>) -> &str {
+	id.as_ref().map_or("temp", Id::name)
+}
+
 pub trait Target: Sized {
 	fn executable() -> String;
 
@@ -118,20 +88,21 @@ pub trait Target: Sized {
 
 	fn write_runtime(w: &mut dyn Write) -> Result<()>;
 
-	fn write_module(typed: &TypedModule, w: &mut dyn Write) -> Result<()>;
+	fn write_module(data: &BinModule, name: Option<&str>, w: &mut dyn Write) -> Result<()>;
 
 	fn write_variant(variant: WastDirective, w: &mut dyn Write) -> Result<()> {
 		match variant {
 			WastDirective::Wat(data) => {
 				let mut ast = try_into_ast_module(data).expect("Must be a module");
 				let bytes = ast.encode().unwrap();
-				let temp = parity_wasm::deserialize_buffer(&bytes).unwrap();
-				let typed = TypedModule::from_id(ast.id, &temp);
 
-				Self::write_module(&typed, w)?;
+				let data = parity_wasm::deserialize_buffer(&bytes).unwrap();
+				let name = ast.id.as_ref().map(Id::name);
+
+				Self::write_module(&data, name, w)?;
 			}
 			WastDirective::Register { name, module, .. } => {
-				let pre = TypedModule::resolve_id(module);
+				let pre = get_name_from_id(module);
 
 				Self::write_register(name, pre, w)?;
 			}
