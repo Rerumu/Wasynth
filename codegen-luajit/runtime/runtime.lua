@@ -303,6 +303,8 @@ do
 	local demote = {}
 	local reinterpret = {}
 
+	local bit_band = bit.band
+
 	-- This would surely be an issue in a multi-thread environment...
 	-- ... thankfully this isn't one.
 	local RE_INSTANCE = ffi.new([[union {
@@ -327,7 +329,55 @@ do
 	trunc.u64_f32 = i64
 	trunc.u64_f64 = i64
 
-	extend.i64_i32 = i64
+	function extend.i32_i8(num)
+		num = bit_band(num, 0xFF)
+
+		if num >= 0x80 then
+			return num - 0x100
+		else
+			return num
+		end
+	end
+
+	function extend.i32_i16(num)
+		num = bit_band(num, 0xFFFF)
+
+		if num >= 0x8000 then
+			return num - 0x10000
+		else
+			return num
+		end
+	end
+
+	function extend.i64_i8(num)
+		num = bit_band(num, 0xFF)
+
+		if num >= 0x80 then
+			return num - 0x100
+		else
+			return num
+		end
+	end
+
+	function extend.i64_i16(num)
+		num = bit_band(num, 0xFFFF)
+
+		if num >= 0x8000 then
+			return num - 0x10000
+		else
+			return num
+		end
+	end
+
+	function extend.i64_i32(num)
+		num = bit_band(num, 0xFFFFFFFF)
+
+		if num >= 0x80000000 then
+			return num - 0x100000000
+		else
+			return num
+		end
+	end
 
 	function extend.u64_i32(num)
 		RE_INSTANCE.i64 = ID_ZERO
