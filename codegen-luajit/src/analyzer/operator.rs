@@ -6,9 +6,7 @@ pub fn bin_symbol_of(op: BinOpType) -> Option<&'static str> {
 		BinOpType::Sub_I64 | BinOpType::Sub_FN => "-",
 		BinOpType::Mul_I64 | BinOpType::Mul_FN => "*",
 		BinOpType::DivS_I64 | BinOpType::Div_FN => "/",
-		BinOpType::RemS_I32 | BinOpType::RemU_I32 | BinOpType::RemS_I64 | BinOpType::RemU_I64 => {
-			"%"
-		}
+		BinOpType::RemS_I64 => "%",
 		_ => return None,
 	};
 

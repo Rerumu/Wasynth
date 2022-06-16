@@ -24,6 +24,7 @@ do
 	local sub = {}
 	local mul = {}
 	local div = {}
+	local rem = {}
 	local neg = {}
 	local copysign = {}
 	local nearest = {}
@@ -78,6 +79,21 @@ do
 		return (i64(u64(lhs) / u64(rhs)))
 	end
 
+	function rem.u32(lhs, rhs)
+		assert(rhs ~= 0, "division by zero")
+
+		lhs = to_number(u32(lhs))
+		rhs = to_number(u32(rhs))
+
+		return (to_signed(lhs % rhs))
+	end
+
+	function rem.u64(lhs, rhs)
+		assert(rhs ~= 0, "division by zero")
+
+		return (i64(u64(lhs) % u64(rhs)))
+	end
+
 	function neg.num(num)
 		return -num
 	end
@@ -106,6 +122,7 @@ do
 	module.sub = sub
 	module.mul = mul
 	module.div = div
+	module.rem = rem
 	module.neg = neg
 	module.copysign = copysign
 	module.nearest = nearest

@@ -238,7 +238,9 @@ fn write_local_operation(head: &str, tail: &str, w: &mut dyn Write) -> Result<()
 		("abs" | "ceil" | "floor" | "sqrt" | "min" | "max", _) => {
 			write!(w, "local {head}_{tail} = math.{head} ")
 		}
-
+		("rem", "i32") => {
+			write!(w, "local {head}_{tail} = math.fmod ")
+		}
 		_ => write!(w, "local {head}_{tail} = rt.{head}.{tail} "),
 	}
 }
