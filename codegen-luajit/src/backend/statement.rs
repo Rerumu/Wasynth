@@ -224,7 +224,7 @@ fn write_parameter_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 fn write_variable_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 	let mut total = 0;
 
-	for data in &ast.local_data {
+	for data in ast.local_data.iter().filter(|v| v.count() != 0) {
 		let range = total..total + usize::try_from(data.count()).unwrap();
 		let typed = if data.value_type() == ValueType::I64 {
 			"0LL"
