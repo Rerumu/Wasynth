@@ -1,5 +1,6 @@
 use std::{
 	io::{Result, Write},
+	num::FpCategory,
 	path::{Path, PathBuf},
 	process::Command,
 };
@@ -15,14 +16,12 @@ use wasm_ast::builder::TypeInfo;
 macro_rules! impl_write_number_nan {
 	($name:ident, $name_nan:ident, $numeric:ty, $pattern:ty) => {
 		pub fn $name(number: $numeric, w: &mut dyn Write) -> Result<()> {
-			let sign = if number.is_sign_negative() { "-" } else { "" };
-
-			if number.is_infinite() {
-				write!(w, "{sign}LUA_INFINITY")
-			} else if number.is_nan() {
-				write!(w, "{sign}LUA_NAN_DEFAULT")
-			} else {
-				write!(w, "{number}")
+			match (number.classify(), number.is_sign_negative()) {
+				(FpCategory::Nan, true) => write!(w, "-LUA_NAN_DEFAULT "),
+				(FpCategory::Nan, false) => write!(w, "LUA_NAN_DEFAULT "),
+				(FpCategory::Infinite, true) => write!(w, "-math.huge "),
+				(FpCategory::Infinite, false) => write!(w, "math.huge "),
+				_ => write!(w, "{number:e} "),
 			}
 		}
 

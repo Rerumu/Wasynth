@@ -1,4 +1,7 @@
-use std::io::{Result, Write};
+use std::{
+	io::{Result, Write},
+	num::FpCategory,
+};
 
 use wasm_ast::node::{
 	BinOp, CmpOp, Expression, GetGlobal, GetLocal, GetTemporary, LoadAt, MemoryGrow, MemorySize,
@@ -10,6 +13,20 @@ use crate::analyzer::operator::bin_symbol_of;
 use super::manager::{
 	write_cmp_op, write_condition, write_separated, write_variable, Driver, Manager,
 };
+
+macro_rules! impl_write_number {
+	($name:tt, $numeric:ty) => {
+		fn $name(number: $numeric, w: &mut dyn Write) -> Result<()> {
+			match (number.classify(), number.is_sign_negative()) {
+				(FpCategory::Nan, true) => write!(w, "(0.0 / 0.0) "),
+				(FpCategory::Nan, false) => write!(w, "-(0.0 / 0.0) "),
+				(FpCategory::Infinite, true) => write!(w, "-math.huge "),
+				(FpCategory::Infinite, false) => write!(w, "math.huge "),
+				_ => write!(w, "{number:e} "),
+			}
+		}
+	};
+}
 
 impl Driver for Select {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
@@ -68,29 +85,8 @@ impl Driver for MemoryGrow {
 	}
 }
 
-fn write_f32(number: f32, w: &mut dyn Write) -> Result<()> {
-	let sign = if number.is_sign_negative() { "-" } else { "" };
-
-	if number.is_infinite() {
-		write!(w, "{sign}math.huge ")
-	} else if number.is_nan() {
-		write!(w, "{sign}0/0 ")
-	} else {
-		write!(w, "{number:e} ")
-	}
-}
-
-fn write_f64(number: f64, w: &mut dyn Write) -> Result<()> {
-	let sign = if number.is_sign_negative() { "-" } else { "" };
-
-	if number.is_infinite() {
-		write!(w, "{sign}math.huge ")
-	} else if number.is_nan() {
-		write!(w, "{sign}0/0 ")
-	} else {
-		write!(w, "{number:e} ")
-	}
-}
+impl_write_number!(write_f32, f32);
+impl_write_number!(write_f64, f64);
 
 impl Driver for Value {
 	fn write(&self, _: &mut Manager, w: &mut dyn Write) -> Result<()> {
