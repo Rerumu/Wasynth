@@ -21,14 +21,14 @@ local function no_op(num)
 end
 
 do
-	local num = {}
+	local temp = {}
 
-	num.K_ZERO = I64.K_ZERO
-	num.K_ONE = I64.K_ONE
+	temp.K_ZERO = I64.K_ZERO
+	temp.K_ONE = I64.K_ONE
 
-	num.from_u32 = num_from_u32
+	temp.from_u32 = num_from_u32
 
-	module.num = num
+	module.i64 = temp
 end
 
 do

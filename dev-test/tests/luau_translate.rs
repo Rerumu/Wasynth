@@ -23,7 +23,7 @@ impl Luau {
 		let data_1 = (data & 0xFFFFFFFF) as u32;
 		let data_2 = (data >> 32 & 0xFFFFFFFF) as u32;
 
-		write!(w, "{{{data_1}, {data_2}}}")
+		write!(w, "rt.i64.from_u32({data_1}, {data_2})")
 	}
 
 	fn write_expression(data: &Expression, w: &mut dyn Write) -> Result<()> {

@@ -93,14 +93,14 @@ pub fn write_i32(number: i32, w: &mut dyn Write) -> Result<()> {
 
 fn write_i64(number: i64, w: &mut dyn Write) -> Result<()> {
 	match number {
-		0 => write!(w, "num_K_ZERO "),
-		1 => write!(w, "num_K_ONE "),
+		0 => write!(w, "i64_K_ZERO "),
+		1 => write!(w, "i64_K_ONE "),
 		_ => {
 			let list = number.to_ne_bytes();
 			let a = u32::from_ne_bytes(list[0..4].try_into().unwrap());
 			let b = u32::from_ne_bytes(list[4..8].try_into().unwrap());
 
-			write!(w, "num_from_u32({a}, {b}) ")
+			write!(w, "i64_from_u32({a}, {b}) ")
 		}
 	}
 }

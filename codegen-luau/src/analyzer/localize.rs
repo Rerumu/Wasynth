@@ -32,7 +32,7 @@ impl Visitor for Visit {
 			_ => return,
 		};
 
-		self.result.insert(("num", name));
+		self.result.insert(("i64", name));
 	}
 
 	fn visit_un_op(&mut self, v: &UnOp) {
