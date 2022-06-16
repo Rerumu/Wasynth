@@ -411,6 +411,9 @@ do
 	local string_byte = string.byte
 	local string_unpack = string.unpack
 
+	local reinterpret_f32_i32 = module.reinterpret.f32_i32
+	local reinterpret_f64_i64 = module.reinterpret.f64_i64
+
 	local function load_byte(data, addr)
 		local value = data[math_floor(addr / 4)] or 0
 
@@ -426,15 +429,35 @@ do
 	function load.i32_i8(memory, addr)
 		local b = load_byte(memory.data, addr)
 
-		if b > 0x7F then
-			b = b - 0x100
+		if b >= 0x80 then
+			return to_u32(b - 0x100)
+		else
+			return b
 		end
-
-		return b
 	end
 
 	function load.i32_u8(memory, addr)
 		return load_byte(memory.data, addr)
+	end
+
+	function load.i32_i16(memory, addr)
+		local data = memory.data
+		local num
+
+		if addr % 4 == 0 then
+			num = bit_band(data[addr / 4] or 0, 0xFFFF)
+		else
+			local b1 = load_byte(data, addr)
+			local b2 = bit_lshift(load_byte(data, addr + 1), 8)
+
+			num = bit_bor(b1, b2)
+		end
+
+		if num >= 0x8000 then
+			return to_u32(num - 0x10000)
+		else
+			return num
+		end
 	end
 
 	function load.i32(memory, addr)
@@ -463,8 +486,27 @@ do
 		return num_from_u32(data_1, data_2)
 	end
 
+	local load_i64 = load.i64
+
+	function load.f32(memory, addr)
+		local raw = load_i32(memory, addr)
+
+		return reinterpret_f32_i32(raw)
+	end
+
+	function load.f64(memory, addr)
+		local raw = load_i64(memory, addr)
+
+		return reinterpret_f64_i64(raw)
+	end
+
 	function store.i32_n8(memory, addr, value)
 		store_byte(memory.data, addr, value)
+	end
+
+	function store.i32_n16(memory, addr, value)
+		store_byte(memory.data, addr, value)
+		store_byte(memory.data, addr + 1, bit_rshift(value, 8))
 	end
 
 	function store.i32(memory, addr, value)
