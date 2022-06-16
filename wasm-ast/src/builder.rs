@@ -165,6 +165,10 @@ impl StatList {
 		Self::default()
 	}
 
+	fn push_data(&mut self, data: Expression) {
+		self.stack.push(data);
+	}
+
 	fn pop_required(&mut self) -> Expression {
 		self.stack.pop().unwrap()
 	}
@@ -173,9 +177,16 @@ impl StatList {
 		self.stack.split_off(self.stack.len() - len)
 	}
 
-	fn push_tracked(&mut self, data: Expression) {
-		self.stack.push(data);
-		self.num_stack = self.num_stack.max(self.stack.len());
+	fn push_temporary(&mut self, num: usize) {
+		let len = self.stack.len() + self.num_previous;
+
+		for var in len..len + num {
+			let data = Expression::GetTemporary(GetTemporary { var });
+
+			self.push_data(data);
+		}
+
+		self.num_stack = self.num_stack.max(len + num);
 	}
 
 	fn leak_at(&mut self, index: usize) {
@@ -192,6 +203,7 @@ impl StatList {
 			value: std::mem::replace(old, get),
 		});
 
+		self.num_stack = self.num_stack.max(var + 1);
 		self.code.push(set);
 	}
 
@@ -219,18 +231,6 @@ impl StatList {
 		self.leak_with(|_| true);
 	}
 
-	fn push_temporary(&mut self, num: usize) {
-		let len = self.stack.len();
-
-		for i in len..len + num {
-			let data = Expression::GetTemporary(GetTemporary {
-				var: self.num_previous + i,
-			});
-
-			self.push_tracked(data);
-		}
-	}
-
 	fn push_load(&mut self, what: LoadType, offset: u32) {
 		let data = Expression::LoadAt(LoadAt {
 			what,
@@ -238,7 +238,7 @@ impl StatList {
 			pointer: self.pop_required().into(),
 		});
 
-		self.push_tracked(data);
+		self.push_data(data);
 	}
 
 	fn add_store(&mut self, what: StoreType, offset: u32) {
@@ -256,7 +256,7 @@ impl StatList {
 	fn push_constant<T: Into<Value>>(&mut self, value: T) {
 		let value = Expression::Value(value.into());
 
-		self.push_tracked(value);
+		self.push_data(value);
 	}
 
 	fn push_un_op(&mut self, op: UnOpType) {
@@ -265,7 +265,7 @@ impl StatList {
 			rhs: self.pop_required().into(),
 		});
 
-		self.push_tracked(data);
+		self.push_data(data);
 	}
 
 	fn push_bin_op(&mut self, op: BinOpType) {
@@ -275,7 +275,7 @@ impl StatList {
 			lhs: self.pop_required().into(),
 		});
 
-		self.push_tracked(data);
+		self.push_data(data);
 	}
 
 	fn push_cmp_op(&mut self, op: CmpOpType) {
@@ -285,7 +285,7 @@ impl StatList {
 			lhs: self.pop_required().into(),
 		});
 
-		self.push_tracked(data);
+		self.push_data(data);
 	}
 
 	// Eqz is the only unary comparison so it's "emulated"
@@ -433,6 +433,7 @@ impl<'a> Builder<'a> {
 		};
 
 		self.target.stack = old.pop_len(num_param);
+		self.target.num_stack = old.num_stack;
 		self.target.num_previous = old.num_previous + old.stack.len();
 
 		old.push_temporary(num_result);
@@ -664,14 +665,14 @@ impl<'a> Builder<'a> {
 					a: self.target.pop_required().into(),
 				});
 
-				self.target.push_tracked(data);
+				self.target.push_data(data);
 			}
 			Inst::GetLocal(i) => {
 				let data = Expression::GetLocal(GetLocal {
 					var: i.try_into().unwrap(),
 				});
 
-				self.target.push_tracked(data);
+				self.target.push_data(data);
 			}
 			Inst::SetLocal(i) => {
 				let var = i.try_into().unwrap();
@@ -692,7 +693,7 @@ impl<'a> Builder<'a> {
 				});
 
 				self.target.leak_local_write(var);
-				self.target.push_tracked(get);
+				self.target.push_data(get);
 				self.target.code.push(set);
 			}
 			Inst::GetGlobal(i) => {
@@ -700,7 +701,7 @@ impl<'a> Builder<'a> {
 					var: i.try_into().unwrap(),
 				});
 
-				self.target.push_tracked(data);
+				self.target.push_data(data);
 			}
 			Inst::SetGlobal(i) => {
 				let var = i.try_into().unwrap();
@@ -739,7 +740,7 @@ impl<'a> Builder<'a> {
 				let memory = i.try_into().unwrap();
 				let data = Expression::MemorySize(MemorySize { memory });
 
-				self.target.push_tracked(data);
+				self.target.push_data(data);
 			}
 			Inst::GrowMemory(i) => {
 				let memory = i.try_into().unwrap();
@@ -748,7 +749,7 @@ impl<'a> Builder<'a> {
 					value: self.target.pop_required().into(),
 				});
 
-				self.target.push_tracked(data);
+				self.target.push_data(data);
 				self.target.leak_all();
 			}
 			Inst::I32Const(v) => self.target.push_constant(v),
