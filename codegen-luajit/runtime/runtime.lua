@@ -31,6 +31,7 @@ do
 	local to_signed = bit.tobit
 	local math_abs = math.abs
 
+	local ID_ONE = i64(1)
 	local RE_INSTANCE = ffi.new([[union {
 		double f64;
 		struct { int32_t a32, b32; };
@@ -53,7 +54,7 @@ do
 	end
 
 	function mul.i32(a, b)
-		return (to_signed(a * b))
+		return (to_signed(ID_ONE * a * b))
 	end
 
 	function div.i32(lhs, rhs)
