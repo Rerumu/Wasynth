@@ -213,8 +213,7 @@ impl StatList {
 
 	leak_with_predicate!(leak_local_write, is_local_read);
 	leak_with_predicate!(leak_global_write, is_global_read);
-	leak_with_predicate!(leak_memory_size, is_memory_size);
-	leak_with_predicate!(leak_memory_write, is_memory_ref);
+	leak_with_predicate!(leak_memory_write, is_memory_read);
 
 	fn leak_all(&mut self) {
 		self.leak_with(|_| true);
@@ -740,7 +739,6 @@ impl<'a> Builder<'a> {
 				let memory = i.try_into().unwrap();
 				let data = Expression::MemorySize(MemorySize { memory });
 
-				self.target.leak_memory_write(memory);
 				self.target.push_tracked(data);
 			}
 			Inst::GrowMemory(i) => {
@@ -750,9 +748,8 @@ impl<'a> Builder<'a> {
 					value: self.target.pop_required().into(),
 				});
 
-				self.target.leak_memory_size(memory);
-				self.target.leak_memory_write(memory);
 				self.target.push_tracked(data);
+				self.target.leak_all();
 			}
 			Inst::I32Const(v) => self.target.push_constant(v),
 			Inst::I64Const(v) => self.target.push_constant(v),

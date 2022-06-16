@@ -649,14 +649,8 @@ impl Expression {
 	}
 
 	#[must_use]
-	pub fn is_memory_size(&self, id: usize) -> bool {
-		matches!(self, Expression::MemorySize(v) if v.memory == id)
-	}
-
-	#[must_use]
-	pub fn is_memory_ref(&self, id: usize) -> bool {
-		matches!(self, Expression::MemoryGrow(v) if v.memory == id)
-			|| (id == 0 && matches!(self, Expression::LoadAt(_)))
+	pub fn is_memory_read(&self, id: usize) -> bool {
+		id == 0 && matches!(self, Expression::LoadAt(_))
 	}
 }
 
