@@ -518,6 +518,10 @@ do
 	end
 
 	function allocator.grow(memory, num)
+		if num == 0 then
+			return memory.min
+		end
+
 		local old = memory.min
 		local new = old + num
 
