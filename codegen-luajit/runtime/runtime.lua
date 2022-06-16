@@ -31,6 +31,11 @@ do
 	local to_signed = bit.tobit
 	local math_abs = math.abs
 
+	local RE_INSTANCE = ffi.new([[union {
+		double f64;
+		struct { int32_t a32, b32; };
+	}]])
+
 	local function round(num)
 		if num >= 0 then
 			return (math_floor(num + 0.5))
@@ -77,7 +82,9 @@ do
 	end
 
 	function copysign.num(lhs, rhs)
-		if rhs >= 0 then
+		RE_INSTANCE.f64 = rhs
+
+		if RE_INSTANCE.b32 >= 0 then
 			return (math_abs(lhs))
 		else
 			return -math_abs(lhs)
