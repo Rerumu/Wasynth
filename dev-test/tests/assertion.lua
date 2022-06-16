@@ -10,10 +10,10 @@ local function is_number_equality(lhs, rhs)
 	if type(lhs) ~= "number" or type(rhs) ~= "number" then
 		return false
 	elseif lhs ~= lhs and rhs ~= rhs then
-		return lhs ~= rhs
+		return true
 	end
 
-	return math.abs(lhs - rhs) < 0.000001
+	return math.abs(lhs - rhs) < 0.00001 or string.format("%.3g", lhs) == string.format("%.3g", rhs)
 end
 
 local function assert_eq(lhs, rhs, message, level)
