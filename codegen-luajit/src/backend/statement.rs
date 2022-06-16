@@ -90,9 +90,10 @@ impl Driver for Backward {
 
 		if let Some(v) = &self.last {
 			v.write(mng, w)?;
+		} else {
+			write!(w, "break ")?;
 		}
 
-		write!(w, "break ")?;
 		write!(w, "end ")?;
 
 		mng.pop_label();
@@ -125,9 +126,7 @@ impl Driver for If {
 			falsey.write(mng, w)?;
 		}
 
-		write!(w, "end ")?;
-
-		Ok(())
+		write!(w, "end ")
 	}
 }
 

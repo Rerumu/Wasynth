@@ -15,8 +15,6 @@ use super::manager::{
 
 impl Driver for Br {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "do ")?;
-
 		if !self.align.is_aligned() {
 			write_ascending("reg", self.align.new_range(), w)?;
 			write!(w, " = ")?;
@@ -37,7 +35,7 @@ impl Driver for Br {
 			write!(w, "break ")?;
 		}
 
-		write!(w, "end ")
+		Ok(())
 	}
 }
 
@@ -106,9 +104,10 @@ impl Driver for Forward {
 
 		if let Some(v) = &self.last {
 			v.write(mng, w)?;
+		} else {
+			write!(w, "break ")?;
 		}
 
-		write!(w, "break ")?;
 		write!(w, "end ")?;
 
 		mng.pop_label();
@@ -126,9 +125,10 @@ impl Driver for Backward {
 
 		if let Some(v) = &self.last {
 			v.write(mng, w)?;
+		} else {
+			write!(w, "break ")?;
 		}
 
-		write!(w, "break ")?;
 		write!(w, "end ")?;
 
 		mng.pop_label();
@@ -148,7 +148,6 @@ impl Driver for BrIf {
 
 impl Driver for If {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "while true do ")?;
 		write!(w, "if ")?;
 		write_condition(&self.cond, mng, w)?;
 		write!(w, "then ")?;
@@ -161,8 +160,6 @@ impl Driver for If {
 			falsey.write(mng, w)?;
 		}
 
-		write!(w, "end ")?;
-		write!(w, "break ")?;
 		write!(w, "end ")
 	}
 }
