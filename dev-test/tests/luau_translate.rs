@@ -93,7 +93,11 @@ impl Target for Luau {
 				write!(w, r#"loaded["{name}"].global_list["{global}"].value"#)?;
 				writeln!(w, ", nil)")
 			}
-			WastExecute::Wat(_) => panic!("Wat not supported"),
+			WastExecute::Wat(_) => {
+				// FIXME: Assert the `start` function
+
+				Ok(())
+			}
 		}
 	}
 
