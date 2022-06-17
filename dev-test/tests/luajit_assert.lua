@@ -49,7 +49,7 @@ local function assert_trap(func, ...)
 end
 
 local function assert_return(data, wanted)
-	for i, v in wanted do
+	for i, v in ipairs(wanted) do
 		assert_eq(data[i], v, 2)
 	end
 end
