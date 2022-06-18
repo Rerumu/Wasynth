@@ -224,9 +224,11 @@ fn build_func_list(wasm: &Module, type_info: &TypeInfo) -> Vec<FuncData> {
 		None => return Vec::new(),
 	};
 
-	let iter = list.iter().enumerate();
+	let mut builder = Builder::from_type_info(type_info);
 
-	iter.map(|f| Builder::from_type_info(type_info).build_indexed(f.0, f.1))
+	list.iter()
+		.enumerate()
+		.map(|f| builder.build_indexed(f.0, f.1))
 		.collect()
 }
 

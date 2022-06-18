@@ -340,7 +340,7 @@ impl<'a> Builder<'a> {
 	}
 
 	#[must_use]
-	pub fn build_anonymous(mut self, list: &[Instruction]) -> FuncData {
+	pub fn build_anonymous(&mut self, list: &[Instruction]) -> FuncData {
 		let data = self.build_stat_list(list, 1);
 
 		FuncData {
@@ -353,7 +353,7 @@ impl<'a> Builder<'a> {
 	}
 
 	#[must_use]
-	pub fn build_indexed(mut self, index: usize, func: &FuncBody) -> FuncData {
+	pub fn build_indexed(&mut self, index: usize, func: &FuncBody) -> FuncData {
 		let arity = &self.type_info.rel_arity_of(self.type_info.len_ex() + index);
 		let data = self.build_stat_list(func.code().elements(), arity.num_result);
 
