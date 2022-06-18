@@ -637,21 +637,6 @@ impl Expression {
 	pub fn is_temporary(&self, id: usize) -> bool {
 		matches!(self, Expression::GetTemporary(v) if v.var == id)
 	}
-
-	#[must_use]
-	pub fn is_local_read(&self, id: usize) -> bool {
-		matches!(self, Expression::GetLocal(v) if v.var == id)
-	}
-
-	#[must_use]
-	pub fn is_global_read(&self, id: usize) -> bool {
-		matches!(self, Expression::GetGlobal(v) if v.var == id)
-	}
-
-	#[must_use]
-	pub fn is_memory_read(&self, id: usize) -> bool {
-		id == 0 && matches!(self, Expression::LoadAt(_))
-	}
 }
 
 pub struct Align {
