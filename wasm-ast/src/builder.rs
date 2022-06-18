@@ -464,11 +464,9 @@ impl<'a> Builder<'a> {
 		let arity = self.type_info.rel_arity_of(func);
 		let param_list = self.target.stack.pop_len(arity.num_param).collect();
 
-		let first = self.target.stack.len();
-		let result = first..first + arity.num_result;
-
 		self.target.leak_all();
-		self.target.stack.push_temporary(arity.num_result);
+
+		let result = self.target.stack.push_temporary(arity.num_result);
 
 		let data = Statement::Call(Call {
 			func,
@@ -484,11 +482,9 @@ impl<'a> Builder<'a> {
 		let index = self.target.stack.pop();
 		let param_list = self.target.stack.pop_len(arity.num_param).collect();
 
-		let first = self.target.stack.len();
-		let result = first..first + arity.num_result;
-
 		self.target.leak_all();
-		self.target.stack.push_temporary(arity.num_result);
+
+		let result = self.target.stack.push_temporary(arity.num_result);
 
 		let data = Statement::CallIndirect(CallIndirect {
 			table,
@@ -700,7 +696,7 @@ impl<'a> Builder<'a> {
 			}
 			Inst::GrowMemory(i) => {
 				let value = self.target.stack.pop().into();
-				let result = self.target.stack.len();
+				let result = self.target.stack.push_temporary(1).start;
 				let memory = i.try_into().unwrap();
 
 				let data = Statement::MemoryGrow(MemoryGrow {
@@ -710,7 +706,6 @@ impl<'a> Builder<'a> {
 				});
 
 				self.target.leak_memory_write(memory);
-				self.target.stack.push_temporary(1);
 				self.target.code.push(data);
 			}
 			Inst::I32Const(v) => self.target.push_constant(v),

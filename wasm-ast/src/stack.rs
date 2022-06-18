@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Range};
 
 use crate::node::{
 	Align, Expression, GetGlobal, GetLocal, GetTemporary, LoadAt, SetTemporary, Statement,
@@ -82,16 +82,19 @@ impl Stack {
 		self.var_list.drain(desired..).map(|v| v.data)
 	}
 
-	pub fn push_temporary(&mut self, num: usize) {
-		let len = self.len() + self.previous;
+	pub fn push_temporary(&mut self, num: usize) -> Range<usize> {
+		let start = self.previous + self.len();
+		let range = start..start + num;
 
-		for var in len..len + num {
+		self.capacity = self.capacity.max(range.end);
+
+		for var in range.clone() {
 			let data = Expression::GetTemporary(GetTemporary { var });
 
 			self.push(data);
 		}
 
-		self.capacity = self.capacity.max(len + num);
+		range
 	}
 
 	pub fn has_read_at(&self, index: usize, read: ReadType) -> bool {
@@ -101,7 +104,7 @@ impl Stack {
 	// Return the alignment necessary for this block to branch out to a
 	// another given stack frame
 	pub fn get_br_alignment(&self, par_start: usize, par_result: usize) -> Align {
-		let start = self.len() + self.previous - par_result;
+		let start = self.previous + self.len() - par_result;
 
 		Align {
 			new: par_start,
