@@ -9,7 +9,7 @@ use parity_wasm::elements::{
 
 use wasm_ast::{
 	builder::{Builder, TypeInfo},
-	node::FuncData,
+	node::{FuncData, Statement},
 };
 
 use crate::{
@@ -51,9 +51,13 @@ fn write_named_array(name: &str, len: usize, w: &mut dyn Write) -> Result<()> {
 fn write_constant(code: &[Instruction], type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
 	let func = Builder::from_type_info(type_info).build_anonymous(code);
 
-	write!(w, "(")?;
-	func.write(&mut Manager::default(), w)?;
-	write!(w, ")()")
+	if let Some(Statement::SetTemporary(stat)) = func.code.code.last() {
+		stat.value.write(&mut Manager::default(), w)?;
+	} else {
+		panic!("Not a valid constant");
+	}
+
+	Ok(())
 }
 
 fn write_import_of<T>(wasm: &Module, lower: &str, cond: T, w: &mut dyn Write) -> Result<()>
