@@ -723,8 +723,8 @@ impl<'a> Builder<'a> {
 	}
 
 	fn build_stat_list(&mut self, list: &[Instruction], num_result: usize) -> StatList {
-		self.nested_unreachable = 0;
 		self.target.block_data = BlockData::Forward { num_result };
+		self.nested_unreachable = 0;
 
 		for inst in list.iter().take(list.len() - 1) {
 			if self.nested_unreachable == 0 {
