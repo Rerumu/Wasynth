@@ -627,18 +627,6 @@ pub enum Expression {
 	CmpOp(CmpOp),
 }
 
-impl Expression {
-	#[must_use]
-	pub fn has_side_effect(&self) -> bool {
-		matches!(self, Expression::MemorySize(_))
-	}
-
-	#[must_use]
-	pub fn is_temporary(&self, id: usize) -> bool {
-		matches!(self, Expression::GetTemporary(v) if v.var == id)
-	}
-}
-
 pub struct Align {
 	pub new: usize,
 	pub old: usize,

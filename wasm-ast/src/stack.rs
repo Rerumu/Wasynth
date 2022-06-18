@@ -4,7 +4,7 @@ use crate::node::{
 	Align, Expression, GetGlobal, GetLocal, GetTemporary, LoadAt, SetTemporary, Statement,
 };
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ReadType {
 	Local(usize),
 	Global(usize),
@@ -12,24 +12,46 @@ pub enum ReadType {
 }
 
 pub struct Slot {
-	pub read: HashSet<ReadType>,
-	pub data: Expression,
+	read: HashSet<ReadType>,
+	data: Expression,
+}
+
+impl Slot {
+	pub fn has_read(&self, read: ReadType) -> bool {
+		self.read.contains(&read)
+	}
+
+	pub fn has_side_effect(&self) -> bool {
+		matches!(self.data, Expression::MemoryGrow(_))
+	}
+
+	pub fn is_temporary(&self, id: usize) -> bool {
+		matches!(self.data, Expression::GetTemporary(ref v) if v.var == id)
+	}
 }
 
 #[derive(Default)]
 pub struct Stack {
-	pub var_list: Vec<Slot>,
+	var_list: Vec<Slot>,
 	pub capacity: usize,
 	pub previous: usize,
 }
 
 impl Stack {
+	pub fn len(&self) -> usize {
+		self.var_list.len()
+	}
+
+	pub fn get(&self, index: usize) -> &Slot {
+		&self.var_list[index]
+	}
+
 	pub fn split_last(&mut self, len: usize) -> Self {
-		let desired = self.var_list.len() - len;
-		let content = self.var_list.split_off(desired);
+		let desired = self.len() - len;
+		let var_list = self.var_list.split_off(desired);
 
 		Self {
-			var_list: content,
+			var_list,
 			capacity: self.capacity,
 			previous: self.previous + desired,
 		}
@@ -67,13 +89,13 @@ impl Stack {
 	}
 
 	pub fn pop_len(&'_ mut self, len: usize) -> impl Iterator<Item = Expression> + '_ {
-		let desired = self.var_list.len() - len;
+		let desired = self.len() - len;
 
 		self.var_list.drain(desired..).map(|v| v.data)
 	}
 
 	pub fn push_temporary(&mut self, num: usize) {
-		let len = self.var_list.len() + self.previous;
+		let len = self.len() + self.previous;
 
 		for var in len..len + num {
 			let data = Expression::GetTemporary(GetTemporary { var });
@@ -90,7 +112,7 @@ impl Stack {
 		let old = &mut self.var_list[index];
 		let var = self.previous + index;
 
-		if old.data.is_temporary(var) {
+		if old.is_temporary(var) {
 			return None;
 		}
 
@@ -110,7 +132,7 @@ impl Stack {
 	// Return the alignment necessary for this block to branch out to a
 	// another given stack frame
 	pub fn get_br_alignment(&self, par_start: usize, par_result: usize) -> Align {
-		let start = self.var_list.len() + self.previous - par_result;
+		let start = self.len() + self.previous - par_result;
 
 		Align {
 			new: par_start,

@@ -18,8 +18,8 @@ macro_rules! leak_on {
 		fn $name(&mut self, id: usize) {
 			let read = ReadType::$variant(id);
 
-			for i in 0..self.stack.var_list.len() {
-				if self.stack.var_list[i].read.contains(&read) {
+			for i in 0..self.stack.len() {
+				if self.stack.get(i).has_read(read) {
 					self.leak_at(i);
 				}
 			}
@@ -179,7 +179,7 @@ impl StatList {
 	}
 
 	fn leak_all(&mut self) {
-		for i in 0..self.stack.var_list.len() {
+		for i in 0..self.stack.len() {
 			self.leak_at(i);
 		}
 	}
@@ -464,7 +464,7 @@ impl<'a> Builder<'a> {
 		let arity = self.type_info.rel_arity_of(func);
 		let param_list = self.target.stack.pop_len(arity.num_param).collect();
 
-		let first = self.target.stack.var_list.len();
+		let first = self.target.stack.len();
 		let result = first..first + arity.num_result;
 
 		self.target.leak_all();
@@ -484,7 +484,7 @@ impl<'a> Builder<'a> {
 		let index = self.target.stack.pop();
 		let param_list = self.target.stack.pop_len(arity.num_param).collect();
 
-		let first = self.target.stack.var_list.len();
+		let first = self.target.stack.len();
 		let result = first..first + arity.num_result;
 
 		self.target.leak_all();
@@ -607,9 +607,9 @@ impl<'a> Builder<'a> {
 				self.add_call_indirect(i.try_into().unwrap(), t.into());
 			}
 			Inst::Drop => {
-				let last = self.target.stack.var_list.len() - 1;
+				let last = self.target.stack.len() - 1;
 
-				if self.target.stack.var_list[last].data.has_side_effect() {
+				if self.target.stack.get(last).has_side_effect() {
 					self.target.leak_at(last);
 				}
 
