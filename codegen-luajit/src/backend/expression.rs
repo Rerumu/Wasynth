@@ -4,8 +4,8 @@ use std::{
 };
 
 use wasm_ast::node::{
-	BinOp, CmpOp, Expression, GetGlobal, GetLocal, GetTemporary, LoadAt, MemoryGrow, MemorySize,
-	Select, UnOp, Value,
+	BinOp, CmpOp, Expression, GetGlobal, GetLocal, GetTemporary, LoadAt, MemorySize, Select, UnOp,
+	Value,
 };
 
 use crate::analyzer::operator::bin_symbol_of;
@@ -77,14 +77,6 @@ impl Driver for MemorySize {
 	}
 }
 
-impl Driver for MemoryGrow {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "rt.allocator.grow(memory_at_{}, ", self.memory)?;
-		self.value.write(mng, w)?;
-		write!(w, ")")
-	}
-}
-
 impl_write_number!(write_f32, f32);
 impl_write_number!(write_f64, f64);
 
@@ -146,7 +138,6 @@ impl Driver for Expression {
 			Self::GetGlobal(e) => e.write(mng, w),
 			Self::LoadAt(e) => e.write(mng, w),
 			Self::MemorySize(e) => e.write(mng, w),
-			Self::MemoryGrow(e) => e.write(mng, w),
 			Self::Value(e) => e.write(mng, w),
 			Self::UnOp(e) => e.write(mng, w),
 			Self::BinOp(e) => e.write(mng, w),

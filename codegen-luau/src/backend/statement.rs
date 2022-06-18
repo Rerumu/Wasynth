@@ -5,8 +5,8 @@ use std::{
 
 use parity_wasm::elements::ValueType;
 use wasm_ast::node::{
-	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, FuncData, If, SetGlobal, SetLocal,
-	SetTemporary, Statement, StoreAt, Terminator,
+	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, FuncData, If, MemoryGrow, SetGlobal,
+	SetLocal, SetTemporary, Statement, StoreAt, Terminator,
 };
 
 use super::manager::{
@@ -233,6 +233,17 @@ impl Driver for StoreAt {
 	}
 }
 
+impl Driver for MemoryGrow {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		let result = self.result;
+		let memory = self.memory;
+
+		write!(w, "reg_{result} = rt.allocator.grow(memory_at_{memory}, ")?;
+		self.value.write(mng, w)?;
+		write!(w, ")")
+	}
+}
+
 impl Driver for Statement {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
@@ -246,6 +257,7 @@ impl Driver for Statement {
 			Self::SetLocal(s) => s.write(mng, w),
 			Self::SetGlobal(s) => s.write(mng, w),
 			Self::StoreAt(s) => s.write(mng, w),
+			Self::MemoryGrow(s) => s.write(mng, w),
 		}
 	}
 }

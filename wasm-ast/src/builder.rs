@@ -19,7 +19,7 @@ macro_rules! leak_on {
 			let read = ReadType::$variant(id);
 
 			for i in 0..self.stack.len() {
-				if self.stack.get(i).has_read(read) {
+				if self.stack.has_read_at(i, read) {
 					self.leak_at(i);
 				}
 			}
@@ -607,12 +607,6 @@ impl<'a> Builder<'a> {
 				self.add_call_indirect(i.try_into().unwrap(), t.into());
 			}
 			Inst::Drop => {
-				let last = self.target.stack.len() - 1;
-
-				if self.target.stack.get(last).has_side_effect() {
-					self.target.leak_at(last);
-				}
-
 				self.target.stack.pop();
 			}
 			Inst::Select => {
@@ -705,14 +699,19 @@ impl<'a> Builder<'a> {
 				self.target.stack.push(data);
 			}
 			Inst::GrowMemory(i) => {
+				let value = self.target.stack.pop().into();
+				let result = self.target.stack.len();
 				let memory = i.try_into().unwrap();
-				let data = Expression::MemoryGrow(MemoryGrow {
+
+				let data = Statement::MemoryGrow(MemoryGrow {
+					result,
 					memory,
-					value: self.target.stack.pop().into(),
+					value,
 				});
 
-				self.target.stack.push(data);
-				self.target.leak_all();
+				self.target.leak_memory_write(memory);
+				self.target.stack.push_temporary(1);
+				self.target.code.push(data);
 			}
 			Inst::I32Const(v) => self.target.push_constant(v),
 			Inst::I64Const(v) => self.target.push_constant(v),

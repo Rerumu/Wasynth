@@ -560,6 +560,7 @@ pub struct MemorySize {
 }
 
 pub struct MemoryGrow {
+	pub result: usize,
 	pub memory: usize,
 	pub value: Box<Expression>,
 }
@@ -620,7 +621,6 @@ pub enum Expression {
 	GetGlobal(GetGlobal),
 	LoadAt(LoadAt),
 	MemorySize(MemorySize),
-	MemoryGrow(MemoryGrow),
 	Value(Value),
 	UnOp(UnOp),
 	BinOp(BinOp),
@@ -736,6 +736,7 @@ pub enum Statement {
 	SetLocal(SetLocal),
 	SetGlobal(SetGlobal),
 	StoreAt(StoreAt),
+	MemoryGrow(MemoryGrow),
 }
 
 pub struct FuncData {

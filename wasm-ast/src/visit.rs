@@ -17,8 +17,6 @@ pub trait Visitor {
 
 	fn visit_memory_size(&mut self, _: &MemorySize) {}
 
-	fn visit_memory_grow(&mut self, _: &MemoryGrow) {}
-
 	fn visit_value(&mut self, _: &Value) {}
 
 	fn visit_un_op(&mut self, _: &UnOp) {}
@@ -56,6 +54,8 @@ pub trait Visitor {
 	fn visit_set_global(&mut self, _: &SetGlobal) {}
 
 	fn visit_store_at(&mut self, _: &StoreAt) {}
+
+	fn visit_memory_grow(&mut self, _: &MemoryGrow) {}
 
 	fn visit_statement(&mut self, _: &Statement) {}
 }
@@ -106,14 +106,6 @@ impl<T: Visitor> Driver<T> for MemorySize {
 	}
 }
 
-impl<T: Visitor> Driver<T> for MemoryGrow {
-	fn accept(&self, visitor: &mut T) {
-		self.value.accept(visitor);
-
-		visitor.visit_memory_grow(self);
-	}
-}
-
 impl<T: Visitor> Driver<T> for Value {
 	fn accept(&self, visitor: &mut T) {
 		visitor.visit_value(self);
@@ -155,7 +147,6 @@ impl<T: Visitor> Driver<T> for Expression {
 			Self::GetGlobal(v) => v.accept(visitor),
 			Self::LoadAt(v) => v.accept(visitor),
 			Self::MemorySize(v) => v.accept(visitor),
-			Self::MemoryGrow(v) => v.accept(visitor),
 			Self::Value(v) => v.accept(visitor),
 			Self::UnOp(v) => v.accept(visitor),
 			Self::BinOp(v) => v.accept(visitor),
@@ -296,6 +287,14 @@ impl<T: Visitor> Driver<T> for StoreAt {
 	}
 }
 
+impl<T: Visitor> Driver<T> for MemoryGrow {
+	fn accept(&self, visitor: &mut T) {
+		self.value.accept(visitor);
+
+		visitor.visit_memory_grow(self);
+	}
+}
+
 impl<T: Visitor> Driver<T> for Statement {
 	fn accept(&self, visitor: &mut T) {
 		match self {
@@ -309,6 +308,7 @@ impl<T: Visitor> Driver<T> for Statement {
 			Self::SetLocal(v) => v.accept(visitor),
 			Self::SetGlobal(v) => v.accept(visitor),
 			Self::StoreAt(v) => v.accept(visitor),
+			Self::MemoryGrow(v) => v.accept(visitor),
 		}
 
 		visitor.visit_statement(self);

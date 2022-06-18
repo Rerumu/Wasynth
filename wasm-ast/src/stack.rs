@@ -17,15 +17,7 @@ pub struct Slot {
 }
 
 impl Slot {
-	pub fn has_read(&self, read: ReadType) -> bool {
-		self.read.contains(&read)
-	}
-
-	pub fn has_side_effect(&self) -> bool {
-		matches!(self.data, Expression::MemoryGrow(_))
-	}
-
-	pub fn is_temporary(&self, id: usize) -> bool {
+	fn is_temporary(&self, id: usize) -> bool {
 		matches!(self.data, Expression::GetTemporary(ref v) if v.var == id)
 	}
 }
@@ -40,10 +32,6 @@ pub struct Stack {
 impl Stack {
 	pub fn len(&self) -> usize {
 		self.var_list.len()
-	}
-
-	pub fn get(&self, index: usize) -> &Slot {
-		&self.var_list[index]
 	}
 
 	pub fn split_last(&mut self, len: usize) -> Self {
@@ -106,6 +94,22 @@ impl Stack {
 		self.capacity = self.capacity.max(len + num);
 	}
 
+	pub fn has_read_at(&self, index: usize, read: ReadType) -> bool {
+		self.var_list[index].read.contains(&read)
+	}
+
+	// Return the alignment necessary for this block to branch out to a
+	// another given stack frame
+	pub fn get_br_alignment(&self, par_start: usize, par_result: usize) -> Align {
+		let start = self.len() + self.previous - par_result;
+
+		Align {
+			new: par_start,
+			old: start,
+			length: par_result,
+		}
+	}
+
 	// Try to leak a slot's value to a `SetTemporary` instruction,
 	// adjusting the capacity and old index accordingly
 	pub fn leak_at(&mut self, index: usize) -> Option<Statement> {
@@ -127,17 +131,5 @@ impl Stack {
 		self.capacity = self.capacity.max(var + 1);
 
 		Some(set)
-	}
-
-	// Return the alignment necessary for this block to branch out to a
-	// another given stack frame
-	pub fn get_br_alignment(&self, par_start: usize, par_result: usize) -> Align {
-		let start = self.len() + self.previous - par_result;
-
-		Align {
-			new: par_start,
-			old: start,
-			length: par_result,
-		}
 	}
 }
