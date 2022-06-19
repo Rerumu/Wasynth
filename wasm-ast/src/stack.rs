@@ -24,6 +24,14 @@ impl Slot {
 	pub fn has_read(&self, id: ReadType) -> bool {
 		self.read.contains(&id)
 	}
+
+	pub fn has_global_read(&self) -> bool {
+		self.read.iter().any(|r| matches!(r, ReadType::Global(_)))
+	}
+
+	pub fn has_memory_read(&self) -> bool {
+		self.read.iter().any(|r| matches!(r, ReadType::Memory(_)))
+	}
 }
 
 #[derive(Default)]

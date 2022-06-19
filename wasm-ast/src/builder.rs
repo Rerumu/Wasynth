@@ -172,6 +172,12 @@ impl StatList {
 		self.stack.leak_into(&mut self.code, |_| true);
 	}
 
+	fn leak_pre_call(&mut self) {
+		self.stack.leak_into(&mut self.code, |v| {
+			v.has_global_read() || v.has_memory_read()
+		});
+	}
+
 	leak_on!(leak_local_write, Local);
 	leak_on!(leak_global_write, Global);
 	leak_on!(leak_memory_write, Memory);
@@ -452,7 +458,7 @@ impl<'a> Builder<'a> {
 		let arity = self.type_info.rel_arity_of(func);
 		let param_list = self.target.stack.pop_len(arity.num_param).collect();
 
-		self.target.leak_all();
+		self.target.leak_pre_call();
 
 		let result = self.target.stack.push_temporary(arity.num_result);
 
@@ -470,7 +476,7 @@ impl<'a> Builder<'a> {
 		let index = self.target.stack.pop();
 		let param_list = self.target.stack.pop_len(arity.num_param).collect();
 
-		self.target.leak_all();
+		self.target.leak_pre_call();
 
 		let result = self.target.stack.push_temporary(arity.num_result);
 
