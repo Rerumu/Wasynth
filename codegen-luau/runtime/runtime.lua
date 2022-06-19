@@ -327,6 +327,10 @@ do
 		end
 	end
 
+	function trunc.num(num)
+		return if num < 0 then math.ceil(num) else math.floor(num)
+	end
+
 	trunc.u64_f32 = num_from_u64
 	trunc.u64_f64 = num_from_u64
 
