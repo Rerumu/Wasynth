@@ -214,7 +214,7 @@ fn write_data_list(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Re
 
 		write!(w, "\"")?;
 
-		write!(w, "rt.allocator.init(target, offset, data)")?;
+		write!(w, "rt.store.string(target, offset, data)")?;
 
 		write!(w, "end ")?;
 	}

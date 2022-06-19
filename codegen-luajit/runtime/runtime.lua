@@ -593,6 +593,12 @@ do
 		by_offset(memory.data, addr).f64 = value
 	end
 
+	function store.string(memory, addr, data, len)
+		local start = by_offset(memory.data, addr)
+
+		ffi.copy(start, data, len or #data)
+	end
+
 	local WASM_PAGE_SIZE = 65536
 
 	local function finalizer(memory)
@@ -615,10 +621,6 @@ do
 		local memory = ffi.new("struct Memory", min, max, data)
 
 		return ffi.gc(memory, finalizer)
-	end
-
-	function allocator.init(memory, addr, data)
-		ffi.copy(by_offset(memory.data, addr), data, #data)
 	end
 
 	function allocator.grow(memory, num)

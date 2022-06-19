@@ -504,6 +504,8 @@ do
 		store_byte(memory.data, addr, value)
 	end
 
+	local store_i8 = store.i32_n8
+
 	function store.i32_n16(memory, addr, value)
 		store_byte(memory.data, addr, value)
 		store_byte(memory.data, addr + 1, bit_rshift(value, 8))
@@ -533,14 +535,9 @@ do
 		store_i32(memory, addr + 4, data_2)
 	end
 
-	function allocator.new(min, max)
-		return { min = min, max = max, data = {} }
-	end
+	function store.string(memory, offset, data, len)
+		len = len or #data
 
-	local store_i8 = store.i32_n8
-
-	function allocator.init(memory, offset, data)
-		local len = #data
 		local rem = len % 4
 
 		for i = 1, len - rem, 4 do
@@ -554,6 +551,10 @@ do
 
 			store_i8(memory, offset + i - 1, v)
 		end
+	end
+
+	function allocator.new(min, max)
+		return { min = min, max = max, data = {} }
 	end
 
 	function allocator.grow(memory, num)
