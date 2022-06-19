@@ -112,8 +112,8 @@ do
 	function nearest.num(num)
 		local result = math_round(num)
 
-		if math_abs(num) % 1 == 0.5 and temp_2 % 2 == 1 then
-			result = result - 1
+		if math_abs(num) % 1 == 0.5 and math.floor(math_abs(num) % 2) == 0 then
+			result -= math.sign(result)
 		end
 
 		return result
