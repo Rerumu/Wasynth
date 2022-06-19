@@ -37,6 +37,8 @@ do
 	local mul = {}
 	local div = {}
 	local neg = {}
+	local min = {}
+	local max = {}
 	local copysign = {}
 	local nearest = {}
 
@@ -85,6 +87,20 @@ do
 		return -num
 	end
 
+	function min.num(a, b)
+		if b ~= b then
+			return b
+		end
+		return math.min(a, b)
+	end
+
+	function max.num(a, b)
+		if b ~= b then
+			return b
+		end
+		return math.max(a, b)
+	end
+
 	function copysign.num(lhs, rhs)
 		if rhs >= 0 then
 			return (math_abs(lhs))
@@ -108,6 +124,8 @@ do
 	module.mul = mul
 	module.div = div
 	module.neg = neg
+	module.min = min
+	module.max = max
 	module.copysign = copysign
 	module.nearest = nearest
 end
