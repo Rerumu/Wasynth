@@ -201,22 +201,14 @@ fn write_data_list(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Re
 
 	for v in data {
 		let code = v.offset().as_ref().unwrap().code();
+		let index = v.index();
 
-		write!(w, "do ")?;
-		write!(w, "local target = MEMORY_LIST[{}]", v.index())?;
-		write!(w, "local offset =")?;
-
+		write!(w, "rt.store.string(")?;
+		write!(w, "MEMORY_LIST[{index}],")?;
 		write_constant(code, type_info, w)?;
-
-		write!(w, "local data = \"")?;
-
+		write!(w, ",\"")?;
 		v.value().iter().try_for_each(|v| write!(w, "\\x{v:02X}"))?;
-
-		write!(w, "\"")?;
-
-		write!(w, "rt.store.string(target, offset, data)")?;
-
-		write!(w, "end ")?;
+		write!(w, "\")")?;
 	}
 
 	Ok(())
