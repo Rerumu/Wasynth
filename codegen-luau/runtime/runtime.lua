@@ -413,6 +413,8 @@ do
 
 	local reinterpret_f32_i32 = module.reinterpret.f32_i32
 	local reinterpret_f64_i64 = module.reinterpret.f64_i64
+	local reinterpret_i32_f32 = module.reinterpret.i32_f32
+	local reinterpret_i64_f64 = module.reinterpret.i64_f64
 
 	local function load_byte(data, addr)
 		local value = data[math_floor(addr / 4)] or 0
@@ -533,6 +535,16 @@ do
 
 		store_i32(memory, addr, data_1)
 		store_i32(memory, addr + 4, data_2)
+	end
+
+	local store_i64 = store.i64
+
+	function store.f32(memory, addr, value)
+		store_i32(memory, addr, reinterpret_i32_f32(value))
+	end
+
+	function store.f64(memory, addr, value)
+		store_i64(memory, addr, reinterpret_i64_f64(value))
 	end
 
 	function store.string(memory, offset, data, len)
