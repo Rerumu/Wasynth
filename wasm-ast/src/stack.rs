@@ -20,6 +20,10 @@ impl Slot {
 	fn is_temporary(&self, id: usize) -> bool {
 		matches!(self.data, Expression::GetTemporary(ref v) if v.var == id)
 	}
+
+	pub fn has_read(&self, id: ReadType) -> bool {
+		self.read.contains(&id)
+	}
 }
 
 #[derive(Default)]
@@ -97,10 +101,6 @@ impl Stack {
 		range
 	}
 
-	pub fn has_read_at(&self, index: usize, read: ReadType) -> bool {
-		self.var_list[index].read.contains(&read)
-	}
-
 	// Return the alignment necessary for this block to branch out to a
 	// another given stack frame
 	pub fn get_br_alignment(&self, par_start: usize, par_result: usize) -> Align {
@@ -115,24 +115,28 @@ impl Stack {
 
 	// Try to leak a slot's value to a `SetTemporary` instruction,
 	// adjusting the capacity and old index accordingly
-	pub fn leak_at(&mut self, index: usize) -> Option<Statement> {
-		let old = &mut self.var_list[index];
-		let var = self.previous + index;
+	pub fn leak_into<P>(&mut self, code: &mut Vec<Statement>, predicate: P)
+	where
+		P: Fn(&Slot) -> bool,
+	{
+		for (i, old) in self.var_list.iter_mut().enumerate() {
+			let var = self.previous + i;
 
-		if old.is_temporary(var) {
-			return None;
+			if old.is_temporary(var) || !predicate(old) {
+				continue;
+			}
+
+			old.read.clear();
+
+			let get = Expression::GetTemporary(GetTemporary { var });
+			let set = Statement::SetTemporary(SetTemporary {
+				var,
+				value: std::mem::replace(&mut old.data, get),
+			});
+
+			self.capacity = self.capacity.max(var + 1);
+
+			code.push(set);
 		}
-
-		old.read.clear();
-
-		let get = Expression::GetTemporary(GetTemporary { var });
-		let set = Statement::SetTemporary(SetTemporary {
-			var,
-			value: std::mem::replace(&mut old.data, get),
-		});
-
-		self.capacity = self.capacity.max(var + 1);
-
-		Some(set)
 	}
 }

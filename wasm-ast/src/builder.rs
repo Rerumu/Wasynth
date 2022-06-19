@@ -18,11 +18,7 @@ macro_rules! leak_on {
 		fn $name(&mut self, id: usize) {
 			let read = ReadType::$variant(id);
 
-			for i in 0..self.stack.len() {
-				if self.stack.has_read_at(i, read) {
-					self.leak_at(i);
-				}
-			}
+			self.stack.leak_into(&mut self.code, |v| v.has_read(read))
 		}
 	};
 }
@@ -172,16 +168,8 @@ impl StatList {
 		Self::default()
 	}
 
-	fn leak_at(&mut self, index: usize) {
-		if let Some(set) = self.stack.leak_at(index) {
-			self.code.push(set);
-		}
-	}
-
 	fn leak_all(&mut self) {
-		for i in 0..self.stack.len() {
-			self.leak_at(i);
-		}
+		self.stack.leak_into(&mut self.code, |_| true);
 	}
 
 	leak_on!(leak_local_write, Local);
