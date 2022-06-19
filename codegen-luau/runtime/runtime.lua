@@ -425,6 +425,7 @@ do
 	local bit_replace = bit32.replace
 
 	local bit_bor = bit32.bor
+	local bit_band = bit32.band
 	local bit_lshift = bit32.lshift
 	local bit_rshift = bit32.rshift
 
