@@ -537,11 +537,13 @@ do
 
 		store_i32_n8(memory, addr, data_1)
 	end
+
 	function store.i64_n16(memory, addr, value)
 		local data_1, _ = num_into_u32(value)
 
 		store_i32_n16(memory, addr, data_1)
 	end
+
 	function store.i64_n32(memory, addr, value)
 		local data_1, _ = num_into_u32(value)
 
