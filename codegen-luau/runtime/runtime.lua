@@ -533,17 +533,17 @@ do
 	local store_i32_n16 = store.i32_n16
 
 	function store.i64_n8(memory, addr, value)
-		local data_1, data_2 = num_into_u32(value)
+		local data_1, _ = num_into_u32(value)
 
 		store_i32_n8(memory, addr, data_1)
 	end
 	function store.i64_n16(memory, addr, value)
-		local data_1, data_2 = num_into_u32(value)
+		local data_1, _ = num_into_u32(value)
 
 		store_i32_n16(memory, addr, data_1)
 	end
 	function store.i64_n32(memory, addr, value)
-		local data_1, data_2 = num_into_u32(value)
+		local data_1, _ = num_into_u32(value)
 
 		store_i32(memory, addr, data_1)
 	end
