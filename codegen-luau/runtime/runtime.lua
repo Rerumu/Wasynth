@@ -47,6 +47,8 @@ do
 	local math_round = math.round
 	local math_floor = math.floor
 	local math_sign = math.sign
+	local math_min = math.min
+	local math_max = math.max
 
 	function add.i32(a, b)
 		return to_u32(a + b)
@@ -93,14 +95,14 @@ do
 		if b ~= b then
 			return b
 		end
-		return math.min(a, b)
+		return math_min(a, b)
 	end
 
 	function max.num(a, b)
 		if b ~= b then
 			return b
 		end
-		return math.max(a, b)
+		return math_max(a, b)
 	end
 
 	function copysign.num(lhs, rhs)
