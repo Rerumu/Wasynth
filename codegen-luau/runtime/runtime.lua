@@ -45,6 +45,8 @@ do
 	local assert = assert
 	local math_abs = math.abs
 	local math_round = math.round
+	local math_floor = math.floor
+	local math_sign = math.sign
 
 	function add.i32(a, b)
 		return to_u32(a + b)
@@ -112,8 +114,8 @@ do
 	function nearest.num(num)
 		local result = math_round(num)
 
-		if math_abs(num) % 1 == 0.5 and math.floor(math_abs(num) % 2) == 0 then
-			result -= math.sign(result)
+		if math_abs(num) % 1 == 0.5 and math_floor(math_abs(num) % 2) == 0 then
+			result -= math_sign(result)
 		end
 
 		return result
