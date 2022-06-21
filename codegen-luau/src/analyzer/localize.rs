@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use parity_wasm::elements::ValueType;
 use wasm_ast::{
 	node::{BinOp, CmpOp, FuncData, LoadAt, StoreAt, UnOp, Value},
 	visit::{Driver, Visitor},
@@ -66,6 +67,14 @@ pub fn visit(ast: &FuncData) -> BTreeSet<(&'static str, &'static str)> {
 	let mut visit = Visit {
 		result: BTreeSet::new(),
 	};
+
+	if ast
+		.local_data
+		.iter()
+		.any(|v| v.value_type() == ValueType::I64)
+	{
+		visit.result.insert(("i64", "K_ZERO"));
+	}
 
 	ast.accept(&mut visit);
 
