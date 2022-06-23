@@ -44,7 +44,9 @@ end
 
 local function assert_trap(func, ...)
 	if pcall(func, ...) then
-		error("Failed to trap", 2)
+		local trace = debug.traceback("Failed to trap", 2)
+
+		io.stderr:write(trace, '\n')
 	end
 end
 
