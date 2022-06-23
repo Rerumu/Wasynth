@@ -66,9 +66,9 @@ pub trait Driver<T: Visitor> {
 
 impl<T: Visitor> Driver<T> for Select {
 	fn accept(&self, visitor: &mut T) {
-		self.cond.accept(visitor);
-		self.a.accept(visitor);
-		self.b.accept(visitor);
+		self.condition().accept(visitor);
+		self.on_true().accept(visitor);
+		self.on_false().accept(visitor);
 
 		visitor.visit_select(self);
 	}
@@ -94,7 +94,7 @@ impl<T: Visitor> Driver<T> for GetGlobal {
 
 impl<T: Visitor> Driver<T> for LoadAt {
 	fn accept(&self, visitor: &mut T) {
-		self.pointer.accept(visitor);
+		self.pointer().accept(visitor);
 
 		visitor.visit_load_at(self);
 	}
@@ -114,7 +114,7 @@ impl<T: Visitor> Driver<T> for Value {
 
 impl<T: Visitor> Driver<T> for UnOp {
 	fn accept(&self, visitor: &mut T) {
-		self.rhs.accept(visitor);
+		self.rhs().accept(visitor);
 
 		visitor.visit_un_op(self);
 	}
@@ -122,8 +122,8 @@ impl<T: Visitor> Driver<T> for UnOp {
 
 impl<T: Visitor> Driver<T> for BinOp {
 	fn accept(&self, visitor: &mut T) {
-		self.lhs.accept(visitor);
-		self.rhs.accept(visitor);
+		self.lhs().accept(visitor);
+		self.rhs().accept(visitor);
 
 		visitor.visit_bin_op(self);
 	}
@@ -131,8 +131,8 @@ impl<T: Visitor> Driver<T> for BinOp {
 
 impl<T: Visitor> Driver<T> for CmpOp {
 	fn accept(&self, visitor: &mut T) {
-		self.lhs.accept(visitor);
-		self.rhs.accept(visitor);
+		self.lhs().accept(visitor);
+		self.rhs().accept(visitor);
 
 		visitor.visit_cmp_op(self);
 	}
@@ -165,7 +165,7 @@ impl<T: Visitor> Driver<T> for Br {
 
 impl<T: Visitor> Driver<T> for BrTable {
 	fn accept(&self, visitor: &mut T) {
-		self.cond.accept(visitor);
+		self.condition().accept(visitor);
 
 		visitor.visit_br_table(self);
 	}
@@ -185,11 +185,11 @@ impl<T: Visitor> Driver<T> for Terminator {
 
 impl<T: Visitor> Driver<T> for Forward {
 	fn accept(&self, visitor: &mut T) {
-		for v in &self.code {
+		for v in self.code() {
 			v.accept(visitor);
 		}
 
-		if let Some(v) = &self.last {
+		if let Some(v) = self.last() {
 			v.accept(visitor);
 		}
 
@@ -199,11 +199,11 @@ impl<T: Visitor> Driver<T> for Forward {
 
 impl<T: Visitor> Driver<T> for Backward {
 	fn accept(&self, visitor: &mut T) {
-		for v in &self.code {
+		for v in self.code() {
 			v.accept(visitor);
 		}
 
-		if let Some(v) = &self.last {
+		if let Some(v) = self.last() {
 			v.accept(visitor);
 		}
 
@@ -213,7 +213,7 @@ impl<T: Visitor> Driver<T> for Backward {
 
 impl<T: Visitor> Driver<T> for BrIf {
 	fn accept(&self, visitor: &mut T) {
-		self.cond.accept(visitor);
+		self.condition().accept(visitor);
 
 		visitor.visit_br_if(self);
 	}
@@ -221,10 +221,10 @@ impl<T: Visitor> Driver<T> for BrIf {
 
 impl<T: Visitor> Driver<T> for If {
 	fn accept(&self, visitor: &mut T) {
-		self.cond.accept(visitor);
-		self.truthy.accept(visitor);
+		self.condition().accept(visitor);
+		self.on_true().accept(visitor);
 
-		if let Some(v) = &self.falsey {
+		if let Some(v) = self.on_false() {
 			v.accept(visitor);
 		}
 
@@ -234,7 +234,7 @@ impl<T: Visitor> Driver<T> for If {
 
 impl<T: Visitor> Driver<T> for Call {
 	fn accept(&self, visitor: &mut T) {
-		for v in &self.param_list {
+		for v in self.param_list() {
 			v.accept(visitor);
 		}
 
@@ -244,9 +244,9 @@ impl<T: Visitor> Driver<T> for Call {
 
 impl<T: Visitor> Driver<T> for CallIndirect {
 	fn accept(&self, visitor: &mut T) {
-		self.index.accept(visitor);
+		self.index().accept(visitor);
 
-		for v in &self.param_list {
+		for v in self.param_list() {
 			v.accept(visitor);
 		}
 
@@ -256,7 +256,7 @@ impl<T: Visitor> Driver<T> for CallIndirect {
 
 impl<T: Visitor> Driver<T> for SetTemporary {
 	fn accept(&self, visitor: &mut T) {
-		self.value.accept(visitor);
+		self.value().accept(visitor);
 
 		visitor.visit_set_temporary(self);
 	}
@@ -264,7 +264,7 @@ impl<T: Visitor> Driver<T> for SetTemporary {
 
 impl<T: Visitor> Driver<T> for SetLocal {
 	fn accept(&self, visitor: &mut T) {
-		self.value.accept(visitor);
+		self.value().accept(visitor);
 
 		visitor.visit_set_local(self);
 	}
@@ -272,7 +272,7 @@ impl<T: Visitor> Driver<T> for SetLocal {
 
 impl<T: Visitor> Driver<T> for SetGlobal {
 	fn accept(&self, visitor: &mut T) {
-		self.value.accept(visitor);
+		self.value().accept(visitor);
 
 		visitor.visit_set_global(self);
 	}
@@ -280,8 +280,8 @@ impl<T: Visitor> Driver<T> for SetGlobal {
 
 impl<T: Visitor> Driver<T> for StoreAt {
 	fn accept(&self, visitor: &mut T) {
-		self.pointer.accept(visitor);
-		self.value.accept(visitor);
+		self.pointer().accept(visitor);
+		self.value().accept(visitor);
 
 		visitor.visit_store_at(self);
 	}
@@ -289,7 +289,7 @@ impl<T: Visitor> Driver<T> for StoreAt {
 
 impl<T: Visitor> Driver<T> for MemoryGrow {
 	fn accept(&self, visitor: &mut T) {
-		self.value.accept(visitor);
+		self.size().accept(visitor);
 
 		visitor.visit_memory_grow(self);
 	}
@@ -317,6 +317,6 @@ impl<T: Visitor> Driver<T> for Statement {
 
 impl<T: Visitor> Driver<T> for FuncData {
 	fn accept(&self, visitor: &mut T) {
-		self.code.accept(visitor);
+		self.code().accept(visitor);
 	}
 }

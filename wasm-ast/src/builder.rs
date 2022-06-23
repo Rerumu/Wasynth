@@ -182,9 +182,9 @@ impl StatList {
 	leak_on!(leak_global_write, Global);
 	leak_on!(leak_memory_write, Memory);
 
-	fn push_load(&mut self, what: LoadType, offset: u32) {
+	fn push_load(&mut self, load_type: LoadType, offset: u32) {
 		let data = Expression::LoadAt(LoadAt {
-			what,
+			load_type,
 			offset,
 			pointer: self.stack.pop().into(),
 		});
@@ -192,9 +192,9 @@ impl StatList {
 		self.stack.push_with_single(data);
 	}
 
-	fn add_store(&mut self, what: StoreType, offset: u32) {
+	fn add_store(&mut self, store_type: StoreType, offset: u32) {
 		let data = Statement::StoreAt(StoreAt {
-			what,
+			store_type,
 			offset,
 			value: self.stack.pop(),
 			pointer: self.stack.pop(),
@@ -210,22 +210,22 @@ impl StatList {
 		self.stack.push(value);
 	}
 
-	fn push_un_op(&mut self, op: UnOpType) {
+	fn push_un_op(&mut self, op_type: UnOpType) {
 		let rhs = self.stack.pop_with_read();
 		let data = Expression::UnOp(UnOp {
-			op,
+			op_type,
 			rhs: rhs.0.into(),
 		});
 
 		self.stack.push_with_read(data, rhs.1);
 	}
 
-	fn push_bin_op(&mut self, op: BinOpType) {
+	fn push_bin_op(&mut self, op_type: BinOpType) {
 		let mut rhs = self.stack.pop_with_read();
 		let lhs = self.stack.pop_with_read();
 
 		let data = Expression::BinOp(BinOp {
-			op,
+			op_type,
 			rhs: rhs.0.into(),
 			lhs: lhs.0.into(),
 		});
@@ -235,12 +235,12 @@ impl StatList {
 		self.stack.push_with_read(data, rhs.1);
 	}
 
-	fn push_cmp_op(&mut self, op: CmpOpType) {
+	fn push_cmp_op(&mut self, op_type: CmpOpType) {
 		let mut rhs = self.stack.pop_with_read();
 		let lhs = self.stack.pop_with_read();
 
 		let data = Expression::CmpOp(CmpOp {
-			op,
+			op_type,
 			rhs: rhs.0.into(),
 			lhs: lhs.0.into(),
 		});
@@ -411,13 +411,13 @@ impl<'a> Builder<'a> {
 			BlockData::Forward { .. } => Statement::Forward(now.into()),
 			BlockData::Backward { .. } => Statement::Backward(now.into()),
 			BlockData::If { .. } => Statement::If(If {
-				cond: self.target.stack.pop(),
-				truthy: now.into(),
-				falsey: None,
+				condition: self.target.stack.pop(),
+				on_true: now.into(),
+				on_false: None,
 			}),
 			BlockData::Else { .. } => {
 				if let Statement::If(v) = self.target.code.last_mut().unwrap() {
-					v.falsey = Some(now.into());
+					v.on_false = Some(now.into());
 				} else {
 					unreachable!()
 				}
@@ -454,8 +454,8 @@ impl<'a> Builder<'a> {
 		Br { target, align }
 	}
 
-	fn add_call(&mut self, func: usize) {
-		let arity = self.type_info.rel_arity_of(func);
+	fn add_call(&mut self, function: usize) {
+		let arity = self.type_info.rel_arity_of(function);
 		let param_list = self.target.stack.pop_len(arity.num_param).collect();
 
 		self.target.leak_pre_call();
@@ -463,7 +463,7 @@ impl<'a> Builder<'a> {
 		let result = self.target.stack.push_temporary(arity.num_result);
 
 		let data = Statement::Call(Call {
-			func,
+			function,
 			result,
 			param_list,
 		});
@@ -556,7 +556,7 @@ impl<'a> Builder<'a> {
 			}
 			Inst::BrIf(v) => {
 				let data = Statement::BrIf(BrIf {
-					cond: self.target.stack.pop(),
+					condition: self.target.stack.pop(),
 					target: self.get_br_terminator(v.try_into().unwrap()),
 				});
 
@@ -564,7 +564,7 @@ impl<'a> Builder<'a> {
 				self.target.code.push(data);
 			}
 			Inst::BrTable(ref v) => {
-				let cond = self.target.stack.pop();
+				let condition = self.target.stack.pop();
 				let data = v
 					.table
 					.iter()
@@ -575,7 +575,7 @@ impl<'a> Builder<'a> {
 				let default = self.get_br_terminator(v.default.try_into().unwrap());
 
 				let term = Terminator::BrTable(BrTable {
-					cond,
+					condition,
 					data,
 					default,
 				});
@@ -600,20 +600,20 @@ impl<'a> Builder<'a> {
 				self.target.stack.pop();
 			}
 			Inst::Select => {
-				let mut cond = self.target.stack.pop_with_read();
-				let b = self.target.stack.pop_with_read();
-				let a = self.target.stack.pop_with_read();
+				let mut condition = self.target.stack.pop_with_read();
+				let on_false = self.target.stack.pop_with_read();
+				let on_true = self.target.stack.pop_with_read();
 
 				let data = Expression::Select(Select {
-					cond: cond.0.into(),
-					b: b.0.into(),
-					a: a.0.into(),
+					condition: condition.0.into(),
+					on_true: on_true.0.into(),
+					on_false: on_false.0.into(),
 				});
 
-				cond.1.extend(b.1);
-				cond.1.extend(a.1);
+				condition.1.extend(on_true.1);
+				condition.1.extend(on_false.1);
 
-				self.target.stack.push_with_read(data, cond.1);
+				self.target.stack.push_with_read(data, condition.1);
 			}
 			Inst::GetLocal(i) => {
 				let var = i.try_into().unwrap();
@@ -689,14 +689,14 @@ impl<'a> Builder<'a> {
 				self.target.stack.push(data);
 			}
 			Inst::GrowMemory(i) => {
-				let value = self.target.stack.pop().into();
+				let size = self.target.stack.pop().into();
 				let result = self.target.stack.push_temporary(1).start;
 				let memory = i.try_into().unwrap();
 
 				let data = Statement::MemoryGrow(MemoryGrow {
-					result,
 					memory,
-					value,
+					result,
+					size,
 				});
 
 				self.target.leak_memory_write(memory);

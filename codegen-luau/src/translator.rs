@@ -50,8 +50,8 @@ fn write_named_array(name: &str, len: usize, w: &mut dyn Write) -> Result<()> {
 fn write_constant(code: &[Instruction], type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
 	let func = Builder::from_type_info(type_info).build_anonymous(code);
 
-	if let Some(Statement::SetTemporary(stat)) = func.code.code.last() {
-		stat.value.write(&mut Manager::default(), w)?;
+	if let Some(Statement::SetTemporary(stat)) = func.code().code().last() {
+		stat.value().write(&mut Manager::default(), w)?;
 	} else {
 		panic!("Not a valid constant");
 	}

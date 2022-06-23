@@ -84,17 +84,17 @@ pub fn write_variable(var: usize, mng: &Manager, w: &mut dyn Write) -> Result<()
 }
 
 pub fn write_cmp_op(cmp: &CmpOp, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-	if let Some(symbol) = cmp_symbol_of(cmp.op) {
-		cmp.lhs.write(mng, w)?;
+	if let Some(symbol) = cmp_symbol_of(cmp.op_type()) {
+		cmp.lhs().write(mng, w)?;
 		write!(w, "{symbol} ")?;
-		cmp.rhs.write(mng, w)
+		cmp.rhs().write(mng, w)
 	} else {
-		let (head, tail) = cmp.op.as_name();
+		let (head, tail) = cmp.op_type().as_name();
 
 		write!(w, "{head}_{tail}(")?;
-		cmp.lhs.write(mng, w)?;
+		cmp.lhs().write(mng, w)?;
 		write!(w, ", ")?;
-		cmp.rhs.write(mng, w)?;
+		cmp.rhs().write(mng, w)?;
 		write!(w, ")")
 	}
 }

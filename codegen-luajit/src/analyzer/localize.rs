@@ -14,51 +14,51 @@ struct Visit {
 
 impl Visitor for Visit {
 	fn visit_load_at(&mut self, v: &LoadAt) {
-		let name = v.what.as_name();
+		let name = v.load_type().as_name();
 
 		self.memory_set.insert(0);
 		self.local_set.insert(("load", name));
 	}
 
 	fn visit_store_at(&mut self, v: &StoreAt) {
-		let name = v.what.as_name();
+		let name = v.store_type().as_name();
 
 		self.memory_set.insert(0);
 		self.local_set.insert(("store", name));
 	}
 
 	fn visit_un_op(&mut self, v: &UnOp) {
-		let name = v.op.as_name();
+		let name = v.op_type().as_name();
 
 		self.local_set.insert(name);
 	}
 
 	fn visit_bin_op(&mut self, v: &BinOp) {
-		if bin_symbol_of(v.op).is_some() {
+		if bin_symbol_of(v.op_type()).is_some() {
 			return;
 		}
 
-		let name = v.op.as_name();
+		let name = v.op_type().as_name();
 
 		self.local_set.insert(name);
 	}
 
 	fn visit_cmp_op(&mut self, v: &CmpOp) {
-		if cmp_symbol_of(v.op).is_some() {
+		if cmp_symbol_of(v.op_type()).is_some() {
 			return;
 		}
 
-		let name = v.op.as_name();
+		let name = v.op_type().as_name();
 
 		self.local_set.insert(name);
 	}
 
 	fn visit_memory_size(&mut self, m: &MemorySize) {
-		self.memory_set.insert(m.memory);
+		self.memory_set.insert(m.memory());
 	}
 
 	fn visit_memory_grow(&mut self, m: &MemoryGrow) {
-		self.memory_set.insert(m.memory);
+		self.memory_set.insert(m.memory());
 	}
 }
 

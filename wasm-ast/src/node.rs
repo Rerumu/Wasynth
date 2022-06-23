@@ -530,39 +530,117 @@ impl TryFrom<&Instruction> for CmpOpType {
 	}
 }
 
-#[derive(Clone)]
-pub struct GetTemporary {
-	pub var: usize,
+pub struct Select {
+	pub(crate) condition: Box<Expression>,
+	pub(crate) on_true: Box<Expression>,
+	pub(crate) on_false: Box<Expression>,
 }
 
-pub struct Select {
-	pub cond: Box<Expression>,
-	pub a: Box<Expression>,
-	pub b: Box<Expression>,
+impl Select {
+	#[must_use]
+	pub fn condition(&self) -> &Expression {
+		&self.condition
+	}
+
+	#[must_use]
+	pub fn on_true(&self) -> &Expression {
+		&self.on_true
+	}
+
+	#[must_use]
+	pub fn on_false(&self) -> &Expression {
+		&self.on_false
+	}
+}
+
+pub struct GetTemporary {
+	pub(crate) var: usize,
+}
+
+impl GetTemporary {
+	#[must_use]
+	pub fn var(&self) -> usize {
+		self.var
+	}
 }
 
 pub struct GetLocal {
-	pub var: usize,
+	pub(crate) var: usize,
+}
+
+impl GetLocal {
+	#[must_use]
+	pub fn var(&self) -> usize {
+		self.var
+	}
 }
 
 pub struct GetGlobal {
-	pub var: usize,
+	pub(crate) var: usize,
+}
+
+impl GetGlobal {
+	#[must_use]
+	pub fn var(&self) -> usize {
+		self.var
+	}
 }
 
 pub struct LoadAt {
-	pub what: LoadType,
-	pub offset: u32,
-	pub pointer: Box<Expression>,
+	pub(crate) load_type: LoadType,
+	pub(crate) offset: u32,
+	pub(crate) pointer: Box<Expression>,
+}
+
+impl LoadAt {
+	#[must_use]
+	pub fn load_type(&self) -> LoadType {
+		self.load_type
+	}
+
+	#[must_use]
+	pub fn offset(&self) -> u32 {
+		self.offset
+	}
+
+	#[must_use]
+	pub fn pointer(&self) -> &Expression {
+		&self.pointer
+	}
 }
 
 pub struct MemorySize {
-	pub memory: usize,
+	pub(crate) memory: usize,
+}
+
+impl MemorySize {
+	#[must_use]
+	pub fn memory(&self) -> usize {
+		self.memory
+	}
 }
 
 pub struct MemoryGrow {
-	pub result: usize,
-	pub memory: usize,
-	pub value: Box<Expression>,
+	pub(crate) memory: usize,
+	pub(crate) result: usize,
+	pub(crate) size: Box<Expression>,
+}
+
+impl MemoryGrow {
+	#[must_use]
+	pub fn memory(&self) -> usize {
+		self.memory
+	}
+
+	#[must_use]
+	pub fn result(&self) -> usize {
+		self.result
+	}
+
+	#[must_use]
+	pub fn size(&self) -> &Expression {
+		&self.size
+	}
 }
 
 #[derive(Clone, Copy)]
@@ -598,20 +676,66 @@ impl From<u64> for Value {
 }
 
 pub struct UnOp {
-	pub op: UnOpType,
-	pub rhs: Box<Expression>,
+	pub(crate) op_type: UnOpType,
+	pub(crate) rhs: Box<Expression>,
+}
+
+impl UnOp {
+	#[must_use]
+	pub fn op_type(&self) -> UnOpType {
+		self.op_type
+	}
+
+	#[must_use]
+	pub fn rhs(&self) -> &Expression {
+		&self.rhs
+	}
 }
 
 pub struct BinOp {
-	pub op: BinOpType,
-	pub lhs: Box<Expression>,
-	pub rhs: Box<Expression>,
+	pub(crate) op_type: BinOpType,
+	pub(crate) lhs: Box<Expression>,
+	pub(crate) rhs: Box<Expression>,
+}
+
+impl BinOp {
+	#[must_use]
+	pub fn op_type(&self) -> BinOpType {
+		self.op_type
+	}
+
+	#[must_use]
+	pub fn lhs(&self) -> &Expression {
+		&self.lhs
+	}
+
+	#[must_use]
+	pub fn rhs(&self) -> &Expression {
+		&self.rhs
+	}
 }
 
 pub struct CmpOp {
-	pub op: CmpOpType,
-	pub lhs: Box<Expression>,
-	pub rhs: Box<Expression>,
+	pub(crate) op_type: CmpOpType,
+	pub(crate) lhs: Box<Expression>,
+	pub(crate) rhs: Box<Expression>,
+}
+
+impl CmpOp {
+	#[must_use]
+	pub fn op_type(&self) -> CmpOpType {
+		self.op_type
+	}
+
+	#[must_use]
+	pub fn lhs(&self) -> &Expression {
+		&self.lhs
+	}
+
+	#[must_use]
+	pub fn rhs(&self) -> &Expression {
+		&self.rhs
+	}
 }
 
 pub enum Expression {
@@ -628,9 +752,9 @@ pub enum Expression {
 }
 
 pub struct Align {
-	pub new: usize,
-	pub old: usize,
-	pub length: usize,
+	pub(crate) new: usize,
+	pub(crate) old: usize,
+	pub(crate) length: usize,
 }
 
 impl Align {
@@ -651,14 +775,43 @@ impl Align {
 }
 
 pub struct Br {
-	pub target: usize,
-	pub align: Align,
+	pub(crate) target: usize,
+	pub(crate) align: Align,
+}
+
+impl Br {
+	#[must_use]
+	pub fn target(&self) -> usize {
+		self.target
+	}
+
+	#[must_use]
+	pub fn align(&self) -> &Align {
+		&self.align
+	}
 }
 
 pub struct BrTable {
-	pub cond: Expression,
-	pub data: Vec<Br>,
-	pub default: Br,
+	pub(crate) condition: Expression,
+	pub(crate) data: Vec<Br>,
+	pub(crate) default: Br,
+}
+
+impl BrTable {
+	#[must_use]
+	pub fn condition(&self) -> &Expression {
+		&self.condition
+	}
+
+	#[must_use]
+	pub fn data(&self) -> &[Br] {
+		&self.data
+	}
+
+	#[must_use]
+	pub fn default(&self) -> &Br {
+		&self.default
+	}
 }
 
 pub enum Terminator {
@@ -669,60 +822,210 @@ pub enum Terminator {
 
 #[derive(Default)]
 pub struct Forward {
-	pub code: Vec<Statement>,
-	pub last: Option<Terminator>,
+	pub(crate) code: Vec<Statement>,
+	pub(crate) last: Option<Terminator>,
+}
+
+impl Forward {
+	#[must_use]
+	pub fn code(&self) -> &[Statement] {
+		&self.code
+	}
+
+	#[must_use]
+	pub fn last(&self) -> Option<&Terminator> {
+		self.last.as_ref()
+	}
 }
 
 #[derive(Default)]
 pub struct Backward {
-	pub code: Vec<Statement>,
-	pub last: Option<Terminator>,
+	pub(crate) code: Vec<Statement>,
+	pub(crate) last: Option<Terminator>,
+}
+
+impl Backward {
+	#[must_use]
+	pub fn code(&self) -> &[Statement] {
+		&self.code
+	}
+
+	#[must_use]
+	pub fn last(&self) -> Option<&Terminator> {
+		self.last.as_ref()
+	}
 }
 
 pub struct BrIf {
-	pub cond: Expression,
-	pub target: Br,
+	pub(crate) condition: Expression,
+	pub(crate) target: Br,
+}
+
+impl BrIf {
+	#[must_use]
+	pub fn condition(&self) -> &Expression {
+		&self.condition
+	}
+
+	#[must_use]
+	pub fn target(&self) -> &Br {
+		&self.target
+	}
 }
 
 pub struct If {
-	pub cond: Expression,
-	pub truthy: Forward,
-	pub falsey: Option<Forward>,
+	pub(crate) condition: Expression,
+	pub(crate) on_true: Forward,
+	pub(crate) on_false: Option<Forward>,
+}
+
+impl If {
+	#[must_use]
+	pub fn condition(&self) -> &Expression {
+		&self.condition
+	}
+
+	#[must_use]
+	pub fn on_true(&self) -> &Forward {
+		&self.on_true
+	}
+
+	#[must_use]
+	pub fn on_false(&self) -> Option<&Forward> {
+		self.on_false.as_ref()
+	}
 }
 
 pub struct Call {
-	pub func: usize,
-	pub result: Range<usize>,
-	pub param_list: Vec<Expression>,
+	pub(crate) function: usize,
+	pub(crate) result: Range<usize>,
+	pub(crate) param_list: Vec<Expression>,
+}
+
+impl Call {
+	#[must_use]
+	pub fn function(&self) -> usize {
+		self.function
+	}
+
+	#[must_use]
+	pub fn result(&self) -> Range<usize> {
+		self.result.clone()
+	}
+
+	#[must_use]
+	pub fn param_list(&self) -> &[Expression] {
+		&self.param_list
+	}
 }
 
 pub struct CallIndirect {
-	pub table: usize,
-	pub index: Expression,
-	pub result: Range<usize>,
-	pub param_list: Vec<Expression>,
+	pub(crate) table: usize,
+	pub(crate) index: Expression,
+	pub(crate) result: Range<usize>,
+	pub(crate) param_list: Vec<Expression>,
+}
+
+impl CallIndirect {
+	#[must_use]
+	pub fn table(&self) -> usize {
+		self.table
+	}
+
+	#[must_use]
+	pub fn index(&self) -> &Expression {
+		&self.index
+	}
+
+	#[must_use]
+	pub fn result(&self) -> Range<usize> {
+		self.result.clone()
+	}
+
+	#[must_use]
+	pub fn param_list(&self) -> &[Expression] {
+		&self.param_list
+	}
 }
 
 pub struct SetTemporary {
-	pub var: usize,
-	pub value: Expression,
+	pub(crate) var: usize,
+	pub(crate) value: Expression,
+}
+
+impl SetTemporary {
+	#[must_use]
+	pub fn var(&self) -> usize {
+		self.var
+	}
+
+	#[must_use]
+	pub fn value(&self) -> &Expression {
+		&self.value
+	}
 }
 
 pub struct SetLocal {
-	pub var: usize,
-	pub value: Expression,
+	pub(crate) var: usize,
+	pub(crate) value: Expression,
+}
+
+impl SetLocal {
+	#[must_use]
+	pub fn var(&self) -> usize {
+		self.var
+	}
+
+	#[must_use]
+	pub fn value(&self) -> &Expression {
+		&self.value
+	}
 }
 
 pub struct SetGlobal {
-	pub var: usize,
-	pub value: Expression,
+	pub(crate) var: usize,
+	pub(crate) value: Expression,
+}
+
+impl SetGlobal {
+	#[must_use]
+	pub fn var(&self) -> usize {
+		self.var
+	}
+
+	#[must_use]
+	pub fn value(&self) -> &Expression {
+		&self.value
+	}
 }
 
 pub struct StoreAt {
-	pub what: StoreType,
-	pub offset: u32,
-	pub pointer: Expression,
-	pub value: Expression,
+	pub(crate) store_type: StoreType,
+	pub(crate) offset: u32,
+	pub(crate) pointer: Expression,
+	pub(crate) value: Expression,
+}
+
+impl StoreAt {
+	#[must_use]
+	pub fn store_type(&self) -> StoreType {
+		self.store_type
+	}
+
+	#[must_use]
+	pub fn offset(&self) -> u32 {
+		self.offset
+	}
+
+	#[must_use]
+	pub fn pointer(&self) -> &Expression {
+		&self.pointer
+	}
+
+	#[must_use]
+	pub fn value(&self) -> &Expression {
+		&self.value
+	}
 }
 
 pub enum Statement {
@@ -740,9 +1043,36 @@ pub enum Statement {
 }
 
 pub struct FuncData {
-	pub local_data: Vec<Local>,
-	pub num_result: usize,
-	pub num_param: usize,
-	pub num_stack: usize,
-	pub code: Forward,
+	pub(crate) local_data: Vec<Local>,
+	pub(crate) num_result: usize,
+	pub(crate) num_param: usize,
+	pub(crate) num_stack: usize,
+	pub(crate) code: Forward,
+}
+
+impl FuncData {
+	#[must_use]
+	pub fn local_data(&self) -> &[Local] {
+		&self.local_data
+	}
+
+	#[must_use]
+	pub fn num_result(&self) -> usize {
+		self.num_result
+	}
+
+	#[must_use]
+	pub fn num_param(&self) -> usize {
+		self.num_param
+	}
+
+	#[must_use]
+	pub fn num_stack(&self) -> usize {
+		self.num_stack
+	}
+
+	#[must_use]
+	pub fn code(&self) -> &Forward {
+		&self.code
+	}
 }
