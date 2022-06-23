@@ -5,7 +5,7 @@ use wasm_ast::{
 	visit::{Driver, Visitor},
 };
 
-use super::operator::{bin_symbol_of, cmp_symbol_of};
+use super::as_symbol::AsSymbol;
 
 struct Visit {
 	local_set: BTreeSet<(&'static str, &'static str)>,
@@ -34,7 +34,7 @@ impl Visitor for Visit {
 	}
 
 	fn visit_bin_op(&mut self, v: &BinOp) {
-		if bin_symbol_of(v.op_type()).is_some() {
+		if v.op_type().as_symbol().is_some() {
 			return;
 		}
 
@@ -44,7 +44,7 @@ impl Visitor for Visit {
 	}
 
 	fn visit_cmp_op(&mut self, v: &CmpOp) {
-		if cmp_symbol_of(v.op_type()).is_some() {
+		if v.op_type().as_symbol().is_some() {
 			return;
 		}
 

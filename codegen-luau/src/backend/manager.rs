@@ -6,7 +6,7 @@ use std::{
 
 use wasm_ast::node::{BrTable, CmpOp, Expression};
 
-use crate::analyzer::operator::cmp_symbol_of;
+use crate::analyzer::as_symbol::AsSymbol;
 
 #[derive(PartialEq, Eq)]
 pub enum Label {
@@ -84,7 +84,7 @@ pub fn write_variable(var: usize, mng: &Manager, w: &mut dyn Write) -> Result<()
 }
 
 pub fn write_cmp_op(cmp: &CmpOp, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-	if let Some(symbol) = cmp_symbol_of(cmp.op_type()) {
+	if let Some(symbol) = cmp.op_type().as_symbol() {
 		cmp.lhs().write(mng, w)?;
 		write!(w, "{symbol} ")?;
 		cmp.rhs().write(mng, w)

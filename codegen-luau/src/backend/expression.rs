@@ -8,7 +8,7 @@ use wasm_ast::node::{
 	Value,
 };
 
-use crate::analyzer::operator::bin_symbol_of;
+use crate::analyzer::as_symbol::AsSymbol;
 
 use super::manager::{
 	write_cmp_op, write_condition, write_separated, write_variable, Driver, Manager,
@@ -123,7 +123,7 @@ impl Driver for UnOp {
 
 impl Driver for BinOp {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		if let Some(symbol) = bin_symbol_of(self.op_type()) {
+		if let Some(symbol) = self.op_type().as_symbol() {
 			write!(w, "(")?;
 			self.lhs().write(mng, w)?;
 			write!(w, "{symbol} ")?;
