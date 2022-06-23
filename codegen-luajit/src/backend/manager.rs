@@ -1,20 +1,36 @@
 use std::{
+	collections::HashMap,
 	io::{Result, Write},
 	ops::Range,
 };
 
-use wasm_ast::node::{CmpOp, Expression};
+use wasm_ast::node::{BrTable, CmpOp, Expression};
 
 use crate::analyzer::operator::cmp_symbol_of;
 
 #[derive(Default)]
 pub struct Manager {
+	table_map: HashMap<usize, usize>,
 	label_list: Vec<usize>,
 	num_label: usize,
-	pub num_param: usize,
+	num_param: usize,
 }
 
 impl Manager {
+	pub fn get_table_index(&self, table: &BrTable) -> usize {
+		let id = table as *const _ as usize;
+
+		self.table_map[&id]
+	}
+
+	pub fn set_table_map(&mut self, map: HashMap<usize, usize>) {
+		self.table_map = map;
+	}
+
+	pub fn set_num_param(&mut self, num: usize) {
+		self.num_param = num;
+	}
+
 	pub fn label_list(&self) -> &[usize] {
 		&self.label_list
 	}

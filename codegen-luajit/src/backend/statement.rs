@@ -9,6 +9,8 @@ use wasm_ast::node::{
 	SetLocal, SetTemporary, Statement, StoreAt, Terminator,
 };
 
+use crate::analyzer::br_table;
+
 use super::manager::{
 	write_ascending, write_condition, write_separated, write_variable, Driver, Manager,
 };
@@ -28,26 +30,80 @@ impl Driver for Br {
 	}
 }
 
+fn to_ordered_table<'a>(list: &'a [Br], default: &'a Br) -> Vec<&'a Br> {
+	let mut data: Vec<_> = list.iter().chain(std::iter::once(default)).collect();
+
+	data.sort_by_key(|v| v.target);
+	data.dedup_by_key(|v| v.target);
+
+	data
+}
+
+fn write_search_layer(
+	range: Range<usize>,
+	list: &[&Br],
+	mng: &mut Manager,
+	w: &mut dyn Write,
+) -> Result<()> {
+	if range.len() == 1 {
+		return list[range.start].write(mng, w);
+	}
+
+	let center = range.start + range.len() / 2;
+	let br = list[center];
+
+	if range.start != center {
+		write!(w, "if temp < {} then ", br.target)?;
+		write_search_layer(range.start..center, list, mng, w)?;
+		write!(w, "else")?;
+	}
+
+	if range.end != center + 1 {
+		write!(w, "if temp > {} then ", br.target)?;
+		write_search_layer(center + 1..range.end, list, mng, w)?;
+		write!(w, "else")?;
+	}
+
+	write!(w, " ")?;
+	br.write(mng, w)?;
+	write!(w, "end ")
+}
+
+fn write_table_setup(table: &BrTable, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+	let id = mng.get_table_index(table);
+
+	write!(w, "if not br_map[{id}] then ")?;
+	write!(w, "br_map[{id}] = (function() return {{[0] =")?;
+
+	table
+		.data
+		.iter()
+		.try_for_each(|v| write!(w, "{},", v.target))?;
+
+	write!(w, "}} end)()")?;
+	write!(w, "end ")?;
+
+	write!(w, "temp = br_map[{id}][")?;
+	table.cond.write(mng, w)?;
+	write!(w, "] or {} ", table.default.target)
+}
+
 impl Driver for BrTable {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "temp = ")?;
-		self.cond.write(mng, w)?;
-
-		// Our condition should be pure so we probably don't need
-		// to emit it in this case.
 		if self.data.is_empty() {
+			// Our condition should be pure so we probably don't need
+			// to emit it in this case.
 			return self.default.write(mng, w);
 		}
 
-		for (case, dest) in self.data.iter().enumerate() {
-			write!(w, "if temp == {case} then ")?;
-			dest.write(mng, w)?;
-			write!(w, "else")?;
-		}
+		// `BrTable` is optimized by first mapping all indices to targets through
+		// a Lua table; this reduces the size of the code generated as duplicate entries
+		// don't need checking. Then, for speed, a binary search is done for the target
+		// and the appropriate jump is performed.
+		let list = to_ordered_table(&self.data, &self.default);
 
-		write!(w, " ")?;
-		self.default.write(mng, w)?;
-		write!(w, "end ")
+		write_table_setup(self, mng, w)?;
+		write_search_layer(0..list.len(), &list, mng, w)
 	}
 }
 
@@ -265,11 +321,17 @@ fn write_variable_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 
 impl Driver for FuncData {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		let br_map = br_table::visit(self);
+
 		write_parameter_list(self, w)?;
 		write_variable_list(self, w)?;
-		write!(w, "local temp ")?;
 
-		mng.num_param = self.num_param;
+		if !br_map.is_empty() {
+			write!(w, "local br_map, temp = {{}}, nil ")?;
+		}
+
+		mng.set_table_map(br_map);
+		mng.set_num_param(self.num_param);
 		self.code.write(mng, w)?;
 
 		if self.num_result != 0 {
