@@ -51,12 +51,10 @@ fn write_constant(code: &[Instruction], type_info: &TypeInfo, w: &mut dyn Write)
 	let func = Builder::from_type_info(type_info).build_anonymous(code);
 
 	if let Some(Statement::SetTemporary(stat)) = func.code().code().last() {
-		stat.value().write(&mut Manager::default(), w)?;
+		stat.value().write(&mut Manager::default(), w)
 	} else {
-		panic!("Not a valid constant");
+		write!(w, r#"error("Valueless constant")"#)
 	}
-
-	Ok(())
 }
 
 fn write_import_of<T>(wasm: &Module, lower: &str, cond: T, w: &mut dyn Write) -> Result<()>
