@@ -1,8 +1,7 @@
 [workspace]
 members = [
-	"codegen-luajit",
-	"codegen-luau",
+	"codegen/luajit",
+	"codegen/luau",
 	"dev-test",
-	"wasm-ast",
-	"wasm-synth"
+	"wasm-ast"
 ]

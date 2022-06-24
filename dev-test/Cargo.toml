@@ -10,8 +10,8 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 wasm-smith = "0.8.0"
-codegen-luajit = { path = "../codegen-luajit" }
-codegen-luau = { path = "../codegen-luau" }
+codegen-luajit = { path = "../codegen/luajit" }
+codegen-luau = { path = "../codegen/luau" }
 
 [dependencies.parity-wasm]
 git = "https://github.com/paritytech/parity-wasm.git"

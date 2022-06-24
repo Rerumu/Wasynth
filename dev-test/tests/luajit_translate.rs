@@ -134,7 +134,10 @@ impl Target for LuaJIT {
 	fn write_runtime(w: &mut dyn Write) -> Result<()> {
 		let runtime = codegen_luajit::RUNTIME;
 
-		writeln!(w, "local rt = (function() {runtime} end)()")?;
+		writeln!(w, "local rt = (function()")?;
+		writeln!(w, "{runtime}")?;
+		writeln!(w, "end)()")?;
+
 		writeln!(w, "{ASSERTION}")
 	}
 
