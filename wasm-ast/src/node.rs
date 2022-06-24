@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use parity_wasm::elements::{Instruction, Local, SignExtInstruction};
+use wasmparser::{Operator, ValType};
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
@@ -43,27 +43,25 @@ impl LoadType {
 	}
 }
 
-impl TryFrom<&Instruction> for LoadType {
+impl TryFrom<&Operator<'_>> for LoadType {
 	type Error = ();
 
-	fn try_from(inst: &Instruction) -> Result<Self, Self::Error> {
-		use Instruction as Inst;
-
+	fn try_from(inst: &Operator) -> Result<Self, Self::Error> {
 		let result = match inst {
-			Inst::I32Load(_, _) => Self::I32,
-			Inst::I64Load(_, _) => Self::I64,
-			Inst::F32Load(_, _) => Self::F32,
-			Inst::F64Load(_, _) => Self::F64,
-			Inst::I32Load8S(_, _) => Self::I32_I8,
-			Inst::I32Load8U(_, _) => Self::I32_U8,
-			Inst::I32Load16S(_, _) => Self::I32_I16,
-			Inst::I32Load16U(_, _) => Self::I32_U16,
-			Inst::I64Load8S(_, _) => Self::I64_I8,
-			Inst::I64Load8U(_, _) => Self::I64_U8,
-			Inst::I64Load16S(_, _) => Self::I64_I16,
-			Inst::I64Load16U(_, _) => Self::I64_U16,
-			Inst::I64Load32S(_, _) => Self::I64_I32,
-			Inst::I64Load32U(_, _) => Self::I64_U32,
+			Operator::I32Load { .. } => Self::I32,
+			Operator::I64Load { .. } => Self::I64,
+			Operator::F32Load { .. } => Self::F32,
+			Operator::F64Load { .. } => Self::F64,
+			Operator::I32Load8S { .. } => Self::I32_I8,
+			Operator::I32Load8U { .. } => Self::I32_U8,
+			Operator::I32Load16S { .. } => Self::I32_I16,
+			Operator::I32Load16U { .. } => Self::I32_U16,
+			Operator::I64Load8S { .. } => Self::I64_I8,
+			Operator::I64Load8U { .. } => Self::I64_U8,
+			Operator::I64Load16S { .. } => Self::I64_I16,
+			Operator::I64Load16U { .. } => Self::I64_U16,
+			Operator::I64Load32S { .. } => Self::I64_I32,
+			Operator::I64Load32U { .. } => Self::I64_U32,
 			_ => return Err(()),
 		};
 
@@ -102,22 +100,20 @@ impl StoreType {
 	}
 }
 
-impl TryFrom<&Instruction> for StoreType {
+impl TryFrom<&Operator<'_>> for StoreType {
 	type Error = ();
 
-	fn try_from(inst: &Instruction) -> Result<Self, Self::Error> {
-		use Instruction as Inst;
-
+	fn try_from(inst: &Operator) -> Result<Self, Self::Error> {
 		let result = match inst {
-			Inst::I32Store(_, _) => Self::I32,
-			Inst::I64Store(_, _) => Self::I64,
-			Inst::F32Store(_, _) => Self::F32,
-			Inst::F64Store(_, _) => Self::F64,
-			Inst::I32Store8(_, _) => Self::I32_N8,
-			Inst::I32Store16(_, _) => Self::I32_N16,
-			Inst::I64Store8(_, _) => Self::I64_N8,
-			Inst::I64Store16(_, _) => Self::I64_N16,
-			Inst::I64Store32(_, _) => Self::I64_N32,
+			Operator::I32Store { .. } => Self::I32,
+			Operator::I64Store { .. } => Self::I64,
+			Operator::F32Store { .. } => Self::F32,
+			Operator::F64Store { .. } => Self::F64,
+			Operator::I32Store8 { .. } => Self::I32_N8,
+			Operator::I32Store16 { .. } => Self::I32_N16,
+			Operator::I64Store8 { .. } => Self::I64_N8,
+			Operator::I64Store16 { .. } => Self::I64_N16,
+			Operator::I64Store32 { .. } => Self::I64_N32,
 			_ => return Err(()),
 		};
 
@@ -224,58 +220,53 @@ impl UnOpType {
 	}
 }
 
-impl TryFrom<&Instruction> for UnOpType {
+impl TryFrom<&Operator<'_>> for UnOpType {
 	type Error = ();
 
-	fn try_from(inst: &Instruction) -> Result<Self, Self::Error> {
-		use Instruction as Inst;
-
+	fn try_from(inst: &Operator) -> Result<Self, Self::Error> {
 		let result = match inst {
-			Inst::SignExt(ext) => match ext {
-				SignExtInstruction::I32Extend8S => Self::Extend_I32_I8,
-				SignExtInstruction::I32Extend16S => Self::Extend_I32_I16,
-				SignExtInstruction::I64Extend8S => Self::Extend_I64_I8,
-				SignExtInstruction::I64Extend16S => Self::Extend_I64_I16,
-				SignExtInstruction::I64Extend32S => Self::Extend_I64_I32,
-			},
-			Inst::I32Clz => Self::Clz_I32,
-			Inst::I32Ctz => Self::Ctz_I32,
-			Inst::I32Popcnt => Self::Popcnt_I32,
-			Inst::I64Clz => Self::Clz_I64,
-			Inst::I64Ctz => Self::Ctz_I64,
-			Inst::I64Popcnt => Self::Popcnt_I64,
-			Inst::F32Abs | Inst::F64Abs => Self::Abs_FN,
-			Inst::F32Neg | Inst::F64Neg => Self::Neg_FN,
-			Inst::F32Ceil | Inst::F64Ceil => Self::Ceil_FN,
-			Inst::F32Floor | Inst::F64Floor => Self::Floor_FN,
-			Inst::F32Trunc | Inst::F64Trunc => Self::Trunc_FN,
-			Inst::F32Nearest | Inst::F64Nearest => Self::Nearest_FN,
-			Inst::F32Sqrt | Inst::F64Sqrt => Self::Sqrt_FN,
-			Inst::I32WrapI64 => Self::Wrap_I32_I64,
-			Inst::I32TruncSF32 => Self::Trunc_I32_F32,
-			Inst::I32TruncUF32 => Self::Trunc_U32_F32,
-			Inst::I32TruncSF64 => Self::Trunc_I32_F64,
-			Inst::I32TruncUF64 => Self::Trunc_U32_F64,
-			Inst::I64ExtendSI32 => Self::Extend_I64_I32,
-			Inst::I64ExtendUI32 => Self::Extend_U64_I32,
-			Inst::I64TruncSF32 => Self::Trunc_I64_F32,
-			Inst::I64TruncUF32 => Self::Trunc_U64_F32,
-			Inst::I64TruncSF64 => Self::Trunc_I64_F64,
-			Inst::I64TruncUF64 => Self::Trunc_U64_F64,
-			Inst::F32ConvertSI32 => Self::Convert_F32_I32,
-			Inst::F32ConvertUI32 => Self::Convert_F32_U32,
-			Inst::F32ConvertSI64 => Self::Convert_F32_I64,
-			Inst::F32ConvertUI64 => Self::Convert_F32_U64,
-			Inst::F32DemoteF64 => Self::Demote_F32_F64,
-			Inst::F64ConvertSI32 => Self::Convert_F64_I32,
-			Inst::F64ConvertUI32 => Self::Convert_F64_U32,
-			Inst::F64ConvertSI64 => Self::Convert_F64_I64,
-			Inst::F64ConvertUI64 => Self::Convert_F64_U64,
-			Inst::F64PromoteF32 => Self::Promote_F64_F32,
-			Inst::I32ReinterpretF32 => Self::Reinterpret_I32_F32,
-			Inst::I64ReinterpretF64 => Self::Reinterpret_I64_F64,
-			Inst::F32ReinterpretI32 => Self::Reinterpret_F32_I32,
-			Inst::F64ReinterpretI64 => Self::Reinterpret_F64_I64,
+			Operator::I32Clz => Self::Clz_I32,
+			Operator::I32Ctz => Self::Ctz_I32,
+			Operator::I32Popcnt => Self::Popcnt_I32,
+			Operator::I64Clz => Self::Clz_I64,
+			Operator::I64Ctz => Self::Ctz_I64,
+			Operator::I64Popcnt => Self::Popcnt_I64,
+			Operator::F32Abs | Operator::F64Abs => Self::Abs_FN,
+			Operator::F32Neg | Operator::F64Neg => Self::Neg_FN,
+			Operator::F32Ceil | Operator::F64Ceil => Self::Ceil_FN,
+			Operator::F32Floor | Operator::F64Floor => Self::Floor_FN,
+			Operator::F32Trunc | Operator::F64Trunc => Self::Trunc_FN,
+			Operator::F32Nearest | Operator::F64Nearest => Self::Nearest_FN,
+			Operator::F32Sqrt | Operator::F64Sqrt => Self::Sqrt_FN,
+			Operator::I32WrapI64 => Self::Wrap_I32_I64,
+			Operator::I32TruncF32S => Self::Trunc_I32_F32,
+			Operator::I32TruncF32U => Self::Trunc_U32_F32,
+			Operator::I32TruncF64S => Self::Trunc_I32_F64,
+			Operator::I32TruncF64U => Self::Trunc_U32_F64,
+			Operator::I32Extend8S => Self::Extend_I32_I8,
+			Operator::I32Extend16S => Self::Extend_I32_I16,
+			Operator::I64Extend8S => Self::Extend_I64_I8,
+			Operator::I64Extend16S => Self::Extend_I64_I16,
+			Operator::I64Extend32S | Operator::I64ExtendI32S => Self::Extend_I64_I32,
+			Operator::I64ExtendI32U => Self::Extend_U64_I32,
+			Operator::I64TruncF32S => Self::Trunc_I64_F32,
+			Operator::I64TruncF32U => Self::Trunc_U64_F32,
+			Operator::I64TruncF64S => Self::Trunc_I64_F64,
+			Operator::I64TruncF64U => Self::Trunc_U64_F64,
+			Operator::F32ConvertI32S => Self::Convert_F32_I32,
+			Operator::F32ConvertI32U => Self::Convert_F32_U32,
+			Operator::F32ConvertI64S => Self::Convert_F32_I64,
+			Operator::F32ConvertI64U => Self::Convert_F32_U64,
+			Operator::F32DemoteF64 => Self::Demote_F32_F64,
+			Operator::F64ConvertI32S => Self::Convert_F64_I32,
+			Operator::F64ConvertI32U => Self::Convert_F64_U32,
+			Operator::F64ConvertI64S => Self::Convert_F64_I64,
+			Operator::F64ConvertI64U => Self::Convert_F64_U64,
+			Operator::F64PromoteF32 => Self::Promote_F64_F32,
+			Operator::I32ReinterpretF32 => Self::Reinterpret_I32_F32,
+			Operator::I64ReinterpretF64 => Self::Reinterpret_I64_F64,
+			Operator::F32ReinterpretI32 => Self::Reinterpret_F32_I32,
+			Operator::F64ReinterpretI64 => Self::Reinterpret_F64_I64,
 			_ => return Err(()),
 		};
 
@@ -370,50 +361,48 @@ impl BinOpType {
 	}
 }
 
-impl TryFrom<&Instruction> for BinOpType {
+impl TryFrom<&Operator<'_>> for BinOpType {
 	type Error = ();
 
-	fn try_from(inst: &Instruction) -> Result<Self, Self::Error> {
-		use Instruction as Inst;
-
+	fn try_from(inst: &Operator) -> Result<Self, Self::Error> {
 		let result = match inst {
-			Inst::I32Add => Self::Add_I32,
-			Inst::I32Sub => Self::Sub_I32,
-			Inst::I32Mul => Self::Mul_I32,
-			Inst::I32DivS => Self::DivS_I32,
-			Inst::I32DivU => Self::DivU_I32,
-			Inst::I32RemS => Self::RemS_I32,
-			Inst::I32RemU => Self::RemU_I32,
-			Inst::I32And => Self::And_I32,
-			Inst::I32Or => Self::Or_I32,
-			Inst::I32Xor => Self::Xor_I32,
-			Inst::I32Shl => Self::Shl_I32,
-			Inst::I32ShrS => Self::ShrS_I32,
-			Inst::I32ShrU => Self::ShrU_I32,
-			Inst::I32Rotl => Self::Rotl_I32,
-			Inst::I32Rotr => Self::Rotr_I32,
-			Inst::I64Add => Self::Add_I64,
-			Inst::I64Sub => Self::Sub_I64,
-			Inst::I64Mul => Self::Mul_I64,
-			Inst::I64DivS => Self::DivS_I64,
-			Inst::I64DivU => Self::DivU_I64,
-			Inst::I64RemS => Self::RemS_I64,
-			Inst::I64RemU => Self::RemU_I64,
-			Inst::I64And => Self::And_I64,
-			Inst::I64Or => Self::Or_I64,
-			Inst::I64Xor => Self::Xor_I64,
-			Inst::I64Shl => Self::Shl_I64,
-			Inst::I64ShrS => Self::ShrS_I64,
-			Inst::I64ShrU => Self::ShrU_I64,
-			Inst::I64Rotl => Self::Rotl_I64,
-			Inst::I64Rotr => Self::Rotr_I64,
-			Inst::F32Add | Inst::F64Add => Self::Add_FN,
-			Inst::F32Sub | Inst::F64Sub => Self::Sub_FN,
-			Inst::F32Mul | Inst::F64Mul => Self::Mul_FN,
-			Inst::F32Div | Inst::F64Div => Self::Div_FN,
-			Inst::F32Min | Inst::F64Min => Self::Min_FN,
-			Inst::F32Max | Inst::F64Max => Self::Max_FN,
-			Inst::F32Copysign | Inst::F64Copysign => Self::Copysign_FN,
+			Operator::I32Add => Self::Add_I32,
+			Operator::I32Sub => Self::Sub_I32,
+			Operator::I32Mul => Self::Mul_I32,
+			Operator::I32DivS => Self::DivS_I32,
+			Operator::I32DivU => Self::DivU_I32,
+			Operator::I32RemS => Self::RemS_I32,
+			Operator::I32RemU => Self::RemU_I32,
+			Operator::I32And => Self::And_I32,
+			Operator::I32Or => Self::Or_I32,
+			Operator::I32Xor => Self::Xor_I32,
+			Operator::I32Shl => Self::Shl_I32,
+			Operator::I32ShrS => Self::ShrS_I32,
+			Operator::I32ShrU => Self::ShrU_I32,
+			Operator::I32Rotl => Self::Rotl_I32,
+			Operator::I32Rotr => Self::Rotr_I32,
+			Operator::I64Add => Self::Add_I64,
+			Operator::I64Sub => Self::Sub_I64,
+			Operator::I64Mul => Self::Mul_I64,
+			Operator::I64DivS => Self::DivS_I64,
+			Operator::I64DivU => Self::DivU_I64,
+			Operator::I64RemS => Self::RemS_I64,
+			Operator::I64RemU => Self::RemU_I64,
+			Operator::I64And => Self::And_I64,
+			Operator::I64Or => Self::Or_I64,
+			Operator::I64Xor => Self::Xor_I64,
+			Operator::I64Shl => Self::Shl_I64,
+			Operator::I64ShrS => Self::ShrS_I64,
+			Operator::I64ShrU => Self::ShrU_I64,
+			Operator::I64Rotl => Self::Rotl_I64,
+			Operator::I64Rotr => Self::Rotr_I64,
+			Operator::F32Add | Operator::F64Add => Self::Add_FN,
+			Operator::F32Sub | Operator::F64Sub => Self::Sub_FN,
+			Operator::F32Mul | Operator::F64Mul => Self::Mul_FN,
+			Operator::F32Div | Operator::F64Div => Self::Div_FN,
+			Operator::F32Min | Operator::F64Min => Self::Min_FN,
+			Operator::F32Max | Operator::F64Max => Self::Max_FN,
+			Operator::F32Copysign | Operator::F64Copysign => Self::Copysign_FN,
 			_ => {
 				return Err(());
 			}
@@ -488,39 +477,37 @@ impl CmpOpType {
 	}
 }
 
-impl TryFrom<&Instruction> for CmpOpType {
+impl TryFrom<&Operator<'_>> for CmpOpType {
 	type Error = ();
 
-	fn try_from(inst: &Instruction) -> Result<Self, Self::Error> {
-		use Instruction as Inst;
-
+	fn try_from(inst: &Operator) -> Result<Self, Self::Error> {
 		let result = match inst {
-			Inst::I32Eq => Self::Eq_I32,
-			Inst::I32Ne => Self::Ne_I32,
-			Inst::I32LtS => Self::LtS_I32,
-			Inst::I32LtU => Self::LtU_I32,
-			Inst::I32GtS => Self::GtS_I32,
-			Inst::I32GtU => Self::GtU_I32,
-			Inst::I32LeS => Self::LeS_I32,
-			Inst::I32LeU => Self::LeU_I32,
-			Inst::I32GeS => Self::GeS_I32,
-			Inst::I32GeU => Self::GeU_I32,
-			Inst::I64Eq => Self::Eq_I64,
-			Inst::I64Ne => Self::Ne_I64,
-			Inst::I64LtS => Self::LtS_I64,
-			Inst::I64LtU => Self::LtU_I64,
-			Inst::I64GtS => Self::GtS_I64,
-			Inst::I64GtU => Self::GtU_I64,
-			Inst::I64LeS => Self::LeS_I64,
-			Inst::I64LeU => Self::LeU_I64,
-			Inst::I64GeS => Self::GeS_I64,
-			Inst::I64GeU => Self::GeU_I64,
-			Inst::F32Eq | Inst::F64Eq => Self::Eq_FN,
-			Inst::F32Ne | Inst::F64Ne => Self::Ne_FN,
-			Inst::F32Lt | Inst::F64Lt => Self::Lt_FN,
-			Inst::F32Gt | Inst::F64Gt => Self::Gt_FN,
-			Inst::F32Le | Inst::F64Le => Self::Le_FN,
-			Inst::F32Ge | Inst::F64Ge => Self::Ge_FN,
+			Operator::I32Eq => Self::Eq_I32,
+			Operator::I32Ne => Self::Ne_I32,
+			Operator::I32LtS => Self::LtS_I32,
+			Operator::I32LtU => Self::LtU_I32,
+			Operator::I32GtS => Self::GtS_I32,
+			Operator::I32GtU => Self::GtU_I32,
+			Operator::I32LeS => Self::LeS_I32,
+			Operator::I32LeU => Self::LeU_I32,
+			Operator::I32GeS => Self::GeS_I32,
+			Operator::I32GeU => Self::GeU_I32,
+			Operator::I64Eq => Self::Eq_I64,
+			Operator::I64Ne => Self::Ne_I64,
+			Operator::I64LtS => Self::LtS_I64,
+			Operator::I64LtU => Self::LtU_I64,
+			Operator::I64GtS => Self::GtS_I64,
+			Operator::I64GtU => Self::GtU_I64,
+			Operator::I64LeS => Self::LeS_I64,
+			Operator::I64LeU => Self::LeU_I64,
+			Operator::I64GeS => Self::GeS_I64,
+			Operator::I64GeU => Self::GeU_I64,
+			Operator::F32Eq | Operator::F64Eq => Self::Eq_FN,
+			Operator::F32Ne | Operator::F64Ne => Self::Ne_FN,
+			Operator::F32Lt | Operator::F64Lt => Self::Lt_FN,
+			Operator::F32Gt | Operator::F64Gt => Self::Gt_FN,
+			Operator::F32Le | Operator::F64Le => Self::Le_FN,
+			Operator::F32Ge | Operator::F64Ge => Self::Ge_FN,
 			_ => {
 				return Err(());
 			}
@@ -588,6 +575,7 @@ impl GetGlobal {
 
 pub struct LoadAt {
 	pub(crate) load_type: LoadType,
+	pub(crate) memory: usize,
 	pub(crate) offset: u32,
 	pub(crate) pointer: Box<Expression>,
 }
@@ -596,6 +584,11 @@ impl LoadAt {
 	#[must_use]
 	pub fn load_type(&self) -> LoadType {
 		self.load_type
+	}
+
+	#[must_use]
+	pub fn memory(&self) -> usize {
+		self.memory
 	}
 
 	#[must_use]
@@ -617,29 +610,6 @@ impl MemorySize {
 	#[must_use]
 	pub fn memory(&self) -> usize {
 		self.memory
-	}
-}
-
-pub struct MemoryGrow {
-	pub(crate) memory: usize,
-	pub(crate) result: usize,
-	pub(crate) size: Box<Expression>,
-}
-
-impl MemoryGrow {
-	#[must_use]
-	pub fn memory(&self) -> usize {
-		self.memory
-	}
-
-	#[must_use]
-	pub fn result(&self) -> usize {
-		self.result
-	}
-
-	#[must_use]
-	pub fn size(&self) -> &Expression {
-		&self.size
 	}
 }
 
@@ -1001,6 +971,7 @@ impl SetGlobal {
 
 pub struct StoreAt {
 	pub(crate) store_type: StoreType,
+	pub(crate) memory: usize,
 	pub(crate) offset: u32,
 	pub(crate) pointer: Expression,
 	pub(crate) value: Expression,
@@ -1010,6 +981,11 @@ impl StoreAt {
 	#[must_use]
 	pub fn store_type(&self) -> StoreType {
 		self.store_type
+	}
+
+	#[must_use]
+	pub fn memory(&self) -> usize {
+		self.memory
 	}
 
 	#[must_use]
@@ -1028,6 +1004,29 @@ impl StoreAt {
 	}
 }
 
+pub struct MemoryGrow {
+	pub(crate) memory: usize,
+	pub(crate) result: usize,
+	pub(crate) size: Box<Expression>,
+}
+
+impl MemoryGrow {
+	#[must_use]
+	pub fn memory(&self) -> usize {
+		self.memory
+	}
+
+	#[must_use]
+	pub fn result(&self) -> usize {
+		self.result
+	}
+
+	#[must_use]
+	pub fn size(&self) -> &Expression {
+		&self.size
+	}
+}
+
 pub enum Statement {
 	Forward(Forward),
 	Backward(Backward),
@@ -1043,7 +1042,7 @@ pub enum Statement {
 }
 
 pub struct FuncData {
-	pub(crate) local_data: Vec<Local>,
+	pub(crate) local_data: Vec<(u32, ValType)>,
 	pub(crate) num_result: usize,
 	pub(crate) num_param: usize,
 	pub(crate) num_stack: usize,
@@ -1052,7 +1051,7 @@ pub struct FuncData {
 
 impl FuncData {
 	#[must_use]
-	pub fn local_data(&self) -> &[Local] {
+	pub fn local_data(&self) -> &[(u32, ValType)] {
 		&self.local_data
 	}
 

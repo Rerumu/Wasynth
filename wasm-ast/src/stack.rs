@@ -70,7 +70,7 @@ impl Stack {
 		let elem = match data {
 			Expression::GetLocal(GetLocal { var }) => ReadType::Local(var),
 			Expression::GetGlobal(GetGlobal { var }) => ReadType::Global(var),
-			Expression::LoadAt(LoadAt { .. }) => ReadType::Memory(0),
+			Expression::LoadAt(LoadAt { memory, .. }) => ReadType::Memory(memory),
 			_ => unreachable!(),
 		};
 
