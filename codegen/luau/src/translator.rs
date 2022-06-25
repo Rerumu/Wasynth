@@ -245,13 +245,12 @@ fn write_localize_used(func_list: &[FuncData], w: &mut dyn Write) -> Result<BTre
 }
 
 fn write_func_start(wasm: &Module, index: u32, w: &mut dyn Write) -> Result<()> {
-	write!(w, "FUNC_LIST")?;
+	write!(w, "FUNC_LIST[{index}] =")?;
 
-	if let Some(name) = wasm.name_section().get(&index) {
-		write!(w, "--[[ {name} ]]")?;
+	match wasm.name_section().get(&index) {
+		Some(name) => write!(w, "--[[ {name} ]]"),
+		None => Ok(()),
 	}
-
-	write!(w, "[{index}] =")
 }
 
 fn write_func_list(wasm: &Module, func_list: &[FuncData], w: &mut dyn Write) -> Result<()> {
