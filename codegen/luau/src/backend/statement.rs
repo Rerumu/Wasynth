@@ -141,6 +141,10 @@ fn br_target(level: usize, in_loop: bool, w: &mut dyn Write) -> Result<()> {
 }
 
 fn write_br_gadget(label_list: &[Label], rem: usize, w: &mut dyn Write) -> Result<()> {
+	if label_list.len() == 1 {
+		return Ok(());
+	}
+
 	match label_list.last() {
 		Some(Label::Forward) => br_target(rem, false, w),
 		Some(Label::Backward) => br_target(rem, true, w),
@@ -164,8 +168,10 @@ impl Driver for Forward {
 
 		write!(w, "end ")?;
 
+		write_br_gadget(mng.label_list(), rem, w)?;
 		mng.pop_label();
-		write_br_gadget(mng.label_list(), rem, w)
+
+		Ok(())
 	}
 }
 
@@ -185,8 +191,10 @@ impl Driver for Backward {
 
 		write!(w, "end ")?;
 
+		write_br_gadget(mng.label_list(), rem, w)?;
 		mng.pop_label();
-		write_br_gadget(mng.label_list(), rem, w)
+
+		Ok(())
 	}
 }
 
