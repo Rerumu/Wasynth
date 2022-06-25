@@ -122,10 +122,10 @@ fn write_memory_list(wasm: &Module, w: &mut dyn Write) -> Result<()> {
 	let offset = wasm.import_count(External::Memory);
 	let memory = wasm.memory_section();
 
-	for (i, v) in memory.iter().enumerate() {
+	for (i, ty) in memory.iter().enumerate() {
 		let index = offset + i;
-		let min = v.initial;
-		let max = v.maximum.unwrap_or(0xFFFF);
+		let min = ty.initial;
+		let max = ty.maximum.unwrap_or(0xFFFF);
 
 		write!(w, "MEMORY_LIST[{index}] = rt.allocator.new({min}, {max})")?;
 	}
@@ -137,9 +137,11 @@ fn write_global_list(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> 
 	let offset = wasm.import_count(External::Global);
 	let global = wasm.global_section();
 
-	for (i, v) in global.iter().enumerate() {
-		write!(w, "GLOBAL_LIST[{}] = {{ value =", i + offset)?;
-		write_constant(&v.init_expr, type_info, w)?;
+	for (i, global) in global.iter().enumerate() {
+		let index = offset + i;
+
+		write!(w, "GLOBAL_LIST[{index}] = {{ value =")?;
+		write_constant(&global.init_expr, type_info, w)?;
 		write!(w, "}}")?;
 	}
 
@@ -147,8 +149,8 @@ fn write_global_list(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> 
 }
 
 fn write_element_list(list: &[Element], type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
-	for v in list {
-		let (index, init) = match v.kind {
+	for element in list {
+		let (index, init) = match element.kind {
 			ElementKind::Active {
 				table_index,
 				init_expr,
@@ -164,7 +166,7 @@ fn write_element_list(list: &[Element], type_info: &TypeInfo, w: &mut dyn Write)
 
 		write!(w, "local data = {{")?;
 
-		for item in v.items.get_items_reader().unwrap() {
+		for item in element.items.get_items_reader().unwrap() {
 			match item.unwrap() {
 				ElementItem::Func(index) => write!(w, "FUNC_LIST[{index}],"),
 				ElementItem::Expr(init) => write_constant(&init, type_info, w),
