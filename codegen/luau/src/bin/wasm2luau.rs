@@ -1,12 +1,11 @@
 use std::io::{Result, Write};
 
-use parity_wasm::{deserialize_file, elements::Module};
+use wasm_ast::module::Module;
 
-fn load_module(name: &str) -> Module {
-	deserialize_file(name)
-		.expect("Failed to parse WebAssembly file")
-		.parse_names()
-		.unwrap_or_else(|v| v.1)
+fn load_arg_source() -> Result<Vec<u8>> {
+	let name = std::env::args().nth(1).expect("usage: wasm2luajit <file>");
+
+	std::fs::read(name)
 }
 
 fn do_runtime(lock: &mut dyn Write) -> Result<()> {
@@ -22,14 +21,8 @@ fn do_runtime(lock: &mut dyn Write) -> Result<()> {
 }
 
 fn main() -> Result<()> {
-	let wasm = match std::env::args().nth(1) {
-		Some(name) => load_module(&name),
-		None => {
-			eprintln!("usage: wasm2luau <file>");
-
-			return Ok(());
-		}
-	};
+	let data = load_arg_source()?;
+	let wasm = Module::from_data(&data);
 
 	let lock = &mut std::io::stdout().lock();
 

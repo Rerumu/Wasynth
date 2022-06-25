@@ -3,12 +3,11 @@ name = "codegen-luau"
 version = "0.6.0"
 edition = "2021"
 
+[dependencies]
+wasmparser = "0.86.0"
+
 [dependencies.wasm-ast]
 path = "../../wasm-ast"
-
-[dependencies.parity-wasm]
-git = "https://github.com/paritytech/parity-wasm.git"
-features = ["multi_value", "sign_ext"]
 
 [[bin]]
 name = "wasm2luau"

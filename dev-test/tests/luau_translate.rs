@@ -3,8 +3,7 @@ use std::{
 	path::PathBuf,
 };
 
-use parity_wasm::elements::Module;
-use wasm_ast::builder::TypeInfo;
+use wasm_ast::module::{Module, TypeInfo};
 use wast::{
 	core::{Expression, Instruction},
 	AssertExpression, WastExecute, WastInvoke,

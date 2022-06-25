@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
 
-use parity_wasm::elements::ValueType;
 use wasm_ast::{
 	node::{BinOp, CmpOp, FuncData, LoadAt, MemoryGrow, MemorySize, StoreAt, UnOp, Value},
 	visit::{Driver, Visitor},
 };
+use wasmparser::ValType;
 
 use super::as_symbol::AsSymbol;
 
@@ -80,11 +80,7 @@ pub fn visit(ast: &FuncData) -> (BTreeSet<(&'static str, &'static str)>, BTreeSe
 		memory_set: BTreeSet::new(),
 	};
 
-	if ast
-		.local_data()
-		.iter()
-		.any(|v| v.value_type() == ValueType::I64)
-	{
+	if ast.local_data().iter().any(|v| v.1 == ValType::I64) {
 		visit.local_set.insert(("i64", "K_ZERO"));
 	}
 
