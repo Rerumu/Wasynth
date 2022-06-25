@@ -172,8 +172,7 @@ impl Target for Luau {
 	}
 }
 
-static DO_NOT_RUN: [&str; 4] = [
-	"binary-leb128.wast",
+static DO_NOT_RUN: [&str; 3] = [
 	"conversions.wast",
 	"names.wast",
 	"skip-stack-guard-page.wast",
