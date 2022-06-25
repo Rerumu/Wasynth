@@ -26,18 +26,16 @@ impl Driver for Br {
 
 		if self.target() == 0 {
 			if let Some(&Label::Backward) = mng.label_list().last() {
-				write!(w, "continue ")?;
+				write!(w, "continue ")
 			} else {
-				write!(w, "break ")?;
+				write!(w, "break ")
 			}
 		} else {
 			let level = mng.label_list().len() - 1 - self.target();
 
 			write!(w, "desired = {level} ")?;
-			write!(w, "break ")?;
+			write!(w, "break ")
 		}
-
-		Ok(())
 	}
 }
 
@@ -46,7 +44,6 @@ fn to_ordered_table<'a>(list: &'a [Br], default: &'a Br) -> Vec<&'a Br> {
 
 	data.sort_by_key(|v| v.target());
 	data.dedup_by_key(|v| v.target());
-
 	data
 }
 
