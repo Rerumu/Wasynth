@@ -5,9 +5,9 @@ use std::{
 	process::Command,
 };
 
-use parity_wasm::elements::Module as BinModule;
+use wasm_ast::module::Module as AstModule;
 use wast::{
-	core::Module as AstModule, parser::ParseBuffer, token::Id, AssertExpression, QuoteWat, Wast,
+	core::Module as WaModule, parser::ParseBuffer, token::Id, AssertExpression, QuoteWat, Wast,
 	WastDirective, WastExecute, WastInvoke, Wat,
 };
 
@@ -42,7 +42,7 @@ macro_rules! impl_write_number_nan {
 impl_write_number_nan!(write_f32, write_f32_nan, f32, wast::token::Float32);
 impl_write_number_nan!(write_f64, write_f64_nan, f64, wast::token::Float64);
 
-fn try_into_ast_module(data: QuoteWat) -> Option<AstModule> {
+fn try_into_ast_module(data: QuoteWat) -> Option<WaModule> {
 	if let QuoteWat::Wat(Wat::Module(data)) = data {
 		Some(data)
 	} else {
@@ -73,7 +73,7 @@ pub trait Target: Sized {
 
 	fn write_runtime(w: &mut dyn Write) -> Result<()>;
 
-	fn write_module(data: &BinModule, name: Option<&str>, w: &mut dyn Write) -> Result<()>;
+	fn write_module(data: &AstModule, name: Option<&str>, w: &mut dyn Write) -> Result<()>;
 
 	fn write_variant(variant: WastDirective, w: &mut dyn Write) -> Result<()> {
 		match variant {
@@ -81,7 +81,7 @@ pub trait Target: Sized {
 				let mut ast = try_into_ast_module(data).expect("Must be a module");
 				let bytes = ast.encode().unwrap();
 
-				let data = parity_wasm::deserialize_buffer(&bytes).unwrap();
+				let data = AstModule::from_data(&bytes);
 				let name = ast.id.as_ref().map(Id::name);
 
 				Self::write_module(&data, name, w)?;

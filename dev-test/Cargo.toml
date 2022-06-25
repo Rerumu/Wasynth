@@ -8,19 +8,15 @@ publish = false
 cargo-fuzz = true
 
 [dependencies]
-libfuzzer-sys = "0.4"
+libfuzzer-sys = "0.4.0"
 wasm-smith = "0.8.0"
+wasm-ast = { path = "../wasm-ast" }
 codegen-luajit = { path = "../codegen/luajit" }
 codegen-luau = { path = "../codegen/luau" }
-
-[dependencies.parity-wasm]
-git = "https://github.com/paritytech/parity-wasm.git"
-features = ["multi_value", "sign_ext"]
 
 [dev-dependencies]
 test-generator = "0.3.0"
 wast = "41.0.0"
-wasm-ast = { path = "../wasm-ast" }
 
 [[bin]]
 name = "luajit_translate"
