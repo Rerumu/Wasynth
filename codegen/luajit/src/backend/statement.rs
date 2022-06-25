@@ -3,11 +3,11 @@ use std::{
 	ops::Range,
 };
 
-use parity_wasm::elements::ValueType;
 use wasm_ast::node::{
 	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, FuncData, If, MemoryGrow, SetGlobal,
 	SetLocal, SetTemporary, Statement, StoreAt, Terminator,
 };
+use wasmparser::ValType;
 
 use crate::analyzer::br_table;
 
@@ -292,14 +292,9 @@ fn write_parameter_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 fn write_variable_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 	let mut total = 0;
 
-	for data in ast.local_data().iter().filter(|v| v.count() != 0) {
-		let range = total..total + usize::try_from(data.count()).unwrap();
-		let typed = if data.value_type() == ValueType::I64 {
-			"0LL"
-		} else {
-			"0"
-		}
-		.as_bytes();
+	for data in ast.local_data().iter().filter(|v| v.0 != 0) {
+		let range = total..total + usize::try_from(data.0).unwrap();
+		let typed = if data.1 == ValType::I64 { "0LL" } else { "0" }.as_bytes();
 
 		total = range.end;
 
