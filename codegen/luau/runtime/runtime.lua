@@ -44,11 +44,11 @@ do
 
 	local assert = assert
 	local math_abs = math.abs
-	local math_round = math.round
 	local math_floor = math.floor
+	local math_round = math.round
 	local math_sign = math.sign
-	local math_min = math.min
 	local math_max = math.max
+	local math_min = math.min
 
 	function add.i32(a, b)
 		return to_u32(a + b)
@@ -92,17 +92,19 @@ do
 	end
 
 	function min.num(a, b)
-		if b ~= b then
+		if b == b then
+			return math_min(a, b)
+		else
 			return b
 		end
-		return math_min(a, b)
 	end
 
 	function max.num(a, b)
-		if b ~= b then
+		if b == b then
+			return math_max(a, b)
+		else
 			return b
 		end
-		return math_max(a, b)
 	end
 
 	function copysign.num(lhs, rhs)
@@ -117,7 +119,7 @@ do
 		local result = math_round(num)
 
 		if math_abs(num) % 1 == 0.5 and math_floor(math_abs(num) % 2) == 0 then
-			result -= math_sign(result)
+			result = result - math_sign(result)
 		end
 
 		return result
@@ -332,7 +334,11 @@ do
 	end
 
 	function trunc.num(num)
-		return if num >= 0 then math.floor(num) else math.ceil(num)
+		if num >= 0 then
+			return math.floor(num)
+		else
+			return math.ceil(num)
+		end
 	end
 
 	trunc.u64_f32 = num_from_u64

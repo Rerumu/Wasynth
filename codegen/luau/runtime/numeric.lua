@@ -25,7 +25,7 @@ local math_pow = math.pow
 local table_freeze = table.freeze
 
 local from_u32, into_u32, from_u64, into_u64
-local num_add, num_subtract, num_multiply, num_divide_unsigned, num_negate, num_bit_not
+local num_add, num_subtract, num_multiply, num_divide_unsigned, num_negate, num_not
 local num_is_negative, num_is_zero, num_is_equal, num_is_less_unsigned, num_is_greater_unsigned
 
 -- TODO: Eventually support Vector3
@@ -231,7 +231,7 @@ function Numeric.divide_signed(lhs, rhs)
 end
 
 function Numeric.negate(value)
-	return num_add(num_bit_not(value), K_ONE)
+	return num_add(num_not(value), K_ONE)
 end
 
 function Numeric.bit_and(lhs, rhs)
@@ -393,7 +393,7 @@ num_subtract = Numeric.subtract
 num_multiply = Numeric.multiply
 num_divide_unsigned = Numeric.divide_unsigned
 num_negate = Numeric.negate
-num_bit_not = Numeric.bit_not
+num_not = Numeric.bit_not
 
 num_is_negative = Numeric.is_negative
 num_is_zero = Numeric.is_zero
