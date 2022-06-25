@@ -9,8 +9,8 @@ use wasm_ast::{
 	node::{FuncData, Statement},
 };
 use wasmparser::{
-	Data, DataKind, Element, ElementItem, ElementKind, Export, FunctionBody, Import, InitExpr,
-	Operator, OperatorsReader,
+	Data, DataKind, Element, ElementItem, ElementKind, Export, Import, InitExpr, Operator,
+	OperatorsReader,
 };
 
 use crate::{
@@ -201,12 +201,14 @@ fn write_data_list(list: &[Data], type_info: &TypeInfo, w: &mut dyn Write) -> Re
 	Ok(())
 }
 
-fn build_func_list(list: &[FunctionBody], type_info: &TypeInfo) -> Vec<FuncData> {
+fn build_func_list(wasm: &Module, type_info: &TypeInfo) -> Vec<FuncData> {
+	let offset = wasm.import_count(External::Func);
 	let mut builder = Factory::from_type_info(type_info);
 
-	list.iter()
+	wasm.code_section()
+		.iter()
 		.enumerate()
-		.map(|f| builder.create_indexed(f.0, f.1))
+		.map(|f| builder.create_indexed(f.0 + offset, f.1))
 		.collect()
 }
 
@@ -306,7 +308,7 @@ pub fn from_inst_list(code: &[Operator], type_info: &TypeInfo, w: &mut dyn Write
 /// # Errors
 /// Returns `Err` if writing to `Write` failed.
 pub fn from_module_typed(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
-	let func_list = build_func_list(wasm.code_section(), type_info);
+	let func_list = build_func_list(wasm, type_info);
 	let mem_set = write_localize_used(&func_list, w)?;
 
 	write_named_array("FUNC_LIST", wasm.function_space(), w)?;
