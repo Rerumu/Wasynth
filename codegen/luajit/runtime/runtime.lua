@@ -96,11 +96,11 @@ do
 		return (i64(u64(lhs) % u64(rhs)))
 	end
 
-	function neg.num(num)
+	function neg.f32(num)
 		return -num
 	end
 
-	function copysign.num(lhs, rhs)
+	function copysign.f32(lhs, rhs)
 		RE_INSTANCE.f64 = rhs
 
 		if RE_INSTANCE.b32 >= 0 then
@@ -110,7 +110,7 @@ do
 		end
 	end
 
-	function nearest.num(num)
+	function nearest.f32(num)
 		local result = round(num)
 
 		if math_abs(num) % 1 == 0.5 and temp_2 % 2 == 1 then
@@ -119,6 +119,10 @@ do
 
 		return result
 	end
+
+	neg.f64 = neg.f32
+	copysign.f64 = copysign.f32
+	nearest.f64 = nearest.f32
 
 	module.add = add
 	module.sub = sub

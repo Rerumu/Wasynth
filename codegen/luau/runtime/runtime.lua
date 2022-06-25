@@ -87,11 +87,11 @@ do
 
 	div.u64 = I64.divide_unsigned
 
-	function neg.num(num)
+	function neg.f32(num)
 		return -num
 	end
 
-	function min.num(a, b)
+	function min.f32(a, b)
 		if b == b then
 			return math_min(a, b)
 		else
@@ -99,7 +99,7 @@ do
 		end
 	end
 
-	function max.num(a, b)
+	function max.f32(a, b)
 		if b == b then
 			return math_max(a, b)
 		else
@@ -107,7 +107,7 @@ do
 		end
 	end
 
-	function copysign.num(lhs, rhs)
+	function copysign.f32(lhs, rhs)
 		if rhs >= 0 then
 			return (math_abs(lhs))
 		else
@@ -115,7 +115,7 @@ do
 		end
 	end
 
-	function nearest.num(num)
+	function nearest.f32(num)
 		local result = math_round(num)
 
 		if math_abs(num) % 1 == 0.5 and math_floor(math_abs(num) % 2) == 0 then
@@ -124,6 +124,12 @@ do
 
 		return result
 	end
+
+	neg.f64 = neg.f32
+	min.f64 = min.f32
+	max.f64 = max.f32
+	copysign.f64 = copysign.f32
+	nearest.f64 = nearest.f32
 
 	module.add = add
 	module.sub = sub
@@ -333,7 +339,7 @@ do
 		end
 	end
 
-	function trunc.num(num)
+	function trunc.f32(num)
 		if num >= 0 then
 			return math.floor(num)
 		else
@@ -341,6 +347,7 @@ do
 		end
 	end
 
+	trunc.f64 = trunc.f32
 	trunc.u64_f32 = num_from_u64
 	trunc.u64_f64 = num_from_u64
 
