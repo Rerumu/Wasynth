@@ -61,10 +61,10 @@ pub trait Target: Sized {
 
 	fn write_invoke(data: &WastInvoke, w: &mut dyn Write) -> Result<()>;
 
-	fn write_assert_trap(data: &WastExecute, w: &mut dyn Write) -> Result<()>;
+	fn write_assert_trap(data: &mut WastExecute, w: &mut dyn Write) -> Result<()>;
 
 	fn write_assert_return(
-		data: &WastExecute,
+		data: &mut WastExecute,
 		result: &[AssertExpression],
 		w: &mut dyn Write,
 	) -> Result<()>;
@@ -94,11 +94,13 @@ pub trait Target: Sized {
 			WastDirective::Invoke(data) => {
 				Self::write_invoke(&data, w)?;
 			}
-			WastDirective::AssertTrap { exec, .. } => {
-				Self::write_assert_trap(&exec, w)?;
+			WastDirective::AssertTrap { mut exec, .. } => {
+				Self::write_assert_trap(&mut exec, w)?;
 			}
-			WastDirective::AssertReturn { exec, results, .. } => {
-				Self::write_assert_return(&exec, &results, w)?;
+			WastDirective::AssertReturn {
+				mut exec, results, ..
+			} => {
+				Self::write_assert_return(&mut exec, &results, w)?;
 			}
 			WastDirective::AssertExhaustion { call, .. } => {
 				Self::write_assert_exhaustion(&call, w)?;

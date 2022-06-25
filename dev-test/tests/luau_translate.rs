@@ -6,7 +6,7 @@ use std::{
 use wasm_ast::module::{Module, TypeInfo};
 use wast::{
 	core::{Expression, Instruction},
-	AssertExpression, WastExecute, WastInvoke,
+	AssertExpression, WastExecute, WastInvoke, Wat,
 };
 
 use target::{get_name_from_id, Target};
@@ -85,7 +85,7 @@ impl Target for Luau {
 		writeln!(w)
 	}
 
-	fn write_assert_trap(data: &WastExecute, w: &mut dyn Write) -> Result<()> {
+	fn write_assert_trap(data: &mut WastExecute, w: &mut dyn Write) -> Result<()> {
 		match data {
 			WastExecute::Invoke(data) => {
 				Self::write_call_of("assert_trap", data, w)?;
@@ -98,16 +98,22 @@ impl Target for Luau {
 				write!(w, r#"loaded["{name}"].global_list["{global}"].value"#)?;
 				writeln!(w, ", nil)")
 			}
-			WastExecute::Wat(_) => {
-				// FIXME: Assert the `start` function
+			WastExecute::Wat(data) => {
+				let bytes = match data {
+					Wat::Module(ast) => ast.encode().unwrap(),
+					Wat::Component(_) => unimplemented!(),
+				};
+				let data = Module::from_data(&bytes);
 
-				Ok(())
+				write!(w, "assert_trap((function() ")?;
+				codegen_luau::from_module_untyped(&data, w)?;
+				writeln!(w, " end)(), linked)")
 			}
 		}
 	}
 
 	fn write_assert_return(
-		data: &WastExecute,
+		data: &mut WastExecute,
 		result: &[AssertExpression],
 		w: &mut dyn Write,
 	) -> Result<()> {
