@@ -3,7 +3,6 @@
 use wasm_ast::module::Module;
 use wasm_smith::Module as RngModule;
 
-// We are not interested in parity_wasm errors.
 libfuzzer_sys::fuzz_target!(|module: RngModule| {
 	let data = module.to_bytes();
 	let wasm = Module::from_data(&data);
