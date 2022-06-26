@@ -187,7 +187,7 @@ function Numeric.divide_unsigned(lhs, rhs)
 	if num_is_zero(rhs) then
 		error("division by zero")
 	elseif num_is_zero(lhs) then
-		return 0
+		return K_ZERO
 	end
 
 	local rhs_number = into_u64(rhs)
