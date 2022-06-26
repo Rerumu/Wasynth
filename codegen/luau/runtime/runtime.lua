@@ -1,5 +1,6 @@
 local module = {}
 
+local MAX_UNSIGNED = 0xffffffff
 local MAX_SIGNED = 0x7fffffff
 local BIT_SET_27 = 0x8000000
 local BIT_SET_32 = 0x100000000
@@ -551,13 +552,17 @@ do
 	end
 
 	function load.i64_i8(memory, addr)
-		local temp = load_byte(memory.data, addr)
+		local data_1 = load_byte(memory.data, addr)
+		local data_2
 
-		if temp >= 0x80 then
-			temp = to_u32(temp - 0x100)
+		if data_1 >= 0x80 then
+			data_1 = to_u32(data_1 - 0x100)
+			data_2 = MAX_UNSIGNED
+		else
+			data_2 = 0
 		end
 
-		return num_from_u32(temp, 0)
+		return num_from_u32(data_1, data_2)
 	end
 
 	function load.i64_u8(memory, addr)
@@ -568,22 +573,25 @@ do
 
 	function load.i64_i16(memory, addr)
 		local data = memory.data
-		local temp
+		local data_1, data_2
 
 		if addr % 4 == 0 then
-			temp = bit_and(data[addr / 4] or 0, 0xFFFF)
+			data_1 = bit_and(data[addr / 4] or 0, 0xFFFF)
 		else
 			local b1 = load_byte(data, addr)
 			local b2 = bit_lshift(load_byte(data, addr + 1), 8)
 
-			temp = bit_or(b1, b2)
+			data_1 = bit_or(b1, b2)
 		end
 
-		if temp >= 0x8000 then
-			temp = to_u32(temp - 0x10000)
+		if data_1 >= 0x8000 then
+			data_1 = to_u32(data_1 - 0x10000)
+			data_2 = MAX_UNSIGNED
+		else
+			data_2 = 0
 		end
 
-		return num_from_u32(temp, 0)
+		return num_from_u32(data_1, data_2)
 	end
 
 	function load.i64_u16(memory, addr)
@@ -604,20 +612,27 @@ do
 
 	function load.i64_i32(memory, addr)
 		local data = memory.data
-		local temp
+		local data_1, data_2
 
 		if addr % 4 == 0 then
-			temp = data[addr / 4] or 0
+			data_1 = data[addr / 4] or 0
 		else
 			local b1 = load_byte(data, addr)
 			local b2 = bit_lshift(load_byte(data, addr + 1), 8)
 			local b3 = bit_lshift(load_byte(data, addr + 2), 16)
 			local b4 = bit_lshift(load_byte(data, addr + 3), 24)
 
-			temp = bit_or(b1, b2, b3, b4)
+			data_1 = bit_or(b1, b2, b3, b4)
 		end
 
-		return num_from_u32(temp, 0)
+		if data_1 >= 0x80000000 then
+			data_1 = to_u32(data_1 - 0x100000000)
+			data_2 = MAX_UNSIGNED
+		else
+			data_2 = 0
+		end
+
+		return num_from_u32(data_1, data_2)
 	end
 
 	function load.i64_u32(memory, addr)
