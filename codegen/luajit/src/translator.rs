@@ -41,10 +41,12 @@ fn reader_to_code(reader: OperatorsReader) -> Vec<Operator> {
 }
 
 fn write_named_array(name: &str, len: usize, w: &mut dyn Write) -> Result<()> {
-	let hash = len.min(1);
-	let len = len.saturating_sub(1);
+	let len = match len.checked_sub(1) {
+		Some(len) => len,
+		None => return Ok(()),
+	};
 
-	write!(w, "local {name} = table_new({len}, {hash})")
+	write!(w, "local {name} = table_new({len}, 1)")
 }
 
 fn write_constant(init: &InitExpr, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
