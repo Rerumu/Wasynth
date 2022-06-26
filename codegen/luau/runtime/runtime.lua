@@ -736,7 +736,7 @@ do
 		local new = old + num
 
 		if new > memory.max then
-			return -1
+			return to_u32(-1)
 		else
 			memory.min = new
 
