@@ -348,9 +348,9 @@ do
 
 	function trunc.f32(num)
 		if num >= 0 then
-			return math.floor(num)
+			return math_floor(num)
 		else
-			return math.ceil(num)
+			return math_ceil(num)
 		end
 	end
 
