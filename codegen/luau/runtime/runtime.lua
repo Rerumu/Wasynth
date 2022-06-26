@@ -43,12 +43,16 @@ do
 	local nearest = {}
 
 	local assert = assert
+
 	local math_abs = math.abs
 	local math_floor = math.floor
 	local math_round = math.round
 	local math_sign = math.sign
 	local math_max = math.max
 	local math_min = math.min
+
+	local string_byte = string.byte
+	local string_pack = string.pack
 
 	function add.i32(a, b)
 		return to_u32(a + b)
@@ -108,8 +112,11 @@ do
 	end
 
 	function copysign.f32(lhs, rhs)
-		if rhs >= 0 then
-			return (math_abs(lhs))
+		local packed = string_pack("d", rhs)
+		local sign = string_byte(packed, 8)
+
+		if sign < 0x80 then
+			return math_abs(lhs)
 		else
 			return -math_abs(lhs)
 		end
