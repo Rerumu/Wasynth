@@ -1,6 +1,7 @@
 local module = {}
 
 local MAX_SIGNED = 0x7fffffff
+local BIT_SET_27 = 0x8000000
 local BIT_SET_32 = 0x100000000
 
 local to_u32 = bit32.band
@@ -44,6 +45,10 @@ do
 
 	local assert = assert
 
+	local bit_and = bit32.band
+	local bit_lshift = bit32.lshift
+	local bit_rshift = bit32.rshift
+
 	local math_abs = math.abs
 	local math_floor = math.floor
 	local math_round = math.round
@@ -67,7 +72,19 @@ do
 	sub.i64 = I64.subtract
 
 	function mul.i32(a, b)
-		return to_u32(a * b)
+		if (a + b) < BIT_SET_27 then
+			return to_u32(a * b)
+		else
+			local a16 = bit_rshift(a, 16)
+			local a00 = bit_and(a, 0xFFFF)
+			local b16 = bit_rshift(b, 16)
+			local b00 = bit_and(b, 0xFFFF)
+
+			local c00 = a00 * b00
+			local c16 = a16 * b00 + a00 * b16
+
+			return to_u32(c00 + bit_lshift(c16, 16))
+		end
 	end
 
 	mul.i64 = I64.multiply
