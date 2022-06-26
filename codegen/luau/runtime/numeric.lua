@@ -327,7 +327,7 @@ end
 function Numeric.is_negative(value)
 	local _, data_2 = into_u32(value)
 
-	return data_2 > BIT_SET_31
+	return data_2 >= BIT_SET_31
 end
 
 function Numeric.is_zero(value)
