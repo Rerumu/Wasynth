@@ -10,7 +10,7 @@ use wasm_ast::{
 };
 use wasmparser::{
 	Data, DataKind, Element, ElementItem, ElementKind, Export, Import, InitExpr, Operator,
-	OperatorsReader,
+	OperatorsReader, ValType,
 };
 
 use crate::{
@@ -224,9 +224,26 @@ fn write_local_operation(head: &str, tail: &str, w: &mut dyn Write) -> Result<()
 	}
 }
 
-fn write_localize_used(func_list: &[FuncData], w: &mut dyn Write) -> Result<BTreeSet<usize>> {
+fn write_localize_used(
+	wasm: &Module,
+	func_list: &[FuncData],
+	w: &mut dyn Write,
+) -> Result<BTreeSet<usize>> {
 	let mut loc_set = BTreeSet::new();
 	let mut mem_set = BTreeSet::new();
+
+	let has_global_i64 = wasm
+		.global_section()
+		.iter()
+		.any(|g| g.ty.content_type == ValType::I64);
+
+	let has_element_i64 = wasm.element_section().iter().any(|e| e.ty == ValType::I64);
+
+	if has_global_i64 || has_element_i64 {
+		loc_set.insert(("i64", "K_ZERO"));
+		loc_set.insert(("i64", "K_ONE"));
+		loc_set.insert(("i64", "from_u32"));
+	}
 
 	for (loc, mem) in func_list.iter().map(localize::visit) {
 		loc_set.extend(loc);
@@ -308,7 +325,7 @@ pub fn from_inst_list(code: &[Operator], type_info: &TypeInfo, w: &mut dyn Write
 /// Returns `Err` if writing to `Write` failed.
 pub fn from_module_typed(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
 	let func_list = build_func_list(wasm, type_info);
-	let mem_set = write_localize_used(&func_list, w)?;
+	let mem_set = write_localize_used(wasm, &func_list, w)?;
 
 	write_named_array("FUNC_LIST", wasm.function_space(), w)?;
 	write_named_array("TABLE_LIST", wasm.table_space(), w)?;
