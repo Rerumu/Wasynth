@@ -112,7 +112,7 @@ do
 	end
 
 	function copysign.f32(lhs, rhs)
-		local packed = string_pack("d", rhs)
+		local packed = string_pack("<d", rhs)
 		local sign = string_byte(packed, 8)
 
 		if sign < 0x80 then
@@ -408,25 +408,25 @@ do
 	function reinterpret.i32_f32(num)
 		local packed = string_pack("f", num)
 
-		return string_unpack("<I4", packed)
+		return string_unpack("I4", packed)
 	end
 
 	function reinterpret.i64_f64(num)
 		local packed = string_pack("d", num)
-		local data_1, data_2 = string_unpack("<I4I4", packed)
+		local data_1, data_2 = string_unpack("I4I4", packed)
 
 		return num_from_u32(data_1, data_2)
 	end
 
 	function reinterpret.f32_i32(num)
-		local packed = string_pack("<I4", num)
+		local packed = string_pack("I4", num)
 
 		return string_unpack("f", packed)
 	end
 
 	function reinterpret.f64_i64(num)
 		local data_1, data_2 = num_into_u32(num)
-		local packed = string_pack("<I4I4", data_1, data_2)
+		local packed = string_pack("I4I4", data_1, data_2)
 
 		return string_unpack("d", packed)
 	end
