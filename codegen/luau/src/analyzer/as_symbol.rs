@@ -11,7 +11,7 @@ impl AsSymbol for BinOpType {
 			Self::Sub_F32 | Self::Sub_F64 => "-",
 			Self::Mul_F32 | Self::Mul_F64 => "*",
 			Self::Div_F32 | Self::Div_F64 => "/",
-			Self::RemS_I32 | Self::RemU_I32 => "%",
+			Self::RemU_I32 => "%",
 			_ => return None,
 		};
 

@@ -43,6 +43,7 @@ do
 	local sub = {}
 	local mul = {}
 	local div = {}
+	local rem = {}
 	local neg = {}
 	local min = {}
 	local max = {}
@@ -52,6 +53,7 @@ do
 	local assert = assert
 
 	local math_abs = math.abs
+	local math_fmod = math.fmod
 	local math_floor = math.floor
 	local math_round = math.round
 	local math_sign = math.sign
@@ -110,6 +112,15 @@ do
 
 	div.u64 = I64.divide_unsigned
 
+	function rem.i32(lhs, rhs)
+		assert(rhs ~= 0, "division by zero")
+
+		lhs = to_i32(lhs)
+		rhs = to_i32(rhs)
+
+		return to_u32(math_fmod(lhs, rhs))
+	end
+
 	function neg.f32(num)
 		return -num
 	end
@@ -161,6 +172,7 @@ do
 	module.sub = sub
 	module.mul = mul
 	module.div = div
+	module.rem = rem
 	module.neg = neg
 	module.min = min
 	module.max = max
