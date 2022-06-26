@@ -285,16 +285,34 @@ do
 	local rotl = {}
 	local rotr = {}
 
-	rotl.i32 = bit32.lrotate
+	local bit_arshift = bit32.arshift
+	local bit_lrotate = bit32.lrotate
+	local bit_rrotate = bit32.rrotate
 
-	rotr.i32 = bit32.rrotate
+	function rotl.i32(lhs, rhs)
+		return bit_lrotate(lhs, rhs % 32)
+	end
 
-	shl.i32 = bit_lshift
+	function rotr.i32(lhs, rhs)
+		return bit_rrotate(lhs, rhs % 32)
+	end
+
+	function shl.i32(lhs, rhs)
+		return bit_lshift(lhs, rhs % 32)
+	end
+
 	shl.i64 = I64.shift_left
 
-	shr.i32 = bit32.arshift
+	function shr.i32(lhs, rhs)
+		return bit_arshift(lhs, rhs % 32)
+	end
+
 	shr.i64 = I64.shift_right_signed
-	shr.u32 = bit_rshift
+
+	function shr.u32(lhs, rhs)
+		return bit_rshift(lhs, rhs % 32)
+	end
+
 	shr.u64 = I64.shift_right_unsigned
 
 	module.shl = shl
