@@ -1,3 +1,56 @@
+do
+	local WASM_PAGE_SIZE = 65536
+
+	local function is_valid_address(memory, addr, size)
+		return addr >= 0 and addr + size <= memory.min * WASM_PAGE_SIZE
+	end
+
+	local function load_checked(name, size)
+		local old = assert(rt.load[name], "Missing load function " .. name)
+
+		rt.load[name] = function(memory, addr)
+			assert(is_valid_address(memory, addr, size), "Invalid memory read")
+
+			return old(memory, addr)
+		end
+	end
+
+	local function store_checked(name, size)
+		local old = assert(rt.store[name], "Missing store function " .. name)
+
+		rt.store[name] = function(memory, addr, value)
+			assert(is_valid_address(memory, addr, size), "Invalid memory write")
+
+			return old(memory, addr, value)
+		end
+	end
+
+	load_checked("i32_i8", 1)
+	load_checked("i32_u8", 1)
+	load_checked("i32_i16", 2)
+	load_checked("i32_u16", 2)
+	load_checked("i32", 4)
+	load_checked("i64_i8", 1)
+	load_checked("i64_u8", 1)
+	load_checked("i64_i16", 2)
+	load_checked("i64_u16", 2)
+	load_checked("i64_i32", 4)
+	load_checked("i64_u32", 4)
+	load_checked("i64", 8)
+	load_checked("f32", 4)
+	load_checked("f64", 8)
+
+	store_checked("i32_n8", 1)
+	store_checked("i32_n16", 2)
+	store_checked("i32", 4)
+	store_checked("i64_n8", 1)
+	store_checked("i64_n16", 2)
+	store_checked("i64_n32", 4)
+	store_checked("i64", 8)
+	store_checked("f32", 4)
+	store_checked("f64", 8)
+end
+
 local loaded = {}
 local linked = {}
 
@@ -46,7 +99,7 @@ local function assert_trap(func, ...)
 	if pcall(func, ...) then
 		local trace = debug.traceback("Failed to trap", 2)
 
-		io.stderr:write(trace, '\n')
+		io.stderr:write(trace, "\n")
 	end
 end
 
