@@ -6,6 +6,11 @@ local BIT_SET_32 = 0x100000000
 
 local to_u32 = bit32.band
 
+local bit_or = bit32.bor
+local bit_and = bit32.band
+local bit_lshift = bit32.lshift
+local bit_rshift = bit32.rshift
+
 local num_from_u32 = I64.from_u32
 local num_into_u32 = I64.into_u32
 
@@ -44,10 +49,6 @@ do
 	local nearest = {}
 
 	local assert = assert
-
-	local bit_and = bit32.band
-	local bit_lshift = bit32.lshift
-	local bit_rshift = bit32.rshift
 
 	local math_abs = math.abs
 	local math_floor = math.floor
@@ -171,8 +172,6 @@ do
 	local ctz = {}
 	local popcnt = {}
 
-	local bit_and = bit32.band
-
 	clz.i32 = bit32.countlz
 	ctz.i32 = bit32.countrz
 
@@ -291,15 +290,15 @@ do
 	rotr.i32 = bit32.rrotate
 	rotr.i64 = bit32.rrotate
 
-	shl.i32 = bit32.lshift
-	shl.i64 = bit32.lshift
-	shl.u32 = bit32.lshift
-	shl.u64 = bit32.lshift
+	shl.i32 = bit_lshift
+	shl.i64 = bit_lshift
+	shl.u32 = bit_lshift
+	shl.u64 = bit_lshift
 
 	shr.i32 = bit32.arshift
 	shr.i64 = bit32.arshift
-	shr.u32 = bit32.rshift
-	shr.u64 = bit32.rshift
+	shr.u32 = bit_rshift
+	shr.u64 = bit_rshift
 
 	module.shl = shl
 	module.shr = shr
@@ -465,11 +464,6 @@ do
 	local bit_extract = bit32.extract
 	local bit_replace = bit32.replace
 
-	local bit_bor = bit32.bor
-	local bit_band = bit32.band
-	local bit_lshift = bit32.lshift
-	local bit_rshift = bit32.rshift
-
 	local math_floor = math.floor
 
 	local string_byte = string.byte
@@ -511,12 +505,12 @@ do
 		local num
 
 		if addr % 4 == 0 then
-			num = bit_band(data[addr / 4] or 0, 0xFFFF)
+			num = bit_and(data[addr / 4] or 0, 0xFFFF)
 		else
 			local b1 = load_byte(data, addr)
 			local b2 = bit_lshift(load_byte(data, addr + 1), 8)
 
-			num = bit_bor(b1, b2)
+			num = bit_or(b1, b2)
 		end
 
 		if num >= 0x8000 then
@@ -531,12 +525,12 @@ do
 		local num
 
 		if addr % 4 == 0 then
-			return bit_band(data[addr / 4] or 0, 0xFFFF)
+			return bit_and(data[addr / 4] or 0, 0xFFFF)
 		else
 			local b1 = load_byte(data, addr)
 			local b2 = bit_lshift(load_byte(data, addr + 1), 8)
 
-			return bit_bor(b1, b2)
+			return bit_or(b1, b2)
 		end
 	end
 
@@ -553,7 +547,7 @@ do
 			local b3 = bit_lshift(load_byte(data, addr + 2), 16)
 			local b4 = bit_lshift(load_byte(data, addr + 3), 24)
 
-			return bit_bor(b1, b2, b3, b4)
+			return bit_or(b1, b2, b3, b4)
 		end
 	end
 
@@ -578,12 +572,12 @@ do
 		local num
 
 		if addr % 4 == 0 then
-			num = bit_band(data[addr / 4] or 0, 0xFFFF)
+			num = bit_and(data[addr / 4] or 0, 0xFFFF)
 		else
 			local b1 = load_byte(data, addr)
 			local b2 = bit_lshift(load_byte(data, addr + 1), 8)
 
-			num = bit_bor(b1, b2)
+			num = bit_or(b1, b2)
 		end
 
 		if num >= 0x8000 then
@@ -598,12 +592,12 @@ do
 		local num
 
 		if addr % 4 == 0 then
-			num = bit_band(data[addr / 4] or 0, 0xFFFF)
+			num = bit_and(data[addr / 4] or 0, 0xFFFF)
 		else
 			local b1 = load_byte(data, addr)
 			local b2 = bit_lshift(load_byte(data, addr + 1), 8)
 
-			num = bit_bor(b1, b2)
+			num = bit_or(b1, b2)
 		end
 
 		return num_from_u32(num, 0)
@@ -621,7 +615,7 @@ do
 			local b3 = bit_lshift(load_byte(data, addr + 2), 16)
 			local b4 = bit_lshift(load_byte(data, addr + 3), 24)
 
-			num = bit_bor(b1, b2, b3, b4)
+			num = bit_or(b1, b2, b3, b4)
 		end
 
 		return num_from_u32(num, 0)
@@ -639,7 +633,7 @@ do
 			local b3 = bit_lshift(load_byte(data, addr + 2), 16)
 			local b4 = bit_lshift(load_byte(data, addr + 3), 24)
 
-			num = bit_bor(b1, b2, b3, b4)
+			num = bit_or(b1, b2, b3, b4)
 		end
 
 		return num_from_u32(num, 0)
