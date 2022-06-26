@@ -75,12 +75,6 @@ do
 		return (to_signed(math_floor(lhs / rhs)))
 	end
 
-	function div.u64(lhs, rhs)
-		assert(rhs ~= 0, "division by zero")
-
-		return (i64(u64(lhs) / u64(rhs)))
-	end
-
 	function rem.u32(lhs, rhs)
 		assert(rhs ~= 0, "division by zero")
 
@@ -88,6 +82,12 @@ do
 		rhs = to_number(u32(rhs))
 
 		return (to_signed(lhs % rhs))
+	end
+
+	function div.u64(lhs, rhs)
+		assert(rhs ~= 0, "division by zero")
+
+		return (i64(u64(lhs) / u64(rhs)))
 	end
 
 	function rem.u64(lhs, rhs)
@@ -223,36 +223,36 @@ do
 	local ge = {}
 	local gt = {}
 
-	function ge.u32(lhs, rhs)
-		return u32(lhs) >= u32(rhs)
-	end
-
-	function ge.u64(lhs, rhs)
-		return u64(lhs) >= u64(rhs)
-	end
-
-	function gt.u32(lhs, rhs)
-		return u32(lhs) > u32(rhs)
-	end
-
-	function gt.u64(lhs, rhs)
-		return u64(lhs) > u64(rhs)
-	end
-
 	function le.u32(lhs, rhs)
 		return u32(lhs) <= u32(rhs)
-	end
-
-	function le.u64(lhs, rhs)
-		return u64(lhs) <= u64(rhs)
 	end
 
 	function lt.u32(lhs, rhs)
 		return u32(lhs) < u32(rhs)
 	end
 
+	function ge.u32(lhs, rhs)
+		return u32(lhs) >= u32(rhs)
+	end
+
+	function gt.u32(lhs, rhs)
+		return u32(lhs) > u32(rhs)
+	end
+
+	function le.u64(lhs, rhs)
+		return u64(lhs) <= u64(rhs)
+	end
+
 	function lt.u64(lhs, rhs)
 		return u64(lhs) < u64(rhs)
+	end
+
+	function ge.u64(lhs, rhs)
+		return u64(lhs) >= u64(rhs)
+	end
+
+	function gt.u64(lhs, rhs)
+		return u64(lhs) > u64(rhs)
 	end
 
 	module.le = le
@@ -276,21 +276,19 @@ do
 	local rotl = {}
 	local rotr = {}
 
-	rotl.i32 = bit.rol
-	rotl.i64 = bit.rol
-
-	rotr.i32 = bit.ror
-	rotr.i64 = bit.ror
-
 	shl.i32 = bit.lshift
-	shl.i64 = bit.lshift
 	shl.u32 = bit.lshift
-	shl.u64 = bit.lshift
-
 	shr.i32 = bit.arshift
-	shr.i64 = bit.arshift
 	shr.u32 = bit.rshift
+	rotl.i32 = bit.rol
+	rotr.i32 = bit.ror
+
+	shl.i64 = bit.lshift
+	shl.u64 = bit.lshift
+	shr.i64 = bit.arshift
 	shr.u64 = bit.rshift
+	rotl.i64 = bit.rol
+	rotr.i64 = bit.ror
 
 	module.shl = shl
 	module.shr = shr

@@ -67,13 +67,9 @@ do
 		return to_u32(a + b)
 	end
 
-	add.i64 = I64.add
-
 	function sub.i32(a, b)
 		return to_u32(a - b)
 	end
-
-	sub.i64 = I64.subtract
 
 	function mul.i32(a, b)
 		if (a + b) < BIT_SET_27 then
@@ -91,8 +87,6 @@ do
 		end
 	end
 
-	mul.i64 = I64.multiply
-
 	function div.i32(lhs, rhs)
 		assert(rhs ~= 0, "division by zero")
 
@@ -102,15 +96,11 @@ do
 		return to_u32(lhs / rhs)
 	end
 
-	div.i64 = I64.divide_signed
-
 	function div.u32(lhs, rhs)
 		assert(rhs ~= 0, "division by zero")
 
 		return to_u32(lhs / rhs)
 	end
-
-	div.u64 = I64.divide_unsigned
 
 	function rem.i32(lhs, rhs)
 		assert(rhs ~= 0, "division by zero")
@@ -120,6 +110,12 @@ do
 
 		return to_u32(math_fmod(lhs, rhs))
 	end
+
+	add.i64 = I64.add
+	sub.i64 = I64.subtract
+	mul.i64 = I64.multiply
+	div.i64 = I64.divide_signed
+	div.u64 = I64.divide_unsigned
 
 	function neg.f32(num)
 		return -num
@@ -213,38 +209,31 @@ do
 	local gt = {}
 
 	local num_is_equal = I64.is_equal
-	local num_is_greater_signed = I64.is_greater_signed
-	local num_is_greater_unsigned = I64.is_greater_unsigned
 	local num_is_less_signed = I64.is_less_signed
 	local num_is_less_unsigned = I64.is_less_unsigned
+	local num_is_greater_signed = I64.is_greater_signed
+	local num_is_greater_unsigned = I64.is_greater_unsigned
 
-	eq.i64 = num_is_equal
+	function le.i32(lhs, rhs)
+		return to_i32(lhs) <= to_i32(rhs)
+	end
 
-	function ne.i64(lhs, rhs)
-		return not num_is_equal(lhs, rhs)
+	function lt.i32(lhs, rhs)
+		return to_i32(lhs) < to_i32(rhs)
 	end
 
 	function ge.i32(lhs, rhs)
 		return to_i32(lhs) >= to_i32(rhs)
 	end
 
-	function ge.i64(lhs, rhs)
-		return num_is_greater_signed(lhs, rhs) or num_is_equal(lhs, rhs)
-	end
-
-	function ge.u64(lhs, rhs)
-		return num_is_greater_unsigned(lhs, rhs) or num_is_equal(lhs, rhs)
-	end
-
 	function gt.i32(lhs, rhs)
 		return to_i32(lhs) > to_i32(rhs)
 	end
 
-	gt.i64 = num_is_greater_signed
-	gt.u64 = num_is_greater_unsigned
+	eq.i64 = num_is_equal
 
-	function le.i32(lhs, rhs)
-		return to_i32(lhs) <= to_i32(rhs)
+	function ne.i64(lhs, rhs)
+		return not num_is_equal(lhs, rhs)
 	end
 
 	function le.i64(lhs, rhs)
@@ -255,12 +244,19 @@ do
 		return num_is_less_unsigned(lhs, rhs) or num_is_equal(lhs, rhs)
 	end
 
-	function lt.i32(lhs, rhs)
-		return to_i32(lhs) < to_i32(rhs)
-	end
-
 	lt.i64 = num_is_less_signed
 	lt.u64 = num_is_less_unsigned
+
+	function ge.i64(lhs, rhs)
+		return num_is_greater_signed(lhs, rhs) or num_is_equal(lhs, rhs)
+	end
+
+	function ge.u64(lhs, rhs)
+		return num_is_greater_unsigned(lhs, rhs) or num_is_equal(lhs, rhs)
+	end
+
+	gt.i64 = num_is_greater_signed
+	gt.u64 = num_is_greater_unsigned
 
 	module.eq = eq
 	module.ne = ne
@@ -276,14 +272,12 @@ do
 	local bxor = {}
 	local bnot = {}
 
-	band.i64 = I64.bit_and
-
 	bnot.i32 = bit32.bnot
-	bnot.i64 = I64.bit_not
 
+	band.i64 = I64.bit_and
 	bor.i64 = I64.bit_or
-
 	bxor.i64 = I64.bit_xor
+	bnot.i64 = I64.bit_not
 
 	module.band = band
 	module.bor = bor
@@ -301,6 +295,18 @@ do
 	local bit_lrotate = bit32.lrotate
 	local bit_rrotate = bit32.rrotate
 
+	function shl.i32(lhs, rhs)
+		return bit_lshift(lhs, rhs % 32)
+	end
+
+	function shr.u32(lhs, rhs)
+		return bit_rshift(lhs, rhs % 32)
+	end
+
+	function shr.i32(lhs, rhs)
+		return bit_arshift(lhs, rhs % 32)
+	end
+
 	function rotl.i32(lhs, rhs)
 		return bit_lrotate(lhs, rhs % 32)
 	end
@@ -309,22 +315,8 @@ do
 		return bit_rrotate(lhs, rhs % 32)
 	end
 
-	function shl.i32(lhs, rhs)
-		return bit_lshift(lhs, rhs % 32)
-	end
-
 	shl.i64 = I64.shift_left
-
-	function shr.i32(lhs, rhs)
-		return bit_arshift(lhs, rhs % 32)
-	end
-
 	shr.i64 = I64.shift_right_signed
-
-	function shr.u32(lhs, rhs)
-		return bit_rshift(lhs, rhs % 32)
-	end
-
 	shr.u64 = I64.shift_right_unsigned
 
 	module.shl = shl
