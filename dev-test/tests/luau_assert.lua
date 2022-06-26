@@ -71,13 +71,21 @@ local function is_number_equal(lhs, rhs)
 	return math.abs(lhs - rhs) < 0.00001 or string.format("%.3g", lhs) == string.format("%.3g", rhs)
 end
 
+local function to_string(data)
+	if type(data) == "table" then
+		data = rt.convert.f64_i64(data)
+	end
+
+	return tostring(data)
+end
+
 local function assert_eq(lhs, rhs, level)
 	if lhs == rhs or is_number_equal(lhs, rhs) then
 		return
 	end
 
-	lhs = tostring(lhs)
-	rhs = tostring(rhs)
+	lhs = to_string(lhs)
+	rhs = to_string(rhs)
 	level = (level or 1) + 1
 
 	error(lhs .. " ~= " .. rhs, level)
@@ -88,8 +96,8 @@ local function assert_neq(lhs, rhs, level)
 		return
 	end
 
-	lhs = tostring(lhs)
-	rhs = tostring(rhs)
+	lhs = to_string(lhs)
+	rhs = to_string(rhs)
 	level = (level or 1) + 1
 
 	error(lhs .. " == " .. rhs, level)
