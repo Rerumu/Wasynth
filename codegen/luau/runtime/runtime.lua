@@ -286,20 +286,16 @@ do
 	local rotr = {}
 
 	rotl.i32 = bit32.lrotate
-	rotl.i64 = bit32.lrotate
 
 	rotr.i32 = bit32.rrotate
-	rotr.i64 = bit32.rrotate
 
 	shl.i32 = bit_lshift
-	shl.i64 = bit_lshift
-	shl.u32 = bit_lshift
-	shl.u64 = bit_lshift
+	shl.i64 = I64.shift_left
 
 	shr.i32 = bit32.arshift
-	shr.i64 = bit32.arshift
+	shr.i64 = I64.shift_right_signed
 	shr.u32 = bit_rshift
-	shr.u64 = bit_rshift
+	shr.u64 = I64.shift_right_unsigned
 
 	module.shl = shl
 	module.shr = shr
