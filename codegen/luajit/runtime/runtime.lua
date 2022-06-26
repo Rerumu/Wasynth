@@ -262,41 +262,6 @@ do
 end
 
 do
-	local bnot = {}
-
-	bnot.i32 = bit.bnot
-	bnot.i64 = bit.bnot
-
-	module.bnot = bnot
-end
-
-do
-	local shl = {}
-	local shr = {}
-	local rotl = {}
-	local rotr = {}
-
-	shl.i32 = bit.lshift
-	shl.u32 = bit.lshift
-	shr.i32 = bit.arshift
-	shr.u32 = bit.rshift
-	rotl.i32 = bit.rol
-	rotr.i32 = bit.ror
-
-	shl.i64 = bit.lshift
-	shl.u64 = bit.lshift
-	shr.i64 = bit.arshift
-	shr.u64 = bit.rshift
-	rotl.i64 = bit.rol
-	rotr.i64 = bit.ror
-
-	module.shl = shl
-	module.shr = shr
-	module.rotl = rotl
-	module.rotr = rotr
-end
-
-do
 	local wrap = {}
 	local trunc = {}
 	local extend = {}

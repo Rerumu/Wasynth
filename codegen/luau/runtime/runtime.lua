@@ -177,12 +177,7 @@ do
 end
 
 do
-	local clz = {}
-	local ctz = {}
 	local popcnt = {}
-
-	clz.i32 = bit32.countlz
-	ctz.i32 = bit32.countrz
 
 	function popcnt.i32(num)
 		local count = 0
@@ -195,8 +190,6 @@ do
 		return count
 	end
 
-	module.clz = clz
-	module.ctz = ctz
 	module.popcnt = popcnt
 end
 
@@ -271,8 +264,6 @@ do
 	local bor = {}
 	local bxor = {}
 	local bnot = {}
-
-	bnot.i32 = bit32.bnot
 
 	band.i64 = I64.bit_and
 	bor.i64 = I64.bit_or

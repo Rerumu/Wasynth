@@ -214,17 +214,18 @@ fn build_func_list(wasm: &Module, type_info: &TypeInfo) -> Vec<FuncData> {
 }
 
 fn write_local_operation(head: &str, tail: &str, w: &mut dyn Write) -> Result<()> {
+	write!(w, "local {head}_{tail} = ")?;
+
 	match (head, tail) {
-		("band" | "bor" | "bxor", _) => {
-			write!(w, "local {head}_{tail} = bit.{head} ")
-		}
-		("abs" | "ceil" | "floor" | "sqrt" | "min" | "max", _) => {
-			write!(w, "local {head}_{tail} = math.{head} ")
-		}
-		("rem", "i32") => {
-			write!(w, "local {head}_{tail} = math.fmod ")
-		}
-		_ => write!(w, "local {head}_{tail} = rt.{head}.{tail} "),
+		("abs" | "ceil" | "floor" | "sqrt" | "min" | "max", _) => write!(w, "math.{head} "),
+		("rem", "i32") => write!(w, "math.fmod "),
+		("band" | "bor" | "bxor" | "bnot", _) => write!(w, "bit.{head} "),
+		("shl", _) => write!(w, "bit.lshift "),
+		("shr", "i32" | "i64") => write!(w, "bit.arshift "),
+		("shr", "u32" | "u64") => write!(w, "bit.rshift "),
+		("rotl", _) => write!(w, "bit.rol "),
+		("rotr", _) => write!(w, "bit.ror "),
+		_ => write!(w, "rt.{head}.{tail} "),
 	}
 }
 
