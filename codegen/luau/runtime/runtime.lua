@@ -57,28 +57,28 @@ do
 	local math_floor = math.floor
 	local math_round = math.round
 	local math_sign = math.sign
-	local math_max = math.max
 	local math_min = math.min
+	local math_max = math.max
 
 	local string_byte = string.byte
 	local string_pack = string.pack
 
-	function add.i32(a, b)
-		return to_u32(a + b)
+	function add.i32(lhs, rhs)
+		return to_u32(lhs + rhs)
 	end
 
-	function sub.i32(a, b)
-		return to_u32(a - b)
+	function sub.i32(lhs, rhs)
+		return to_u32(lhs - rhs)
 	end
 
-	function mul.i32(a, b)
-		if (a + b) < BIT_SET_27 then
-			return to_u32(a * b)
+	function mul.i32(lhs, rhs)
+		if (lhs + rhs) < BIT_SET_27 then
+			return to_u32(lhs * rhs)
 		else
-			local a16 = bit_rshift(a, 16)
-			local a00 = bit_and(a, 0xFFFF)
-			local b16 = bit_rshift(b, 16)
-			local b00 = bit_and(b, 0xFFFF)
+			local a16 = bit_rshift(lhs, 16)
+			local a00 = bit_and(lhs, 0xFFFF)
+			local b16 = bit_rshift(rhs, 16)
+			local b00 = bit_and(rhs, 0xFFFF)
 
 			local c00 = a00 * b00
 			local c16 = a16 * b00 + a00 * b16
@@ -121,19 +121,19 @@ do
 		return -num
 	end
 
-	function min.f32(a, b)
-		if b == b then
-			return math_min(a, b)
+	function min.f32(lhs, rhs)
+		if rhs == rhs then
+			return math_min(lhs, rhs)
 		else
-			return b
+			return rhs
 		end
 	end
 
-	function max.f32(a, b)
-		if b == b then
-			return math_max(a, b)
+	function max.f32(lhs, rhs)
+		if rhs == rhs then
+			return math_max(lhs, rhs)
 		else
-			return b
+			return rhs
 		end
 	end
 
@@ -372,6 +372,9 @@ do
 		end
 	end
 
+	trunc.u64_f32 = num_from_u64
+	trunc.u64_f64 = num_from_u64
+
 	function trunc.f32(num)
 		if num >= 0 then
 			return math_floor(num)
@@ -381,8 +384,6 @@ do
 	end
 
 	trunc.f64 = trunc.f32
-	trunc.u64_f32 = num_from_u64
-	trunc.u64_f64 = num_from_u64
 
 	function extend.i64_i32(num)
 		if num > MAX_SIGNED then

@@ -48,16 +48,16 @@ do
 		end
 	end
 
-	function add.i32(a, b)
-		return (to_signed(a + b))
+	function add.i32(lhs, rhs)
+		return (to_signed(lhs + rhs))
 	end
 
-	function sub.i32(a, b)
-		return (to_signed(a - b))
+	function sub.i32(lhs, rhs)
+		return (to_signed(lhs - rhs))
 	end
 
-	function mul.i32(a, b)
-		return (to_signed(ID_ONE * a * b))
+	function mul.i32(lhs, rhs)
+		return (to_signed(ID_ONE * lhs * rhs))
 	end
 
 	function div.i32(lhs, rhs)
@@ -270,7 +270,7 @@ do
 	local demote = {}
 	local reinterpret = {}
 
-	local bit_band = bit.band
+	local bit_and = bit.band
 
 	-- This would surely be an issue in a multi-thread environment...
 	-- ... thankfully this isn't one.
@@ -297,7 +297,7 @@ do
 	trunc.u64_f64 = i64
 
 	function extend.i32_i8(num)
-		num = bit_band(num, 0xFF)
+		num = bit_and(num, 0xFF)
 
 		if num >= 0x80 then
 			return num - 0x100
@@ -307,7 +307,7 @@ do
 	end
 
 	function extend.i32_i16(num)
-		num = bit_band(num, 0xFFFF)
+		num = bit_and(num, 0xFFFF)
 
 		if num >= 0x8000 then
 			return num - 0x10000
@@ -317,7 +317,7 @@ do
 	end
 
 	function extend.i64_i8(num)
-		num = bit_band(num, 0xFF)
+		num = bit_and(num, 0xFF)
 
 		if num >= 0x80 then
 			return num - 0x100
@@ -327,7 +327,7 @@ do
 	end
 
 	function extend.i64_i16(num)
-		num = bit_band(num, 0xFFFF)
+		num = bit_and(num, 0xFFFF)
 
 		if num >= 0x8000 then
 			return num - 0x10000
@@ -337,7 +337,7 @@ do
 	end
 
 	function extend.i64_i32(num)
-		num = bit_band(num, 0xFFFFFFFF)
+		num = bit_and(num, 0xFFFFFFFF)
 
 		if num >= 0x80000000 then
 			return num - 0x100000000
