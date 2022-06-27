@@ -385,6 +385,26 @@ do
 
 	trunc.f64 = trunc.f32
 
+	function extend.i32_i8(num)
+		num = bit_and(num, 0xFF)
+
+		if num >= 0x80 then
+			return to_u32(num - 0x100)
+		else
+			return num
+		end
+	end
+
+	function extend.i32_i16(num)
+		num = bit_and(num, 0xFFFF)
+
+		if num >= 0x8000 then
+			return to_u32(num - 0x10000)
+		else
+			return num
+		end
+	end
+
 	function extend.i64_i32(num)
 		if num > MAX_SIGNED then
 			local temp = num_from_u32(-num + BIT_SET_32, 0)
