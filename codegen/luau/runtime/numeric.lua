@@ -47,7 +47,7 @@ if Vector3 then
 
 	function Numeric.into_u32(data)
 		local data_1 = bit_or(bit_and(data.X, 0x3FFFFF), bit_and(data.Y, 0xFFC00000))
-		local data_2 = bit_replace(bit_and(data.Y, 0xFFF), bit_and(data.Z, 0xFFFFF), 12, 20)
+		local data_2 = bit_replace(bit_and(data.Y, 0xFFF), data.Z, 12, 20)
 
 		return data_1, data_2
 	end
