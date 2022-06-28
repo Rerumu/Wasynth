@@ -138,8 +138,12 @@ do
 	function nearest.f32(num)
 		local result = round(num)
 
-		if math_abs(num) % 1 == 0.5 and result % 2 == 1 then
-			result = result - 1
+		if (math_abs(num) + 0.5) % 2 == 1 then
+			if result >= 0 then
+				result = result - 1
+			else
+				result = result + 1
+			end
 		end
 
 		return result

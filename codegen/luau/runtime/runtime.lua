@@ -151,7 +151,7 @@ do
 	function nearest.f32(num)
 		local result = math_round(num)
 
-		if math_abs(num) % 1 == 0.5 and math_floor(math_abs(num) % 2) == 0 then
+		if (math_abs(num) + 0.5) % 2 == 1 then
 			result = result - math_sign(result)
 		end
 
