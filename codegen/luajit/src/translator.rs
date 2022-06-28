@@ -219,7 +219,7 @@ fn write_local_operation(head: &str, tail: &str, w: &mut dyn Write) -> Result<()
 	write!(w, "local {head}_{tail} = ")?;
 
 	match (head, tail) {
-		("abs" | "ceil" | "floor" | "sqrt" | "min" | "max", _) => write!(w, "math.{head} "),
+		("abs" | "ceil" | "floor" | "sqrt", _) => write!(w, "math.{head} "),
 		("rem", "i32") => write!(w, "math.fmod "),
 		("band" | "bor" | "bxor" | "bnot", _) => write!(w, "bit.{head} "),
 		("shl", _) => write!(w, "bit.lshift "),

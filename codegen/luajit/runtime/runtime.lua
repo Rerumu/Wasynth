@@ -29,11 +29,16 @@ do
 	local div = {}
 	local rem = {}
 	local neg = {}
+	local min = {}
+	local max = {}
 	local copysign = {}
 	local nearest = {}
 
 	local to_signed = bit.tobit
+
 	local math_abs = math.abs
+	local math_min = math.min
+	local math_max = math.max
 
 	local RE_INSTANCE = ffi.new([[union {
 		double f64;
@@ -100,6 +105,26 @@ do
 		return -num
 	end
 
+	function min.f32(lhs, rhs)
+		if lhs ~= lhs then
+			return lhs
+		elseif rhs ~= rhs then
+			return rhs
+		else
+			return math_min(lhs, rhs)
+		end
+	end
+
+	function max.f32(lhs, rhs)
+		if lhs ~= lhs then
+			return lhs
+		elseif rhs ~= rhs then
+			return rhs
+		else
+			return math_max(lhs, rhs)
+		end
+	end
+
 	function copysign.f32(lhs, rhs)
 		RE_INSTANCE.f64 = rhs
 
@@ -121,6 +146,8 @@ do
 	end
 
 	neg.f64 = neg.f32
+	min.f64 = min.f32
+	max.f64 = max.f32
 	copysign.f64 = copysign.f32
 	nearest.f64 = nearest.f32
 
@@ -129,6 +156,8 @@ do
 	module.mul = mul
 	module.div = div
 	module.rem = rem
+	module.min = min
+	module.max = max
 	module.neg = neg
 	module.copysign = copysign
 	module.nearest = nearest
