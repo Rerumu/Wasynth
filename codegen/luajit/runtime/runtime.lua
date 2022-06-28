@@ -324,6 +324,8 @@ do
 	trunc.i64_f64 = i64
 	trunc.u64_f32 = i64
 	trunc.u64_f64 = i64
+	trunc.f32 = truncate
+	trunc.f64 = truncate
 
 	function extend.i32_i8(num)
 		num = bit_and(num, 0xFF)
