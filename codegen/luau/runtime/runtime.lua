@@ -172,9 +172,14 @@ do
 end
 
 do
+	local clz = {}
+	local ctz = {}
 	local popcnt = {}
 
-	function popcnt.i32(num)
+	local bit_countlz = bit32.countlz
+	local bit_countrz = bit32.countrz
+
+	local function popcnt_i32(num)
 		local count = 0
 
 		while num ~= 0 do
@@ -185,6 +190,43 @@ do
 		return count
 	end
 
+	popcnt.i32 = popcnt_i32
+
+	function clz.i64(num)
+		local data_1, data_2 = num_into_u32(num)
+		local temp
+
+		if data_2 == 0 then
+			temp = bit_countlz(data_1) + 32
+		else
+			temp = bit_countlz(data_2)
+		end
+
+		return num_from_u32(temp, 0)
+	end
+
+	function ctz.i64(num)
+		local data_1, data_2 = num_into_u32(num)
+		local temp
+
+		if data_1 == 0 then
+			temp = bit_countrz(data_2) + 32
+		else
+			temp = bit_countrz(data_1)
+		end
+
+		return num_from_u32(temp, 0)
+	end
+
+	function popcnt.i64(num)
+		local data_1, data_2 = num_into_u32(num)
+		local temp = popcnt_i32(data_1) + popcnt_i32(data_2)
+
+		return num_from_u32(temp, 0)
+	end
+
+	module.clz = clz
+	module.ctz = ctz
 	module.popcnt = popcnt
 end
 
