@@ -422,7 +422,7 @@ do
 
 	trunc.f64 = trunc.f32
 
-	function extend.i32_i8(num)
+	function extend.i32_n8(num)
 		num = bit_and(num, 0xFF)
 
 		if num >= 0x80 then
@@ -432,7 +432,7 @@ do
 		end
 	end
 
-	function extend.i32_i16(num)
+	function extend.i32_n16(num)
 		num = bit_and(num, 0xFFFF)
 
 		if num >= 0x8000 then
@@ -442,7 +442,7 @@ do
 		end
 	end
 
-	function extend.i64_i8(num)
+	function extend.i64_n8(num)
 		local data_1, _ = num_into_u32(num)
 
 		data_1 = bit_and(data_1, 0xFF)
@@ -456,13 +456,25 @@ do
 		end
 	end
 
-	function extend.i64_i16(num)
+	function extend.i64_n16(num)
 		local data_1, _ = num_into_u32(num)
 
 		data_1 = bit_and(data_1, 0xFFFF)
 
 		if data_1 >= 0x8000 then
 			local temp = num_from_u32(-data_1 + 0x10000, 0)
+
+			return num_negate(temp)
+		else
+			return num_from_u32(data_1, 0)
+		end
+	end
+
+	function extend.i64_n32(num)
+		local data_1, _ = num_into_u32(num)
+
+		if data_1 >= 0x80000000 then
+			local temp = num_from_u32(-data_1 + 0x100000000, 0)
 
 			return num_negate(temp)
 		else
@@ -480,7 +492,7 @@ do
 		end
 	end
 
-	function extend.u64_i32(num)
+	function extend.i64_u32(num)
 		return num_from_u32(num, 0)
 	end
 

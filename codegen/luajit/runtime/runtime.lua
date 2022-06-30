@@ -331,7 +331,7 @@ do
 	trunc.f32 = truncate
 	trunc.f64 = truncate
 
-	function extend.i32_i8(num)
+	function extend.i32_n8(num)
 		num = bit_and(num, 0xFF)
 
 		if num >= 0x80 then
@@ -341,7 +341,7 @@ do
 		end
 	end
 
-	function extend.i32_i16(num)
+	function extend.i32_n16(num)
 		num = bit_and(num, 0xFFFF)
 
 		if num >= 0x8000 then
@@ -351,7 +351,7 @@ do
 		end
 	end
 
-	function extend.i64_i8(num)
+	function extend.i64_n8(num)
 		num = bit_and(num, 0xFF)
 
 		if num >= 0x80 then
@@ -361,7 +361,7 @@ do
 		end
 	end
 
-	function extend.i64_i16(num)
+	function extend.i64_n16(num)
 		num = bit_and(num, 0xFFFF)
 
 		if num >= 0x8000 then
@@ -371,7 +371,7 @@ do
 		end
 	end
 
-	function extend.i64_i32(num)
+	function extend.i64_n32(num)
 		num = bit_and(num, 0xFFFFFFFF)
 
 		if num >= 0x80000000 then
@@ -381,7 +381,9 @@ do
 		end
 	end
 
-	function extend.u64_i32(num)
+	extend.i64_i32 = i64
+
+	function extend.i64_u32(num)
 		RE_INSTANCE.i64 = ID_ZERO
 		RE_INSTANCE.i32 = num
 
