@@ -1,10 +1,5 @@
 local module = {}
 
-local MAX_UNSIGNED = 0xffffffff
-local MAX_SIGNED = 0x7fffffff
-local BIT_SET_27 = 0x8000000
-local BIT_SET_32 = 0x100000000
-
 local to_u32 = bit32.band
 
 local bit_or = bit32.bor
@@ -16,11 +11,11 @@ local num_from_u32 = I64.from_u32
 local num_into_u32 = I64.into_u32
 
 local function to_i32(num)
-	if num > MAX_SIGNED then
-		num = num - BIT_SET_32
-	end
-
+	if num >= 0x80000000 then
+		return num - 0x100000000
+	else
 	return num
+end
 end
 
 local function no_op(num)
@@ -72,7 +67,7 @@ do
 	end
 
 	function mul.i32(lhs, rhs)
-		if (lhs + rhs) < BIT_SET_27 then
+		if (lhs + rhs) < 0x8000000 then
 			return to_u32(lhs * rhs)
 		else
 			local a16 = bit_rshift(lhs, 16)
@@ -141,10 +136,10 @@ do
 		local packed = string_pack("<d", rhs)
 		local sign = string_byte(packed, 8)
 
-		if sign < 0x80 then
-			return math_abs(lhs)
-		else
+		if sign >= 0x80 then
 			return -math_abs(lhs)
+		else
+			return math_abs(lhs)
 		end
 	end
 
@@ -406,8 +401,8 @@ do
 	end
 
 	function extend.i64_i32(num)
-		if num > MAX_SIGNED then
-			local temp = num_from_u32(-num + BIT_SET_32, 0)
+		if num >= 0x80000000 then
+			local temp = num_from_u32(-num + 0x100000000, 0)
 
 			return num_negate(temp)
 		else
@@ -587,7 +582,7 @@ do
 
 		if data_1 >= 0x80 then
 			data_1 = to_u32(data_1 - 0x100)
-			data_2 = MAX_UNSIGNED
+			data_2 = 0xFFFFFFFF
 		else
 			data_2 = 0
 		end
@@ -616,7 +611,7 @@ do
 
 		if data_1 >= 0x8000 then
 			data_1 = to_u32(data_1 - 0x10000)
-			data_2 = MAX_UNSIGNED
+			data_2 = 0xFFFFFFFF
 		else
 			data_2 = 0
 		end
@@ -657,7 +652,7 @@ do
 
 		if data_1 >= 0x80000000 then
 			data_1 = to_u32(data_1 - 0x100000000)
-			data_2 = MAX_UNSIGNED
+			data_2 = 0xFFFFFFFF
 		else
 			data_2 = 0
 		end
