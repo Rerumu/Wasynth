@@ -14,8 +14,8 @@ local function to_i32(num)
 	if num >= 0x80000000 then
 		return num - 0x100000000
 	else
-	return num
-end
+		return num
+	end
 end
 
 local function no_op(num)
@@ -439,6 +439,34 @@ do
 			return to_u32(num - 0x10000)
 		else
 			return num
+		end
+	end
+
+	function extend.i64_i8(num)
+		local data_1, _ = num_into_u32(num)
+
+		data_1 = bit_and(data_1, 0xFF)
+
+		if data_1 >= 0x80 then
+			local temp = num_from_u32(-data_1 + 0x100, 0)
+
+			return num_negate(temp)
+		else
+			return num_from_u32(data_1, 0)
+		end
+	end
+
+	function extend.i64_i16(num)
+		local data_1, _ = num_into_u32(num)
+
+		data_1 = bit_and(data_1, 0xFFFF)
+
+		if data_1 >= 0x8000 then
+			local temp = num_from_u32(-data_1 + 0x10000, 0)
+
+			return num_negate(temp)
+		else
+			return num_from_u32(data_1, 0)
 		end
 	end
 
