@@ -172,38 +172,83 @@ do
 	local ctz = {}
 	local popcnt = {}
 
-	local lj_band = bit.band
-	local lj_lshift = bit.lshift
+	local bit_and = bit.band
+	local bit_lshift = bit.lshift
+	local bit_rshift = bit.rshift
 
 	function clz.i32(num)
-		for i = 0, 31 do
-			local mask = lj_lshift(1, 31 - i)
-
-			if lj_band(num, mask) ~= 0 then
-				return i
-			end
+		if num == 0 then
+			return 32
 		end
 
-		return 32
+		local count = 0
+
+		if bit_rshift(num, 16) == 0 then
+			num = bit_lshift(num, 16)
+			count = count + 16
+		end
+
+		if bit_rshift(num, 24) == 0 then
+			num = bit_lshift(num, 8)
+			count = count + 8
+		end
+
+		if bit_rshift(num, 28) == 0 then
+			num = bit_lshift(num, 4)
+			count = count + 4
+		end
+
+		if bit_rshift(num, 30) == 0 then
+			num = bit_lshift(num, 2)
+			count = count + 2
+		end
+
+		if bit_rshift(num, 31) == 0 then
+			count = count + 1
+		end
+
+		return count
 	end
 
 	function ctz.i32(num)
-		for i = 0, 31 do
-			local mask = lj_lshift(1, i)
-
-			if lj_band(num, mask) ~= 0 then
-				return i
-			end
+		if num == 0 then
+			return 32
 		end
 
-		return 32
+		local count = 0
+
+		if bit_lshift(num, 16) == 0 then
+			num = bit_rshift(num, 16)
+			count = count + 16
+		end
+
+		if bit_lshift(num, 24) == 0 then
+			num = bit_rshift(num, 8)
+			count = count + 8
+		end
+
+		if bit_lshift(num, 28) == 0 then
+			num = bit_rshift(num, 4)
+			count = count + 4
+		end
+
+		if bit_lshift(num, 30) == 0 then
+			num = bit_rshift(num, 2)
+			count = count + 2
+		end
+
+		if bit_lshift(num, 31) == 0 then
+			count = count + 1
+		end
+
+		return count
 	end
 
 	function popcnt.i32(num)
 		local count = 0
 
 		while num ~= 0 do
-			num = lj_band(num, num - 1)
+			num = bit_and(num, num - 1)
 			count = count + 1
 		end
 
@@ -211,34 +256,88 @@ do
 	end
 
 	function clz.i64(num)
-		for i = 0, 63 do
-			local mask = lj_lshift(ID_ONE, 63 - i)
-
-			if lj_band(num, mask) ~= ID_ZERO then
-				return i * ID_ONE
-			end
+		if num == 0 then
+			return 64 * ID_ONE
 		end
 
-		return 64 * ID_ONE
+		local count = ID_ZERO
+
+		if bit_rshift(num, 32) == ID_ZERO then
+			num = bit_lshift(num, 32)
+			count = count + 32
+		end
+
+		if bit_rshift(num, 48) == ID_ZERO then
+			num = bit_lshift(num, 16)
+			count = count + 16
+		end
+
+		if bit_rshift(num, 56) == ID_ZERO then
+			num = bit_lshift(num, 8)
+			count = count + 8
+		end
+
+		if bit_rshift(num, 60) == ID_ZERO then
+			num = bit_lshift(num, 4)
+			count = count + 4
+		end
+
+		if bit_rshift(num, 62) == ID_ZERO then
+			num = bit_lshift(num, 2)
+			count = count + 2
+		end
+
+		if bit_rshift(num, 63) == ID_ZERO then
+			count = count + ID_ONE
+		end
+
+		return count
 	end
 
 	function ctz.i64(num)
-		for i = 0, 63 do
-			local mask = lj_lshift(ID_ONE, i)
-
-			if lj_band(num, mask) ~= ID_ZERO then
-				return i * ID_ONE
-			end
+		if num == 0 then
+			return 64 * ID_ONE
 		end
 
-		return 64 * ID_ONE
+		local count = ID_ZERO
+
+		if bit_lshift(num, 32) == ID_ZERO then
+			num = bit_rshift(num, 32)
+			count = count + 32
+		end
+
+		if bit_lshift(num, 48) == ID_ZERO then
+			num = bit_rshift(num, 16)
+			count = count + 16
+		end
+
+		if bit_lshift(num, 56) == ID_ZERO then
+			num = bit_rshift(num, 8)
+			count = count + 8
+		end
+
+		if bit_lshift(num, 60) == ID_ZERO then
+			num = bit_rshift(num, 4)
+			count = count + 4
+		end
+
+		if bit_lshift(num, 62) == ID_ZERO then
+			num = bit_rshift(num, 2)
+			count = count + 2
+		end
+
+		if bit_lshift(num, 63) == ID_ZERO then
+			count = count + ID_ONE
+		end
+
+		return count
 	end
 
 	function popcnt.i64(num)
 		local count = ID_ZERO
 
 		while num ~= ID_ZERO do
-			num = lj_band(num, num - 1)
+			num = bit_and(num, num - ID_ONE)
 			count = count + ID_ONE
 		end
 
