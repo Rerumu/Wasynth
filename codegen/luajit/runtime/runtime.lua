@@ -322,8 +322,6 @@ do
 
 	trunc.i32_f32 = truncate
 	trunc.i32_f64 = truncate
-	trunc.u32_f32 = math_floor
-	trunc.u32_f64 = math_floor
 	trunc.i64_f32 = i64
 	trunc.i64_f64 = i64
 	trunc.u64_f32 = i64
@@ -398,8 +396,6 @@ do
 		return (to_number(u32(num)))
 	end
 
-	convert.f32_i64 = to_number
-
 	function convert.f32_u64(num)
 		return (to_number(u64(num)))
 	end
@@ -411,8 +407,6 @@ do
 	function convert.f64_u32(num)
 		return (to_number(u32(num)))
 	end
-
-	convert.f64_i64 = to_number
 
 	function convert.f64_u64(num)
 		return (to_number(u64(num)))
