@@ -111,7 +111,7 @@ do
 		elseif rhs ~= rhs then
 			return rhs
 		else
-			return math_min(lhs, rhs)
+			return (math_min(lhs, rhs))
 		end
 	end
 
@@ -121,7 +121,7 @@ do
 		elseif rhs ~= rhs then
 			return rhs
 		else
-			return math_max(lhs, rhs)
+			return (math_max(lhs, rhs))
 		end
 	end
 
@@ -398,9 +398,7 @@ do
 		return (to_number(u32(num)))
 	end
 
-	function convert.f32_i64(num)
-		return (to_number(num))
-	end
+	convert.f32_i64 = to_number
 
 	function convert.f32_u64(num)
 		return (to_number(u64(num)))
@@ -414,9 +412,7 @@ do
 		return (to_number(u32(num)))
 	end
 
-	function convert.f64_i64(num)
-		return (to_number(num))
-	end
+	convert.f64_i64 = to_number
 
 	function convert.f64_u64(num)
 		return (to_number(u64(num)))
