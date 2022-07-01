@@ -7,8 +7,8 @@ local bit_and = bit32.band
 local bit_lshift = bit32.lshift
 local bit_rshift = bit32.rshift
 
-local num_from_u32 = I64.from_u32
-local num_into_u32 = I64.into_u32
+local num_from_u32 = Integer.from_u32
+local num_into_u32 = Integer.into_u32
 
 local function to_i32(num)
 	if num >= 0x80000000 then
@@ -22,16 +22,7 @@ local function no_op(num)
 	return num
 end
 
-do
-	local temp = {}
-
-	temp.ZERO = I64.NUM_ZERO
-	temp.ONE = I64.NUM_ONE
-
-	temp.from_u32 = num_from_u32
-
-	module.i64 = temp
-end
+module.i64 = Integer
 
 do
 	local add = {}
@@ -106,11 +97,11 @@ do
 		return to_u32(math_fmod(lhs, rhs))
 	end
 
-	add.i64 = I64.add
-	sub.i64 = I64.subtract
-	mul.i64 = I64.multiply
-	div.i64 = I64.divide_signed
-	div.u64 = I64.divide_unsigned
+	add.i64 = Integer.add
+	sub.i64 = Integer.subtract
+	mul.i64 = Integer.multiply
+	div.i64 = Integer.divide_signed
+	div.u64 = Integer.divide_unsigned
 
 	function neg.f32(num)
 		return -num
@@ -238,11 +229,11 @@ do
 	local ge = {}
 	local gt = {}
 
-	local num_is_equal = I64.is_equal
-	local num_is_less_signed = I64.is_less_signed
-	local num_is_less_unsigned = I64.is_less_unsigned
-	local num_is_greater_signed = I64.is_greater_signed
-	local num_is_greater_unsigned = I64.is_greater_unsigned
+	local num_is_equal = Integer.is_equal
+	local num_is_less_signed = Integer.is_less_signed
+	local num_is_less_unsigned = Integer.is_less_unsigned
+	local num_is_greater_signed = Integer.is_greater_signed
+	local num_is_greater_unsigned = Integer.is_greater_unsigned
 
 	function le.i32(lhs, rhs)
 		return to_i32(lhs) <= to_i32(rhs)
@@ -302,10 +293,10 @@ do
 	local bxor = {}
 	local bnot = {}
 
-	band.i64 = I64.bit_and
-	bor.i64 = I64.bit_or
-	bxor.i64 = I64.bit_xor
-	bnot.i64 = I64.bit_not
+	band.i64 = Integer.bit_and
+	bor.i64 = Integer.bit_or
+	bxor.i64 = Integer.bit_xor
+	bnot.i64 = Integer.bit_not
 
 	module.band = band
 	module.bor = bor
@@ -343,9 +334,9 @@ do
 		return bit_rrotate(lhs, rhs % 32)
 	end
 
-	shl.i64 = I64.shift_left
-	shr.i64 = I64.shift_right_signed
-	shr.u64 = I64.shift_right_unsigned
+	shl.i64 = Integer.shift_left
+	shr.i64 = Integer.shift_right_signed
+	shr.u64 = Integer.shift_right_unsigned
 
 	module.shl = shl
 	module.shr = shr
@@ -368,11 +359,11 @@ do
 	local string_pack = string.pack
 	local string_unpack = string.unpack
 
-	local num_from_u64 = I64.from_u64
-	local num_into_u64 = I64.into_u64
+	local num_from_u64 = Integer.from_u64
+	local num_into_u64 = Integer.into_u64
 
-	local num_negate = I64.negate
-	local num_is_negative = I64.is_negative
+	local num_negate = Integer.negate
+	local num_is_negative = Integer.is_negative
 
 	function wrap.i32_i64(num)
 		local data_1, _ = num_into_u32(num)

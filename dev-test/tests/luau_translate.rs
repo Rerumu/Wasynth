@@ -153,10 +153,10 @@ impl Target for Luau {
 		let runtime = codegen_luau::RUNTIME;
 		let numeric = codegen_luau::NUMERIC;
 
-		writeln!(w, "local rt = (function()")?;
-		writeln!(w, "local I64 = (function()")?;
+		writeln!(w, "local Integer = (function()")?;
 		writeln!(w, "{numeric}")?;
 		writeln!(w, "end)()")?;
+		writeln!(w, "local rt = (function()")?;
 		writeln!(w, "{runtime}")?;
 		writeln!(w, "end)()")?;
 

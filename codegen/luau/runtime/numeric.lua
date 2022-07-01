@@ -426,7 +426,7 @@ NUM_ZERO = from_u64(0)
 NUM_ONE = from_u64(1)
 NUM_BIT_26 = from_u64(0x4000000)
 
-Numeric.NUM_ZERO = NUM_ZERO
-Numeric.NUM_ONE = NUM_ONE
+Numeric.ZERO = NUM_ZERO
+Numeric.ONE = NUM_ONE
 
 return table_freeze(Numeric)
