@@ -335,7 +335,7 @@ fn write_variable_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 	for data in ast.local_data().iter().filter(|v| v.0 != 0) {
 		let range = total..total + usize::try_from(data.0).unwrap();
 		let zero = if data.1 == ValType::I64 {
-			"i64_K_ZERO "
+			"i64_ZERO "
 		} else {
 			"0 "
 		};

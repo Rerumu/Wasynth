@@ -30,8 +30,8 @@ impl Visitor for Visit {
 
 	fn visit_value(&mut self, v: &Value) {
 		let name = match v {
-			Value::I64(0) => "K_ZERO",
-			Value::I64(1) => "K_ONE",
+			Value::I64(0) => "ZERO",
+			Value::I64(1) => "ONE",
 			Value::I64(_) => "from_u32",
 			_ => return,
 		};
@@ -81,7 +81,7 @@ pub fn visit(ast: &FuncData) -> (BTreeSet<(&'static str, &'static str)>, BTreeSe
 	};
 
 	if ast.local_data().iter().any(|v| v.1 == ValType::I64) {
-		visit.local_set.insert(("i64", "K_ZERO"));
+		visit.local_set.insert(("i64", "ZERO"));
 	}
 
 	ast.accept(&mut visit);

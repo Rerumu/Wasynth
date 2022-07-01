@@ -243,8 +243,8 @@ fn write_localize_used(
 	let has_element_i64 = wasm.element_section().iter().any(|e| e.ty == ValType::I64);
 
 	if has_global_i64 || has_element_i64 {
-		loc_set.insert(("i64", "K_ZERO"));
-		loc_set.insert(("i64", "K_ONE"));
+		loc_set.insert(("i64", "ZERO"));
+		loc_set.insert(("i64", "ONE"));
 		loc_set.insert(("i64", "from_u32"));
 	}
 

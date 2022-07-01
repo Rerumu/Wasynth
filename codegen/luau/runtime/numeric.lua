@@ -1,9 +1,6 @@
 local Numeric = {}
 
-local BIT_SET_31 = 0x80000000
-local BIT_SET_32 = 0x100000000
-
-local K_ZERO, K_ONE, K_BIT_SET_26
+local NUM_ZERO, NUM_ONE, NUM_BIT_26
 
 local bit_lshift = bit32.lshift
 local bit_rshift = bit32.rshift
@@ -62,13 +59,13 @@ else
 end
 
 function Numeric.from_u64(value)
-	return from_u32(bit_and(value), math_floor(value / BIT_SET_32))
+	return from_u32(bit_and(value), math_floor(value / 0x100000000))
 end
 
 function Numeric.into_u64(value)
 	local data_1, data_2 = into_u32(value)
 
-	return data_1 + data_2 * BIT_SET_32
+	return data_1 + data_2 * 0x100000000
 end
 
 function Numeric.add(lhs, rhs)
@@ -78,13 +75,13 @@ function Numeric.add(lhs, rhs)
 	local data_1 = data_l_1 + data_r_1
 	local data_2 = data_l_2 + data_r_2
 
-	if data_1 >= BIT_SET_32 then
-		data_1 = data_1 - BIT_SET_32
+	if data_1 >= 0x100000000 then
+		data_1 = data_1 - 0x100000000
 		data_2 = data_2 + 1
 	end
 
-	if data_2 >= BIT_SET_32 then
-		data_2 = data_2 - BIT_SET_32
+	if data_2 >= 0x100000000 then
+		data_2 = data_2 - 0x100000000
 	end
 
 	return from_u32(data_1, data_2)
@@ -98,12 +95,12 @@ function Numeric.subtract(lhs, rhs)
 	local data_2 = data_l_2 - data_r_2
 
 	if data_1 < 0 then
-		data_1 = data_1 + BIT_SET_32
+		data_1 = data_1 + 0x100000000
 		data_2 = data_2 - 1
 	end
 
 	if data_2 < 0 then
-		data_2 = data_2 + BIT_SET_32
+		data_2 = data_2 + 0x100000000
 	end
 
 	return from_u32(data_1, data_2)
@@ -127,7 +124,7 @@ end
 
 function Numeric.multiply(lhs, rhs)
 	if num_is_zero(lhs) or num_is_zero(rhs) then
-		return K_ZERO
+		return NUM_ZERO
 	end
 
 	local has_negative
@@ -135,7 +132,7 @@ function Numeric.multiply(lhs, rhs)
 	has_negative, lhs, rhs = set_absolute(lhs, rhs)
 
 	-- If both longs are small, use float multiplication
-	if num_is_less_unsigned(lhs, K_BIT_SET_26) and num_is_less_unsigned(rhs, K_BIT_SET_26) then
+	if num_is_less_unsigned(lhs, NUM_BIT_26) and num_is_less_unsigned(rhs, NUM_BIT_26) then
 		local data_l_1, _ = into_u32(lhs)
 		local data_r_1, _ = into_u32(rhs)
 		local result = from_u64(data_l_1 * data_r_1)
@@ -211,12 +208,12 @@ function Numeric.divide_unsigned(lhs, rhs)
 	if num_is_zero(rhs) then
 		error("division by zero")
 	elseif num_is_zero(lhs) then
-		return K_ZERO
+		return NUM_ZERO
 	end
 
 	local rhs_number = into_u64(rhs)
 	local rem = lhs
-	local res = K_ZERO
+	local res = NUM_ZERO
 
 	while num_is_greater_unsigned(rem, rhs) or num_is_equal(rem, rhs) do
 		local res_approx, delta = get_approx_delta(into_u64(rem), rhs_number)
@@ -230,7 +227,7 @@ function Numeric.divide_unsigned(lhs, rhs)
 		end
 
 		if num_is_zero(res_temp) then
-			res_temp = K_ONE
+			res_temp = NUM_ONE
 		end
 
 		res = num_add(res, res_temp)
@@ -255,7 +252,7 @@ function Numeric.divide_signed(lhs, rhs)
 end
 
 function Numeric.negate(value)
-	return num_add(num_not(value), K_ONE)
+	return num_add(num_not(value), NUM_ONE)
 end
 
 function Numeric.bit_and(lhs, rhs)
@@ -342,7 +339,7 @@ function Numeric.shift_right_signed(lhs, rhs)
 		local _, data_l_2 = into_u32(lhs)
 
 		local data_1 = bit_arshift(data_l_2, count - 32)
-		local data_2 = data_l_2 > BIT_SET_31 and BIT_SET_32 - 1 or 0
+		local data_2 = data_l_2 > 0x80000000 and 0xFFFFFFFF or 0
 
 		return from_u32(data_1, data_2)
 	end
@@ -351,7 +348,7 @@ end
 function Numeric.is_negative(value)
 	local _, data_2 = into_u32(value)
 
-	return data_2 >= BIT_SET_31
+	return data_2 >= 0x80000000
 end
 
 function Numeric.is_zero(value)
@@ -425,11 +422,11 @@ num_is_equal = Numeric.is_equal
 num_is_less_unsigned = Numeric.is_less_unsigned
 num_is_greater_unsigned = Numeric.is_greater_unsigned
 
-K_ZERO = from_u64(0)
-K_ONE = from_u64(1)
-K_BIT_SET_26 = from_u64(0x4000000)
+NUM_ZERO = from_u64(0)
+NUM_ONE = from_u64(1)
+NUM_BIT_26 = from_u64(0x4000000)
 
-Numeric.K_ZERO = K_ZERO
-Numeric.K_ONE = K_ONE
+Numeric.NUM_ZERO = NUM_ZERO
+Numeric.NUM_ONE = NUM_ONE
 
 return table_freeze(Numeric)

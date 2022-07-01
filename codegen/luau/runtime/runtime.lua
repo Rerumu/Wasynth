@@ -25,8 +25,8 @@ end
 do
 	local temp = {}
 
-	temp.K_ZERO = I64.K_ZERO
-	temp.K_ONE = I64.K_ONE
+	temp.ZERO = I64.NUM_ZERO
+	temp.ONE = I64.NUM_ONE
 
 	temp.from_u32 = num_from_u32
 
