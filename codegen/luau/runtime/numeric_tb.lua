@@ -1,6 +1,7 @@
 local Numeric = {}
 
-local NUM_ZERO, NUM_ONE, NUM_BIT_26, NUM_BIT_52
+local NUM_ZERO, NUM_ONE, NUM_SIX_FOUR
+local NUM_BIT_26, NUM_BIT_52
 
 local bit_lshift = bit32.lshift
 local bit_rshift = bit32.rshift
@@ -18,7 +19,7 @@ local table_freeze = table.freeze
 
 local from_u32, from_u64, into_u64
 local num_subtract, num_divide_unsigned, num_negate
-local num_or, num_shift_left
+local num_or, num_shift_left, num_shift_right_unsigned
 local num_is_negative, num_is_zero, num_is_less_unsigned
 
 function Numeric.from_u32(data_1, data_2)
@@ -275,6 +276,28 @@ function Numeric.shift_right_signed(lhs, rhs)
 	end
 end
 
+function Numeric.rotate_left(lhs, rhs)
+	if num_is_zero(rhs) then
+		return lhs
+	else
+		local data_1 = num_shift_left(lhs, rhs)
+		local data_2 = num_shift_right_unsigned(lhs, num_subtract(NUM_SIX_FOUR, rhs))
+
+		return num_or(data_1, data_2)
+	end
+end
+
+function Numeric.rotate_right(lhs, rhs)
+	if num_is_zero(rhs) then
+		return lhs
+	else
+		local data_1 = num_shift_right_unsigned(lhs, rhs)
+		local data_2 = num_shift_left(lhs, num_subtract(NUM_SIX_FOUR, rhs))
+
+		return num_or(data_1, data_2)
+	end
+end
+
 function Numeric.is_negative(value)
 	return value[2] >= 0x80000000
 end
@@ -337,6 +360,7 @@ num_negate = Numeric.negate
 
 num_or = Numeric.bit_or
 num_shift_left = Numeric.shift_left
+num_shift_right_unsigned = Numeric.shift_right_unsigned
 
 num_is_negative = Numeric.is_negative
 num_is_zero = Numeric.is_zero
@@ -344,6 +368,7 @@ num_is_less_unsigned = Numeric.is_less_unsigned
 
 NUM_ZERO = from_u64(0)
 NUM_ONE = from_u64(1)
+NUM_SIX_FOUR = from_u64(64)
 NUM_BIT_26 = from_u64(0x4000000)
 NUM_BIT_52 = from_u64(0x10000000000000)
 

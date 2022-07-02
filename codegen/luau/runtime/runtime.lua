@@ -352,6 +352,8 @@ do
 	shl.i64 = Integer.shift_left
 	shr.i64 = Integer.shift_right_signed
 	shr.u64 = Integer.shift_right_unsigned
+	rotl.i64 = Integer.rotate_left
+	rotr.i64 = Integer.rotate_right
 
 	module.shl = shl
 	module.shr = shr
