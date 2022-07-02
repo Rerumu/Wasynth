@@ -25,6 +25,16 @@ do
 		end
 	end
 
+	do
+		local old = rt.store.string
+
+		function rt.store.string(memory, addr, data, len)
+			assert(is_valid_address(memory, addr, #data), "Invalid memory write")
+
+			return old(memory, addr, data, len)
+		end
+	end
+
 	load_checked("i32_i8", 1)
 	load_checked("i32_u8", 1)
 	load_checked("i32_i16", 2)
