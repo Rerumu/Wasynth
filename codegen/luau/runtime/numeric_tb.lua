@@ -226,9 +226,11 @@ function Numeric.bit_xor(lhs, rhs)
 end
 
 function Numeric.shift_left(lhs, rhs)
-	local count = into_u64(rhs)
+	local count = rhs[1] % 64
 
-	if count < 32 then
+	if count == 0 then
+		return lhs
+	elseif count < 32 then
 		local pad = 32 - count
 
 		local data_1 = bit_lshift(lhs[1], count)
@@ -241,9 +243,11 @@ function Numeric.shift_left(lhs, rhs)
 end
 
 function Numeric.shift_right_unsigned(lhs, rhs)
-	local count = into_u64(rhs)
+	local count = rhs[1] % 64
 
-	if count < 32 then
+	if count == 0 then
+		return lhs
+	elseif count < 32 then
 		local data_1 = bit_replace(bit_rshift(lhs[1], count), lhs[2], 32 - count, count)
 		local data_2 = bit_rshift(lhs[2], count)
 
@@ -254,16 +258,18 @@ function Numeric.shift_right_unsigned(lhs, rhs)
 end
 
 function Numeric.shift_right_signed(lhs, rhs)
-	local count = into_u64(rhs)
+	local count = rhs[1] % 64
 
-	if count < 32 then
+	if count == 0 then
+		return lhs
+	elseif count < 32 then
 		local data_1 = bit_replace(bit_rshift(lhs[1], count), lhs[2], 32 - count, count)
 		local data_2 = bit_arshift(lhs[2], count)
 
 		return from_u32(data_1, data_2)
 	else
 		local data_1 = bit_arshift(lhs[2], count - 32)
-		local data_2 = lhs[2] > 0x80000000 and 0xFFFFFFFF or 0
+		local data_2 = lhs[2] >= 0x80000000 and 0xFFFFFFFF or 0
 
 		return from_u32(data_1, data_2)
 	end
