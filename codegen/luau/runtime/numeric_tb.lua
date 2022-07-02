@@ -69,22 +69,6 @@ function Numeric.subtract(lhs, rhs)
 	return from_u32(data_1, data_2)
 end
 
-local function set_absolute(lhs, rhs)
-	local has_negative = false
-
-	if num_is_negative(lhs) then
-		lhs = num_negate(lhs)
-		has_negative = not has_negative
-	end
-
-	if num_is_negative(rhs) then
-		rhs = num_negate(rhs)
-		has_negative = not has_negative
-	end
-
-	return has_negative, lhs, rhs
-end
-
 function Numeric.multiply(lhs, rhs)
 	if num_is_zero(lhs) or num_is_zero(rhs) then
 		return NUM_ZERO
@@ -140,9 +124,12 @@ function Numeric.divide_unsigned(lhs, rhs)
 	if num_is_zero(rhs) then
 		error("division by zero")
 	elseif num_is_zero(lhs) then
-		return NUM_ZERO
+		return NUM_ZERO, NUM_ZERO
 	elseif num_is_less_unsigned(lhs, NUM_BIT_52) and num_is_less_unsigned(rhs, NUM_BIT_52) then
-		return from_u64(into_u64(lhs) / into_u64(rhs))
+		local lhs_u = into_u64(lhs)
+		local rhs_u = into_u64(rhs)
+
+		return from_u64(lhs_u / rhs_u), from_u64(lhs_u % rhs_u)
 	end
 
 	local quotient = NUM_ZERO
@@ -170,17 +157,28 @@ function Numeric.divide_unsigned(lhs, rhs)
 end
 
 function Numeric.divide_signed(lhs, rhs)
-	local has_negative
+	local left_negative = num_is_negative(lhs)
+	local right_negative = num_is_negative(rhs)
 
-	has_negative, lhs, rhs = set_absolute(lhs, rhs)
-
-	local result = num_divide_unsigned(lhs, rhs)
-
-	if has_negative then
-		result = num_negate(result)
+	if left_negative then
+		lhs = num_negate(lhs)
 	end
 
-	return result
+	if right_negative then
+		rhs = num_negate(rhs)
+	end
+
+	local quotient, remainder = num_divide_unsigned(lhs, rhs)
+
+	if left_negative ~= right_negative then
+		quotient = num_negate(quotient)
+	end
+
+	if left_negative then
+		remainder = num_negate(remainder)
+	end
+
+	return quotient, remainder
 end
 
 function Numeric.negate(value)

@@ -40,7 +40,6 @@ do
 
 	local math_abs = math.abs
 	local math_fmod = math.fmod
-	local math_floor = math.floor
 	local math_round = math.round
 	local math_sign = math.sign
 	local math_min = math.min
@@ -48,6 +47,9 @@ do
 
 	local string_byte = string.byte
 	local string_pack = string.pack
+
+	local num_divide_signed = Integer.divide_signed
+	local num_divide_unsigned = Integer.divide_unsigned
 
 	function add.i32(lhs, rhs)
 		return to_u32(lhs + rhs)
@@ -100,8 +102,21 @@ do
 	add.i64 = Integer.add
 	sub.i64 = Integer.subtract
 	mul.i64 = Integer.multiply
-	div.i64 = Integer.divide_signed
-	div.u64 = Integer.divide_unsigned
+	div.i64 = num_divide_signed
+
+	function rem.i64(lhs, rhs)
+		local _, remainder = num_divide_signed(lhs, rhs)
+
+		return remainder
+	end
+
+	div.u64 = num_divide_unsigned
+
+	function rem.u64(lhs, rhs)
+		local _, remainder = num_divide_unsigned(lhs, rhs)
+
+		return remainder
+	end
 
 	function neg.f32(num)
 		return -num
