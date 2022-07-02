@@ -1,6 +1,6 @@
 local Numeric = {}
 
-local NUM_ZERO, NUM_ONE, NUM_BIT_26
+local NUM_ZERO, NUM_ONE, NUM_BIT_26, NUM_BIT_52
 
 local bit_lshift = bit32.lshift
 local bit_rshift = bit32.rshift
@@ -11,22 +11,19 @@ local bit_or = bit32.bor
 local bit_xor = bit32.bxor
 local bit_not = bit32.bnot
 
+local bit_extract = bit32.extract
 local bit_replace = bit32.replace
 
-local math_ceil = math.ceil
 local math_floor = math.floor
-local math_log = math.log
-local math_max = math.max
-local math_pow = math.pow
 
 local table_freeze = table.freeze
 
 local from_u32, into_u32, from_u64, into_u64
-local num_add, num_subtract, num_multiply, num_divide_unsigned, num_negate, num_not
-local num_is_negative, num_is_zero, num_is_equal, num_is_less_unsigned, num_is_greater_unsigned
+local num_add, num_subtract, num_divide_unsigned, num_negate
+local num_not, num_or, num_shift_left
+local num_is_negative, num_is_zero, num_is_less_unsigned
 
 if Vector3 then
-	local bit_extract = bit32.extract
 	local constructor = Vector3.new
 
 	-- X: a[0 ..21]
@@ -182,45 +179,40 @@ function Numeric.multiply(lhs, rhs)
 	return from_u32(data_1, data_2)
 end
 
-local function get_approx_delta(rem, rhs)
-	local approx = math_max(1, math_floor(rem / rhs))
-	local log = math_ceil(math_log(approx, 2))
-	local delta = log <= 48 and 1 or math_pow(2, log - 48)
-
-	return approx, delta
-end
-
 function Numeric.divide_unsigned(lhs, rhs)
 	if num_is_zero(rhs) then
 		error("division by zero")
 	elseif num_is_zero(lhs) then
 		return NUM_ZERO
+	elseif num_is_less_unsigned(lhs, NUM_BIT_52) and num_is_less_unsigned(rhs, NUM_BIT_52) then
+		local result = math_floor(into_u64(lhs) / into_u64(rhs))
+
+		return from_u64(result)
 	end
 
-	local rhs_number = into_u64(rhs)
-	local rem = lhs
-	local res = NUM_ZERO
+	local quotient = NUM_ZERO
+	local remainder = NUM_ZERO
 
-	while num_is_greater_unsigned(rem, rhs) or num_is_equal(rem, rhs) do
-		local res_approx, delta = get_approx_delta(into_u64(rem), rhs_number)
-		local res_temp = from_u64(res_approx)
-		local rem_temp = num_multiply(res_temp, rhs)
+	local num_1, num_2 = into_u32(lhs)
 
-		while num_is_negative(rem_temp) or num_is_greater_unsigned(rem_temp, rem) do
-			res_approx = res_approx - delta
-			res_temp = from_u64(res_approx)
-			rem_temp = num_multiply(res_temp, rhs)
+	for i = 63, 0, -1 do
+		local rem_1, rem_2 = into_u32(num_shift_left(remainder, NUM_ONE))
+
+		if i > 31 then
+			rem_1 = bit_or(rem_1, bit_extract(num_2, i - 32, 1))
+		else
+			rem_1 = bit_or(rem_1, bit_extract(num_1, i, 1))
 		end
 
-		if num_is_zero(res_temp) then
-			res_temp = NUM_ONE
-		end
+		remainder = from_u32(rem_1, rem_2)
 
-		res = num_add(res, res_temp)
-		rem = num_subtract(rem, rem_temp)
+		if not num_is_less_unsigned(remainder, rhs) then
+			remainder = num_subtract(remainder, rhs)
+			quotient = num_or(quotient, num_shift_left(NUM_ONE, from_u32(i, 0)))
+		end
 	end
 
-	return res
+	return quotient, remainder
 end
 
 function Numeric.divide_signed(lhs, rhs)
@@ -397,20 +389,21 @@ into_u64 = Numeric.into_u64
 
 num_add = Numeric.add
 num_subtract = Numeric.subtract
-num_multiply = Numeric.multiply
 num_divide_unsigned = Numeric.divide_unsigned
 num_negate = Numeric.negate
+
 num_not = Numeric.bit_not
+num_or = Numeric.bit_or
+num_shift_left = Numeric.shift_left
 
 num_is_negative = Numeric.is_negative
 num_is_zero = Numeric.is_zero
-num_is_equal = Numeric.is_equal
 num_is_less_unsigned = Numeric.is_less_unsigned
-num_is_greater_unsigned = Numeric.is_greater_unsigned
 
 NUM_ZERO = from_u64(0)
 NUM_ONE = from_u64(1)
 NUM_BIT_26 = from_u64(0x4000000)
+NUM_BIT_52 = from_u64(0x10000000000000)
 
 Numeric.ZERO = NUM_ZERO
 Numeric.ONE = NUM_ONE
