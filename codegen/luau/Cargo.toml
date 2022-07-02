@@ -9,5 +9,9 @@ wasmparser = "0.86.0"
 [dependencies.wasm-ast]
 path = "../../wasm-ast"
 
+[features]
+default = ["vector"]
+vector = []
+
 [[bin]]
 name = "wasm2luau"

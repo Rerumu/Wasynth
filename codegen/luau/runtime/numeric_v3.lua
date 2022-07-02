@@ -23,36 +23,26 @@ local num_add, num_subtract, num_divide_unsigned, num_negate
 local num_not, num_or, num_shift_left
 local num_is_negative, num_is_zero, num_is_less_unsigned
 
-if Vector3 then
-	local constructor = Vector3.new
+local constructor = Vector3.new
 
-	-- X: a[0 ..21]
-	-- Y: a[22..31]
-	--  | b[0 ..11]
-	-- Z: b[12..31]
+-- X: a[0 ..21]
+-- Y: a[22..31]
+--  | b[0 ..11]
+-- Z: b[12..31]
 
-	function Numeric.from_u32(data_1, data_2)
-		local x = bit_and(data_1, 0x3FFFFF)
-		local y = bit_or(bit_and(data_1, 0xFFC00000), bit_and(data_2, 0xFFF))
-		local z = bit_extract(data_2, 12, 20)
+function Numeric.from_u32(data_1, data_2)
+	local x = bit_and(data_1, 0x3FFFFF)
+	local y = bit_or(bit_and(data_1, 0xFFC00000), bit_and(data_2, 0xFFF))
+	local z = bit_extract(data_2, 12, 20)
 
-		return constructor(x, y, z)
-	end
+	return constructor(x, y, z)
+end
 
-	function Numeric.into_u32(data)
-		local data_1 = bit_or(bit_and(data.X, 0x3FFFFF), bit_and(data.Y, 0xFFC00000))
-		local data_2 = bit_replace(bit_and(data.Y, 0xFFF), data.Z, 12, 20)
+function Numeric.into_u32(data)
+	local data_1 = bit_or(bit_and(data.X, 0x3FFFFF), bit_and(data.Y, 0xFFC00000))
+	local data_2 = bit_replace(bit_and(data.Y, 0xFFF), data.Z, 12, 20)
 
-		return data_1, data_2
-	end
-else
-	function Numeric.from_u32(data_1, data_2)
-		return table_freeze({ data_1, data_2 })
-	end
-
-	function Numeric.into_u32(data)
-		return data[1], data[2]
-	end
+	return data_1, data_2
 end
 
 function Numeric.from_u64(value)
