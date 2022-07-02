@@ -11,7 +11,7 @@ This is a WebAssembly translation tool and library for arbitrary languages. It c
 
 The code generation libraries also offer a simple binary utility for translating to source. These can be built or installed by using the `--path codegen/language --bin wasm2language` Cargo flags.
 
-|          |                 |                       |
-|----------|-----------------|-----------------------|
-| LuaJIT   | :green_circle:  | Minimum version 2.1.0 |
-| Luau     | :yellow_circle: |                       |
+|          |                |                       |
+|----------|----------------|-----------------------|
+| LuaJIT   | :green_circle: | Minimum version 2.1.0 |
+| Luau     | :green_circle: |                       |
