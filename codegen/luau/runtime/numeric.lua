@@ -127,21 +127,12 @@ function Numeric.multiply(lhs, rhs)
 		return NUM_ZERO
 	end
 
-	local has_negative
-
-	has_negative, lhs, rhs = set_absolute(lhs, rhs)
-
 	-- If both longs are small, use float multiplication
 	if num_is_less_unsigned(lhs, NUM_BIT_26) and num_is_less_unsigned(rhs, NUM_BIT_26) then
 		local data_l_1, _ = into_u32(lhs)
 		local data_r_1, _ = into_u32(rhs)
-		local result = from_u64(data_l_1 * data_r_1)
 
-		if has_negative then
-			result = num_negate(result)
-		end
-
-		return result
+		return from_u64(data_l_1 * data_r_1)
 	end
 
 	-- Divide each long into 4 chunks of 16 bits, and then add up 4x4 products.
@@ -187,13 +178,8 @@ function Numeric.multiply(lhs, rhs)
 
 	local data_1 = bit_replace(c00, c16, 16, 16)
 	local data_2 = bit_replace(c32, c48, 16, 16)
-	local result = from_u32(data_1, data_2)
 
-	if has_negative then
-		result = num_negate(result)
-	end
-
-	return result
+	return from_u32(data_1, data_2)
 end
 
 local function get_approx_delta(rem, rhs)
