@@ -232,7 +232,7 @@ fn write_local_operation(head: &str, tail: &str, w: &mut dyn Write) -> Result<()
 		("band" | "bor" | "bxor", "i32") => {
 			write!(w, "local {head}_{tail} = bit32.{head} ")
 		}
-		("abs" | "ceil" | "floor" | "sqrt" | "min" | "max", _) => {
+		("abs" | "ceil" | "floor" | "sqrt", _) => {
 			write!(w, "local {head}_{tail} = math.{head} ")
 		}
 		_ => write!(w, "local {head}_{tail} = rt.{head}.{tail} "),
