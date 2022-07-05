@@ -46,13 +46,13 @@ impl Stack {
 		self.var_list.len()
 	}
 
-	pub fn split_last(&mut self, len: usize) -> Self {
-		let desired = self.len() - len;
+	pub fn split_last(&mut self, num_param: usize, num_result: usize) -> Self {
+		let desired = self.len() - num_param;
 		let var_list = self.var_list.split_off(desired);
 
 		Self {
 			var_list,
-			capacity: self.capacity,
+			capacity: self.capacity.max(desired + num_result),
 			previous: self.previous + desired,
 		}
 	}

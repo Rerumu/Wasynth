@@ -280,7 +280,7 @@ impl<'a> Factory<'a> {
 			}
 		};
 
-		self.target.stack = old.stack.split_last(num_param);
+		self.target.stack = old.stack.split_last(num_param, num_result);
 
 		old.stack.push_temporary(num_result);
 
