@@ -4,7 +4,7 @@ use std::{
 };
 
 use wasm_ast::node::{
-	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, FuncData, If, MemoryGrow, SetGlobal,
+	Block, Br, BrIf, BrTable, Call, CallIndirect, FuncData, If, LabelType, MemoryGrow, SetGlobal,
 	SetLocal, SetTemporary, Statement, StoreAt, Terminator,
 };
 use wasmparser::ValType;
@@ -117,40 +117,37 @@ impl Driver for Terminator {
 	}
 }
 
-impl Driver for Forward {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let label = mng.push_label();
+fn write_inner_block(block: &Block, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+	block.code().iter().try_for_each(|s| s.write(mng, w))?;
 
-		self.code().iter().try_for_each(|s| s.write(mng, w))?;
-
-		if let Some(v) = self.last() {
-			v.write(mng, w)?;
-		}
-
-		write!(w, "::continue_at_{label}::")?;
-
-		mng.pop_label();
-
-		Ok(())
+	match block.last() {
+		Some(v) => v.write(mng, w),
+		None => Ok(()),
 	}
 }
 
-impl Driver for Backward {
+impl Driver for Block {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let label = mng.push_label();
 
-		write!(w, "::continue_at_{label}::")?;
-		write!(w, "while true do ")?;
+		match self.label_type() {
+			Some(LabelType::Forward) => {
+				write_inner_block(self, mng, w)?;
+				write!(w, "::continue_at_{label}::")?;
+			}
+			Some(LabelType::Backward) => {
+				write!(w, "::continue_at_{label}::")?;
+				write!(w, "while true do ")?;
+				write_inner_block(self, mng, w)?;
 
-		self.code().iter().try_for_each(|s| s.write(mng, w))?;
+				if self.last().is_none() {
+					write!(w, "break ")?;
+				}
 
-		if let Some(v) = self.last() {
-			v.write(mng, w)?;
-		} else {
-			write!(w, "break ")?;
+				write!(w, "end ")?;
+			}
+			None => write_inner_block(self, mng, w)?,
 		}
-
-		write!(w, "end ")?;
 
 		mng.pop_label();
 
@@ -268,8 +265,7 @@ impl Driver for MemoryGrow {
 impl Driver for Statement {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
-			Self::Forward(s) => s.write(mng, w),
-			Self::Backward(s) => s.write(mng, w),
+			Self::Block(s) => s.write(mng, w),
 			Self::BrIf(s) => s.write(mng, w),
 			Self::If(s) => s.write(mng, w),
 			Self::Call(s) => s.write(mng, w),

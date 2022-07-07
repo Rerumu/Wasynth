@@ -4,7 +4,7 @@ use std::{
 };
 
 use wasm_ast::node::{
-	Backward, Br, BrIf, BrTable, Call, CallIndirect, Forward, FuncData, If, MemoryGrow, SetGlobal,
+	Block, Br, BrIf, BrTable, Call, CallIndirect, FuncData, If, LabelType, MemoryGrow, SetGlobal,
 	SetLocal, SetTemporary, Statement, StoreAt, Terminator,
 };
 use wasmparser::ValType;
@@ -12,7 +12,7 @@ use wasmparser::ValType;
 use crate::analyzer::br_table;
 
 use super::manager::{
-	write_ascending, write_condition, write_separated, write_variable, Driver, Label, Manager,
+	write_ascending, write_condition, write_separated, write_variable, Driver, Manager,
 };
 
 impl Driver for Br {
@@ -25,7 +25,7 @@ impl Driver for Br {
 		}
 
 		if self.target() == 0 {
-			if let Some(&Label::Backward) = mng.label_list().last() {
+			if let Some(Some(LabelType::Backward)) = mng.label_list().last() {
 				write!(w, "continue ")
 			} else {
 				write!(w, "break ")
@@ -125,73 +125,54 @@ impl Driver for Terminator {
 	}
 }
 
-fn br_target(level: usize, in_loop: bool, w: &mut dyn Write) -> Result<()> {
-	write!(w, "if desired then ")?;
-	write!(w, "if desired == {level} then ")?;
-	write!(w, "desired = nil ")?;
-
-	if in_loop {
-		write!(w, "continue ")?;
-	}
-
-	write!(w, "else ")?;
-	write!(w, "break ")?;
-	write!(w, "end ")?;
-	write!(w, "end ")
-}
-
-fn write_br_gadget(label_list: &[Label], rem: usize, w: &mut dyn Write) -> Result<()> {
+fn write_br_gadget(
+	label_list: &[Option<LabelType>],
+	label: usize,
+	w: &mut dyn Write,
+) -> Result<()> {
 	if label_list.len() == 1 {
 		return Ok(());
 	}
 
-	match label_list.last() {
-		Some(Label::Forward) => br_target(rem, false, w),
-		Some(Label::Backward) => br_target(rem, true, w),
-		None => Ok(()),
+	write!(w, "if desired then ")?;
+
+	match label_list.last().unwrap() {
+		Some(t) => {
+			write!(w, "if desired == {label} then ")?;
+			write!(w, "desired = nil ")?;
+
+			if *t == LabelType::Backward {
+				write!(w, "continue ")?;
+			}
+
+			write!(w, "else ")?;
+			write!(w, "break ")?;
+			write!(w, "end ")?;
+		}
+		None => {
+			write!(w, "break ")?;
+		}
 	}
+
+	write!(w, "end ")
 }
 
-impl Driver for Forward {
+impl Driver for Block {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let rem = mng.push_label(Label::Forward);
+		let label = mng.push_label(self.label_type());
 
 		write!(w, "while true do ")?;
 
 		self.code().iter().try_for_each(|s| s.write(mng, w))?;
 
-		if let Some(v) = self.last() {
-			v.write(mng, w)?;
-		} else {
-			write!(w, "break ")?;
+		match self.last() {
+			Some(v) => v.write(mng, w)?,
+			None => write!(w, "break ")?,
 		}
 
 		write!(w, "end ")?;
 
-		write_br_gadget(mng.label_list(), rem, w)?;
-		mng.pop_label();
-
-		Ok(())
-	}
-}
-
-impl Driver for Backward {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let rem = mng.push_label(Label::Backward);
-
-		write!(w, "while true do ")?;
-
-		self.code().iter().try_for_each(|s| s.write(mng, w))?;
-
-		if let Some(v) = self.last() {
-			v.write(mng, w)?;
-		} else {
-			write!(w, "break ")?;
-		}
-
-		write!(w, "end ")?;
-
-		write_br_gadget(mng.label_list(), rem, w)?;
+		write_br_gadget(mng.label_list(), label, w)?;
 		mng.pop_label();
 
 		Ok(())
@@ -308,8 +289,7 @@ impl Driver for MemoryGrow {
 impl Driver for Statement {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
-			Self::Forward(s) => s.write(mng, w),
-			Self::Backward(s) => s.write(mng, w),
+			Self::Block(s) => s.write(mng, w),
 			Self::BrIf(s) => s.write(mng, w),
 			Self::If(s) => s.write(mng, w),
 			Self::Call(s) => s.write(mng, w),

@@ -4,20 +4,14 @@ use std::{
 	ops::Range,
 };
 
-use wasm_ast::node::{BrTable, CmpOp, Expression};
+use wasm_ast::node::{BrTable, CmpOp, Expression, LabelType};
 
 use crate::analyzer::as_symbol::AsSymbol;
-
-#[derive(PartialEq, Eq)]
-pub enum Label {
-	Forward,
-	Backward,
-}
 
 #[derive(Default)]
 pub struct Manager {
 	table_map: HashMap<usize, usize>,
-	label_list: Vec<Label>,
+	label_list: Vec<Option<LabelType>>,
 	num_param: usize,
 }
 
@@ -36,11 +30,11 @@ impl Manager {
 		self.num_param = num_param;
 	}
 
-	pub fn label_list(&self) -> &[Label] {
+	pub fn label_list(&self) -> &[Option<LabelType>] {
 		&self.label_list
 	}
 
-	pub fn push_label(&mut self, label: Label) -> usize {
+	pub fn push_label(&mut self, label: Option<LabelType>) -> usize {
 		self.label_list.push(label);
 
 		self.label_list.len() - 1

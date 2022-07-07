@@ -847,6 +847,12 @@ impl BrTable {
 	}
 }
 
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub enum LabelType {
+	Forward,
+	Backward,
+}
+
 pub enum Terminator {
 	Unreachable,
 	Br(Br),
@@ -854,30 +860,18 @@ pub enum Terminator {
 }
 
 #[derive(Default)]
-pub struct Forward {
+pub struct Block {
+	pub(crate) label_type: Option<LabelType>,
 	pub(crate) code: Vec<Statement>,
 	pub(crate) last: Option<Terminator>,
 }
 
-impl Forward {
+impl Block {
 	#[must_use]
-	pub fn code(&self) -> &[Statement] {
-		&self.code
+	pub fn label_type(&self) -> Option<LabelType> {
+		self.label_type
 	}
 
-	#[must_use]
-	pub fn last(&self) -> Option<&Terminator> {
-		self.last.as_ref()
-	}
-}
-
-#[derive(Default)]
-pub struct Backward {
-	pub(crate) code: Vec<Statement>,
-	pub(crate) last: Option<Terminator>,
-}
-
-impl Backward {
 	#[must_use]
 	pub fn code(&self) -> &[Statement] {
 		&self.code
@@ -908,8 +902,8 @@ impl BrIf {
 
 pub struct If {
 	pub(crate) condition: Expression,
-	pub(crate) on_true: Forward,
-	pub(crate) on_false: Option<Forward>,
+	pub(crate) on_true: Block,
+	pub(crate) on_false: Option<Block>,
 }
 
 impl If {
@@ -919,12 +913,12 @@ impl If {
 	}
 
 	#[must_use]
-	pub fn on_true(&self) -> &Forward {
+	pub fn on_true(&self) -> &Block {
 		&self.on_true
 	}
 
 	#[must_use]
-	pub fn on_false(&self) -> Option<&Forward> {
+	pub fn on_false(&self) -> Option<&Block> {
 		self.on_false.as_ref()
 	}
 }
@@ -1091,8 +1085,7 @@ impl MemoryGrow {
 }
 
 pub enum Statement {
-	Forward(Forward),
-	Backward(Backward),
+	Block(Block),
 	BrIf(BrIf),
 	If(If),
 	Call(Call),
@@ -1109,7 +1102,7 @@ pub struct FuncData {
 	pub(crate) num_result: usize,
 	pub(crate) num_param: usize,
 	pub(crate) num_stack: usize,
-	pub(crate) code: Forward,
+	pub(crate) code: Block,
 }
 
 impl FuncData {
@@ -1134,7 +1127,7 @@ impl FuncData {
 	}
 
 	#[must_use]
-	pub fn code(&self) -> &Forward {
+	pub fn code(&self) -> &Block {
 		&self.code
 	}
 }

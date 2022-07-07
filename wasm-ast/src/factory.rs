@@ -3,8 +3,8 @@ use wasmparser::{BlockType, FunctionBody, MemoryImmediate, Operator};
 use crate::{
 	module::TypeInfo,
 	node::{
-		Backward, BinOp, BinOpType, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType,
-		Expression, Forward, FuncData, GetGlobal, GetLocal, If, LoadAt, LoadType, MemoryGrow,
+		BinOp, BinOpType, Block, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType,
+		Expression, FuncData, GetGlobal, GetLocal, If, LabelType, LoadAt, LoadType, MemoryGrow,
 		MemorySize, Select, SetGlobal, SetLocal, Statement, StoreAt, StoreType, Terminator, UnOp,
 		UnOpType, Value,
 	},
@@ -42,6 +42,17 @@ impl Default for BlockData {
 	}
 }
 
+impl From<BlockData> for LabelType {
+	fn from(data: BlockData) -> Self {
+		match data {
+			BlockData::Forward { .. } | BlockData::If { .. } | BlockData::Else { .. } => {
+				Self::Forward
+			}
+			BlockData::Backward { .. } => Self::Backward,
+		}
+	}
+}
+
 #[derive(Default)]
 struct StatList {
 	stack: Stack,
@@ -49,6 +60,7 @@ struct StatList {
 	last: Option<Terminator>,
 
 	block_data: BlockData,
+	has_reference: bool,
 }
 
 impl StatList {
@@ -191,18 +203,12 @@ impl StatList {
 	}
 }
 
-impl From<StatList> for Forward {
+impl From<StatList> for Block {
 	fn from(stat: StatList) -> Self {
-		Self {
-			code: stat.code,
-			last: stat.last,
-		}
-	}
-}
+		let label_type = stat.has_reference.then(|| stat.block_data.into());
 
-impl From<StatList> for Backward {
-	fn from(stat: StatList) -> Self {
 		Self {
+			label_type,
 			code: stat.code,
 			last: stat.last,
 		}
@@ -305,8 +311,7 @@ impl<'a> Factory<'a> {
 		self.target.stack.capacity = now.stack.capacity;
 
 		let stat = match now.block_data {
-			BlockData::Forward { .. } => Statement::Forward(now.into()),
-			BlockData::Backward { .. } => Statement::Backward(now.into()),
+			BlockData::Forward { .. } | BlockData::Backward { .. } => Statement::Block(now.into()),
 			BlockData::If { .. } => Statement::If(If {
 				condition: self.target.stack.pop(),
 				on_true: now.into(),
@@ -326,27 +331,29 @@ impl<'a> Factory<'a> {
 		self.target.code.push(stat);
 	}
 
-	fn get_relative_block(&self, index: usize) -> &StatList {
+	fn get_relative_block(&mut self, index: usize) -> &mut StatList {
 		if index == 0 {
-			&self.target
+			&mut self.target
 		} else {
-			&self.pending[self.pending.len() - index]
+			let index = self.pending.len() - index;
+
+			&mut self.pending[index]
 		}
 	}
 
-	fn get_br_terminator(&self, target: usize) -> Br {
+	fn get_br_terminator(&mut self, target: usize) -> Br {
 		let block = self.get_relative_block(target);
-		let par_result = match block.block_data {
+		let previous = block.stack.previous;
+		let result = match block.block_data {
 			BlockData::Forward { num_result }
 			| BlockData::If { num_result, .. }
 			| BlockData::Else { num_result } => num_result,
 			BlockData::Backward { num_param } => num_param,
 		};
 
-		let align = self
-			.target
-			.stack
-			.get_br_alignment(block.stack.previous, par_result);
+		block.has_reference = true;
+
+		let align = self.target.stack.get_br_alignment(previous, result);
 
 		Br { target, align }
 	}

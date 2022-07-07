@@ -1,7 +1,7 @@
 use crate::node::{
-	Backward, BinOp, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Expression, Forward, FuncData,
-	GetGlobal, GetLocal, GetTemporary, If, LoadAt, MemoryGrow, MemorySize, Select, SetGlobal,
-	SetLocal, SetTemporary, Statement, StoreAt, Terminator, UnOp, Value,
+	BinOp, Block, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Expression, FuncData, GetGlobal,
+	GetLocal, GetTemporary, If, LoadAt, MemoryGrow, MemorySize, Select, SetGlobal, SetLocal,
+	SetTemporary, Statement, StoreAt, Terminator, UnOp, Value,
 };
 
 pub trait Visitor {
@@ -35,9 +35,7 @@ pub trait Visitor {
 
 	fn visit_terminator(&mut self, _: &Terminator) {}
 
-	fn visit_forward(&mut self, _: &Forward) {}
-
-	fn visit_backward(&mut self, _: &Backward) {}
+	fn visit_block(&mut self, _: &Block) {}
 
 	fn visit_br_if(&mut self, _: &BrIf) {}
 
@@ -183,7 +181,7 @@ impl<T: Visitor> Driver<T> for Terminator {
 	}
 }
 
-impl<T: Visitor> Driver<T> for Forward {
+impl<T: Visitor> Driver<T> for Block {
 	fn accept(&self, visitor: &mut T) {
 		for v in self.code() {
 			v.accept(visitor);
@@ -193,21 +191,7 @@ impl<T: Visitor> Driver<T> for Forward {
 			v.accept(visitor);
 		}
 
-		visitor.visit_forward(self);
-	}
-}
-
-impl<T: Visitor> Driver<T> for Backward {
-	fn accept(&self, visitor: &mut T) {
-		for v in self.code() {
-			v.accept(visitor);
-		}
-
-		if let Some(v) = self.last() {
-			v.accept(visitor);
-		}
-
-		visitor.visit_backward(self);
+		visitor.visit_block(self);
 	}
 }
 
@@ -298,8 +282,7 @@ impl<T: Visitor> Driver<T> for MemoryGrow {
 impl<T: Visitor> Driver<T> for Statement {
 	fn accept(&self, visitor: &mut T) {
 		match self {
-			Self::Forward(v) => v.accept(visitor),
-			Self::Backward(v) => v.accept(visitor),
+			Self::Block(v) => v.accept(visitor),
 			Self::BrIf(v) => v.accept(visitor),
 			Self::If(v) => v.accept(visitor),
 			Self::Call(v) => v.accept(visitor),
