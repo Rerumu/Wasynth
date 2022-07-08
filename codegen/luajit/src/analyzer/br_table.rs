@@ -11,6 +11,10 @@ struct Visit {
 
 impl Visitor for Visit {
 	fn visit_br_table(&mut self, table: &BrTable) {
+		if table.data().is_empty() {
+			return;
+		}
+
 		let id = table as *const _ as usize;
 		let len = self.id_map.len() + 1;
 

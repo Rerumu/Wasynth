@@ -20,10 +20,15 @@ impl Visitor for Visit {
 	}
 
 	fn visit_br_table(&mut self, table: &BrTable) {
+		self.has_branch = true;
+
+		if table.data().is_empty() {
+			return;
+		}
+
 		let id = table as *const _ as usize;
 		let len = self.br_map.len() + 1;
 
-		self.has_branch = true;
 		self.br_map.insert(id, len);
 	}
 }
