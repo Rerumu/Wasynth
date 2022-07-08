@@ -11,10 +11,10 @@ local math_ceil = math.ceil
 local math_floor = math.floor
 local to_number = tonumber
 
-local ID_ZERO = i64(0)
-local ID_ONE = i64(1)
+local NUM_ZERO = i64(0)
+local NUM_ONE = i64(1)
 
-local function truncate(num)
+local function truncate_f64(num)
 	if num >= 0 then
 		return (math_floor(num))
 	else
@@ -62,13 +62,13 @@ do
 	end
 
 	function mul.i32(lhs, rhs)
-		return (to_signed(ID_ONE * lhs * rhs))
+		return (to_signed(NUM_ONE * lhs * rhs))
 	end
 
 	function div.i32(lhs, rhs)
 		assert(rhs ~= 0, "division by zero")
 
-		return (truncate(lhs / rhs))
+		return (truncate_f64(lhs / rhs))
 	end
 
 	function div.u32(lhs, rhs)
@@ -257,38 +257,38 @@ do
 
 	function clz.i64(num)
 		if num == 0 then
-			return 64 * ID_ONE
+			return 64 * NUM_ONE
 		end
 
-		local count = ID_ZERO
+		local count = NUM_ZERO
 
-		if bit_rshift(num, 32) == ID_ZERO then
+		if bit_rshift(num, 32) == NUM_ZERO then
 			num = bit_lshift(num, 32)
 			count = count + 32
 		end
 
-		if bit_rshift(num, 48) == ID_ZERO then
+		if bit_rshift(num, 48) == NUM_ZERO then
 			num = bit_lshift(num, 16)
 			count = count + 16
 		end
 
-		if bit_rshift(num, 56) == ID_ZERO then
+		if bit_rshift(num, 56) == NUM_ZERO then
 			num = bit_lshift(num, 8)
 			count = count + 8
 		end
 
-		if bit_rshift(num, 60) == ID_ZERO then
+		if bit_rshift(num, 60) == NUM_ZERO then
 			num = bit_lshift(num, 4)
 			count = count + 4
 		end
 
-		if bit_rshift(num, 62) == ID_ZERO then
+		if bit_rshift(num, 62) == NUM_ZERO then
 			num = bit_lshift(num, 2)
 			count = count + 2
 		end
 
-		if bit_rshift(num, 63) == ID_ZERO then
-			count = count + ID_ONE
+		if bit_rshift(num, 63) == NUM_ZERO then
+			count = count + NUM_ONE
 		end
 
 		return count
@@ -296,49 +296,49 @@ do
 
 	function ctz.i64(num)
 		if num == 0 then
-			return 64 * ID_ONE
+			return 64 * NUM_ONE
 		end
 
-		local count = ID_ZERO
+		local count = NUM_ZERO
 
-		if bit_lshift(num, 32) == ID_ZERO then
+		if bit_lshift(num, 32) == NUM_ZERO then
 			num = bit_rshift(num, 32)
 			count = count + 32
 		end
 
-		if bit_lshift(num, 48) == ID_ZERO then
+		if bit_lshift(num, 48) == NUM_ZERO then
 			num = bit_rshift(num, 16)
 			count = count + 16
 		end
 
-		if bit_lshift(num, 56) == ID_ZERO then
+		if bit_lshift(num, 56) == NUM_ZERO then
 			num = bit_rshift(num, 8)
 			count = count + 8
 		end
 
-		if bit_lshift(num, 60) == ID_ZERO then
+		if bit_lshift(num, 60) == NUM_ZERO then
 			num = bit_rshift(num, 4)
 			count = count + 4
 		end
 
-		if bit_lshift(num, 62) == ID_ZERO then
+		if bit_lshift(num, 62) == NUM_ZERO then
 			num = bit_rshift(num, 2)
 			count = count + 2
 		end
 
-		if bit_lshift(num, 63) == ID_ZERO then
-			count = count + ID_ONE
+		if bit_lshift(num, 63) == NUM_ZERO then
+			count = count + NUM_ONE
 		end
 
 		return count
 	end
 
 	function popcnt.i64(num)
-		local count = ID_ZERO
+		local count = NUM_ZERO
 
-		while num ~= ID_ZERO do
-			num = bit_and(num, num - ID_ONE)
-			count = count + ID_ONE
+		while num ~= NUM_ZERO do
+			num = bit_and(num, num - NUM_ONE)
+			count = count + NUM_ONE
 		end
 
 		return count
@@ -395,7 +395,7 @@ end
 
 do
 	local wrap = {}
-	local trunc = {}
+	local truncate = {}
 	local extend = {}
 	local convert = {}
 	local promote = {}
@@ -419,14 +419,14 @@ do
 		return RE_INSTANCE.i32
 	end
 
-	trunc.i32_f32 = truncate
-	trunc.i32_f64 = truncate
-	trunc.i64_f32 = i64
-	trunc.i64_f64 = i64
-	trunc.u64_f32 = i64
-	trunc.u64_f64 = i64
-	trunc.f32 = truncate
-	trunc.f64 = truncate
+	truncate.i32_f32 = truncate_f64
+	truncate.i32_f64 = truncate_f64
+	truncate.i64_f32 = i64
+	truncate.i64_f64 = i64
+	truncate.u64_f32 = i64
+	truncate.u64_f64 = i64
+	truncate.f32 = truncate_f64
+	truncate.f64 = truncate_f64
 
 	function extend.i32_n8(num)
 		num = bit_and(num, 0xFF)
@@ -481,7 +481,7 @@ do
 	extend.i64_i32 = i64
 
 	function extend.i64_u32(num)
-		RE_INSTANCE.i64 = ID_ZERO
+		RE_INSTANCE.i64 = NUM_ZERO
 		RE_INSTANCE.i32 = num
 
 		return RE_INSTANCE.i64
@@ -544,7 +544,7 @@ do
 	end
 
 	module.wrap = wrap
-	module.trunc = trunc
+	module.truncate = truncate
 	module.extend = extend
 	module.convert = convert
 	module.demote = demote

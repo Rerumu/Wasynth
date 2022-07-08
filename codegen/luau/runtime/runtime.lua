@@ -363,7 +363,7 @@ end
 
 do
 	local wrap = {}
-	local trunc = {}
+	local truncate = {}
 	local extend = {}
 	local convert = {}
 	local demote = {}
@@ -388,12 +388,12 @@ do
 		return data_1
 	end
 
-	trunc.i32_f32 = to_u32
-	trunc.i32_f64 = to_u32
-	trunc.u32_f32 = no_op
-	trunc.u32_f64 = no_op
+	truncate.i32_f32 = to_u32
+	truncate.i32_f64 = to_u32
+	truncate.u32_f32 = no_op
+	truncate.u32_f64 = no_op
 
-	function trunc.i64_f32(num)
+	function truncate.i64_f32(num)
 		if num < 0 then
 			local temp = num_from_u64(-math_ceil(num))
 
@@ -405,7 +405,7 @@ do
 		end
 	end
 
-	function trunc.i64_f64(num)
+	function truncate.i64_f64(num)
 		if num < 0 then
 			local temp = num_from_u64(-math_ceil(num))
 
@@ -417,10 +417,10 @@ do
 		end
 	end
 
-	trunc.u64_f32 = num_from_u64
-	trunc.u64_f64 = num_from_u64
+	truncate.u64_f32 = num_from_u64
+	truncate.u64_f64 = num_from_u64
 
-	function trunc.f32(num)
+	function truncate.f32(num)
 		if num >= 0 then
 			return math_floor(num)
 		else
@@ -428,7 +428,7 @@ do
 		end
 	end
 
-	trunc.f64 = trunc.f32
+	truncate.f64 = truncate.f32
 
 	function extend.i32_n8(num)
 		num = bit_and(num, 0xFF)
@@ -564,7 +564,7 @@ do
 	end
 
 	module.wrap = wrap
-	module.trunc = trunc
+	module.truncate = truncate
 	module.extend = extend
 	module.convert = convert
 	module.demote = demote
@@ -856,7 +856,7 @@ do
 		store_i64(memory, addr, reinterpret_i64_f64(value))
 	end
 
-	function store.string(memory, offset, data, len)
+	function store.string(memory, addr, data, len)
 		len = len or #data
 
 		local rem = len % 4
@@ -864,13 +864,13 @@ do
 		for i = 1, len - rem, 4 do
 			local v = string_unpack("<I4", data, i)
 
-			store_i32(memory, offset + i - 1, v)
+			store_i32(memory, addr + i - 1, v)
 		end
 
 		for i = len - rem + 1, len do
 			local v = string_byte(data, i)
 
-			store_i8(memory, offset + i - 1, v)
+			store_i8(memory, addr + i - 1, v)
 		end
 	end
 

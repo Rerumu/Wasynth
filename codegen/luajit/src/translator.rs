@@ -227,7 +227,6 @@ fn write_local_operation(head: &str, tail: &str, w: &mut dyn Write) -> Result<()
 		("shr", "u32" | "u64") => write!(w, "bit.rshift "),
 		("rotl", _) => write!(w, "bit.rol "),
 		("rotr", _) => write!(w, "bit.ror "),
-		("trunc", "u32_f32" | "u32_f64") => write!(w, "math.floor "),
 		("convert", "f32_i64" | "f64_i64") => write!(w, "tonumber "),
 		_ => write!(w, "rt.{head}.{tail} "),
 	}
