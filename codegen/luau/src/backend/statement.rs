@@ -9,7 +9,7 @@ use wasm_ast::node::{
 };
 use wasmparser::ValType;
 
-use crate::analyzer::br_table;
+use crate::analyzer::br_target;
 
 use super::manager::{
 	write_ascending, write_condition, write_separated, write_variable, Driver, Manager,
@@ -130,7 +130,7 @@ fn write_br_gadget(
 	label: usize,
 	w: &mut dyn Write,
 ) -> Result<()> {
-	if label_list.len() == 1 {
+	if label_list.len() == 1 || label_list.iter().all(Option::is_none) {
 		return Ok(());
 	}
 
@@ -340,17 +340,20 @@ fn write_variable_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 
 impl Driver for FuncData {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let br_map = br_table::visit(self);
+		let br_data = br_target::visit(self);
 
 		write_parameter_list(self, w)?;
 		write_variable_list(self, w)?;
-		write!(w, "local desired ")?;
 
-		if !br_map.is_empty() {
+		if br_data.1 {
+			write!(w, "local desired ")?;
+		}
+
+		if !br_data.0.is_empty() {
 			write!(w, "local br_map = {{}} ")?;
 		}
 
-		mng.set_table_map(br_map);
+		mng.set_table_map(br_data.0);
 		mng.set_num_param(self.num_param());
 		self.code().write(mng, w)?;
 
