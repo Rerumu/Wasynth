@@ -499,25 +499,15 @@ do
 		return (to_number(u64(num)))
 	end
 
-	function convert.f64_i32(num)
-		return num
-	end
-
-	function convert.f64_u32(num)
-		return (to_number(u32(num)))
-	end
-
-	function convert.f64_u64(num)
-		return (to_number(u64(num)))
-	end
+	convert.f64_i32 = convert.f32_i32
+	convert.f64_u32 = convert.f32_u32
+	convert.f64_u64 = convert.f32_u64
 
 	function demote.f32_f64(num)
 		return num
 	end
 
-	function promote.f64_f32(num)
-		return num
-	end
+	promote.f64_f32 = demote.f32_f64
 
 	function reinterpret.i32_f32(num)
 		RE_INSTANCE.f32 = num
