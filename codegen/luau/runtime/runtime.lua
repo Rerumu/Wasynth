@@ -364,6 +364,7 @@ end
 do
 	local wrap = {}
 	local truncate = {}
+	local saturate = {}
 	local extend = {}
 	local convert = {}
 	local demote = {}
@@ -372,9 +373,15 @@ do
 
 	local math_ceil = math.ceil
 	local math_floor = math.floor
+	local math_clamp = math.clamp
 
 	local string_pack = string.pack
 	local string_unpack = string.unpack
+
+	local NUM_ZERO = Integer.ZERO
+	local NUM_MIN_I64 = num_from_u32(0, 0x80000000)
+	local NUM_MAX_I64 = num_from_u32(0xFFFFFFFF, 0x7FFFFFFF)
+	local NUM_MAX_U64 = num_from_u32(0xFFFFFFFF, 0xFFFFFFFF)
 
 	local num_from_u64 = Integer.from_u64
 	local num_into_u64 = Integer.into_u64
@@ -382,45 +389,7 @@ do
 	local num_negate = Integer.negate
 	local num_is_negative = Integer.is_negative
 
-	function wrap.i32_i64(num)
-		local data_1, _ = num_into_u32(num)
-
-		return data_1
-	end
-
-	truncate.i32_f32 = to_u32
-	truncate.i32_f64 = to_u32
-	truncate.u32_f32 = no_op
-	truncate.u32_f64 = no_op
-
-	function truncate.i64_f32(num)
-		if num < 0 then
-			local temp = num_from_u64(-math_ceil(num))
-
-			return num_negate(temp)
-		else
-			local temp = math_floor(num)
-
-			return num_from_u64(temp)
-		end
-	end
-
-	function truncate.i64_f64(num)
-		if num < 0 then
-			local temp = num_from_u64(-math_ceil(num))
-
-			return num_negate(temp)
-		else
-			local temp = math_floor(num)
-
-			return num_from_u64(temp)
-		end
-	end
-
-	truncate.u64_f32 = num_from_u64
-	truncate.u64_f64 = num_from_u64
-
-	function truncate.f32(num)
+	local function truncate_f64(num)
 		if num >= 0 then
 			return math_floor(num)
 		else
@@ -428,7 +397,78 @@ do
 		end
 	end
 
-	truncate.f64 = truncate.f32
+	function wrap.i32_i64(num)
+		local data_1, _ = num_into_u32(num)
+
+		return data_1
+	end
+
+	function truncate.i32_f32(num)
+		return to_u32(truncate_f64(num))
+	end
+
+	truncate.i32_f64 = to_u32
+	truncate.u32_f32 = truncate_f64
+	truncate.u32_f64 = truncate_f64
+
+	function truncate.i64_f32(num)
+		if num < 0 then
+			local temp = num_from_u64(-num)
+
+			return num_negate(temp)
+		else
+			return num_from_u64(num)
+		end
+	end
+
+	truncate.i64_f64 = truncate.i64_f32
+
+	function truncate.u64_f32(num)
+		if num <= 0 then
+			return NUM_ZERO
+		else
+			return num_from_u64(math_floor(num))
+		end
+	end
+
+	truncate.u64_f64 = truncate.u64_f32
+
+	truncate.f32 = truncate_f64
+	truncate.f64 = truncate_f64
+
+	function saturate.i32_f64(num)
+		local temp = math_clamp(truncate_f64(num), -0x80000000, 0x7FFFFFFF)
+
+		return to_u32(temp)
+	end
+
+	function saturate.u32_f64(num)
+		local temp = math_clamp(truncate_f64(num), 0, 0xFFFFFFFF)
+
+		return to_u32(temp)
+	end
+
+	local truncate_i64_f64 = truncate.i64_f64
+
+	function saturate.i64_f64(num)
+		if num >= 2 ^ 63 - 1 then
+			return NUM_MAX_I64
+		elseif num <= -2 ^ 63 then
+			return NUM_MIN_I64
+		else
+			return truncate_i64_f64(num)
+		end
+	end
+
+	function saturate.u64_f64(num)
+		if num >= 2 ^ 64 then
+			return NUM_MAX_U64
+		elseif num <= 0 then
+			return NUM_ZERO
+		else
+			return truncate_i64_f64(num)
+		end
+	end
 
 	function extend.i32_n8(num)
 		num = bit_and(num, 0xFF)
@@ -504,7 +544,7 @@ do
 		return num_from_u32(num, 0)
 	end
 
-	convert.f32_i32 = no_op
+	convert.f32_i32 = to_i32
 	convert.f32_u32 = no_op
 
 	function convert.f32_i64(num)
@@ -520,17 +560,7 @@ do
 	convert.f32_u64 = num_into_u64
 	convert.f64_i32 = to_i32
 	convert.f64_u32 = no_op
-
-	function convert.f64_i64(num)
-		if num_is_negative(num) then
-			local temp = num_negate(num)
-
-			return -num_into_u64(temp)
-		else
-			return num_into_u64(num)
-		end
-	end
-
+	convert.f64_i64 = convert.f32_i64
 	convert.f64_u64 = num_into_u64
 
 	demote.f32_f64 = no_op
@@ -565,6 +595,7 @@ do
 
 	module.wrap = wrap
 	module.truncate = truncate
+	module.saturate = saturate
 	module.extend = extend
 	module.convert = convert
 	module.demote = demote

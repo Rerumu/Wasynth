@@ -10,6 +10,7 @@ local i64 = ffi.typeof("int64_t")
 local math_ceil = math.ceil
 local math_floor = math.floor
 local to_number = tonumber
+local to_signed = bit.tobit
 
 local NUM_ZERO = i64(0)
 local NUM_ONE = i64(1)
@@ -33,8 +34,6 @@ do
 	local max = {}
 	local copysign = {}
 	local nearest = {}
-
-	local to_signed = bit.tobit
 
 	local math_abs = math.abs
 	local math_min = math.min
@@ -396,6 +395,7 @@ end
 do
 	local wrap = {}
 	local truncate = {}
+	local saturate = {}
 	local extend = {}
 	local convert = {}
 	local promote = {}
@@ -403,6 +403,10 @@ do
 	local reinterpret = {}
 
 	local bit_and = bit.band
+
+	local NUM_MIN_I64 = bit.lshift(NUM_ONE, 63)
+	local NUM_MAX_I64 = bit.bnot(NUM_MIN_I64)
+	local NUM_MAX_U64 = bit.bnot(NUM_ZERO)
 
 	-- This would surely be an issue in a multi-thread environment...
 	-- ... thankfully this isn't one.
@@ -421,12 +425,65 @@ do
 
 	truncate.i32_f32 = truncate_f64
 	truncate.i32_f64 = truncate_f64
+
+	function truncate.u32_f32(num)
+		return (to_signed(truncate_f64(num)))
+	end
+
+	truncate.u32_f64 = truncate.u32_f32
+
 	truncate.i64_f32 = i64
 	truncate.i64_f64 = i64
 	truncate.u64_f32 = i64
-	truncate.u64_f64 = i64
+
+	function truncate.u64_f64(num)
+		return (i64(u64(num)))
+	end
+
 	truncate.f32 = truncate_f64
 	truncate.f64 = truncate_f64
+
+	function saturate.i32_f64(num)
+		if num <= -0x80000000 then
+			return -0x80000000
+		elseif num >= 0x7FFFFFFF then
+			return 0x7FFFFFFF
+		else
+			return to_signed(truncate_f64(num))
+		end
+	end
+
+	function saturate.u32_f64(num)
+		if num <= 0 then
+			return 0
+		elseif num >= 0xFFFFFFFF then
+			return -1
+		else
+			return to_signed(truncate_f64(num))
+		end
+	end
+
+	function saturate.i64_f64(num)
+		if num >= 2 ^ 63 - 1 then
+			return NUM_MAX_I64
+		elseif num <= -2 ^ 63 then
+			return NUM_MIN_I64
+		elseif num ~= num then
+			return NUM_ZERO
+		else
+			return i64(num)
+		end
+	end
+
+	function saturate.u64_f64(num)
+		if num >= 2 ^ 64 then
+			return NUM_MAX_U64
+		elseif num <= 0 or num ~= num then
+			return NUM_ZERO
+		else
+			return i64(u64(num))
+		end
+	end
 
 	function extend.i32_n8(num)
 		num = bit_and(num, 0xFF)
@@ -535,6 +592,7 @@ do
 
 	module.wrap = wrap
 	module.truncate = truncate
+	module.saturate = saturate
 	module.extend = extend
 	module.convert = convert
 	module.demote = demote
