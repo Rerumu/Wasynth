@@ -436,21 +436,25 @@ do
 	truncate.f32 = truncate_f64
 	truncate.f64 = truncate_f64
 
-	function saturate.i32_f64(num)
+	function saturate.i32_f32(num)
 		local temp = math_clamp(truncate_f64(num), -0x80000000, 0x7FFFFFFF)
 
 		return to_u32(temp)
 	end
 
-	function saturate.u32_f64(num)
+	saturate.i32_f64 = saturate.i32_f32
+
+	function saturate.u32_f32(num)
 		local temp = math_clamp(truncate_f64(num), 0, 0xFFFFFFFF)
 
 		return to_u32(temp)
 	end
 
+	saturate.u32_f64 = saturate.u32_f32
+
 	local truncate_i64_f64 = truncate.i64_f64
 
-	function saturate.i64_f64(num)
+	function saturate.i64_f32(num)
 		if num >= 2 ^ 63 - 1 then
 			return NUM_MAX_I64
 		elseif num <= -2 ^ 63 then
@@ -460,7 +464,9 @@ do
 		end
 	end
 
-	function saturate.u64_f64(num)
+	saturate.i64_f64 = saturate.i64_f32
+
+	function saturate.u64_f32(num)
 		if num >= 2 ^ 64 then
 			return NUM_MAX_U64
 		elseif num <= 0 then
@@ -469,6 +475,8 @@ do
 			return truncate_i64_f64(num)
 		end
 	end
+
+	saturate.u64_f64 = saturate.u64_f32
 
 	function extend.i32_n8(num)
 		num = bit_and(num, 0xFF)
