@@ -31,7 +31,7 @@ function Numeric.into_u32(data)
 end
 
 function Numeric.from_u64(value)
-	return from_u32(bit_and(value), bit_and(value / 0x100000000))
+	return from_u32(bit_and(value % 0x100000000), bit_and(value / 0x100000000))
 end
 
 function Numeric.into_u64(value)
