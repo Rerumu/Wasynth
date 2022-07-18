@@ -28,18 +28,18 @@ local constructor = Vector3.new
 
 function Numeric.from_u32(data_1, data_2)
 	local x = bit_and(data_1, 0x3FFFFF)
-	local y = bit_or(bit_and(data_1, 0xFFC00000), bit_and(data_2, 0xFFF))
-	local z = bit_extract(data_2, 12, 20)
+	local y = bit_and(data_2, 0x3FFFFF)
+	local z = bit_replace(bit_rshift(data_1, 22), bit_rshift(data_2, 22), 10, 10)
 
 	return constructor(x, y, z)
 end
 
 local function load_d1(value)
-	return bit_or(bit_and(value.X, 0x3FFFFF), bit_and(value.Y, 0xFFC00000))
+	return bit_replace(bit_and(value.X, 0x3FFFFF), value.Z, 22, 10)
 end
 
 local function load_d2(value)
-	return bit_replace(bit_and(value.Y, 0xFFF), value.Z, 12, 20)
+	return bit_replace(bit_and(value.Y, 0x3FFFFF), bit_rshift(value.Z, 10), 22, 10)
 end
 
 function Numeric.into_u32(value)
