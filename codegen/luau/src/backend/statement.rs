@@ -125,41 +125,33 @@ impl Driver for Terminator {
 	}
 }
 
-fn write_br_gadget(
-	label_list: &[Option<LabelType>],
-	label: usize,
-	w: &mut dyn Write,
-) -> Result<()> {
-	if label_list.len() == 1 || label_list.iter().all(Option::is_none) {
+fn write_br_parent(label_list: &[Option<LabelType>], w: &mut dyn Write) -> Result<()> {
+	if label_list.iter().all(Option::is_none) {
 		return Ok(());
 	}
 
 	write!(w, "if desired then ")?;
 
-	match label_list.last().unwrap() {
-		Some(t) => {
-			write!(w, "if desired == {label} then ")?;
-			write!(w, "desired = nil ")?;
+	if let Some(last) = label_list.last().unwrap() {
+		let level = label_list.len() - 1;
 
-			if *t == LabelType::Backward {
-				write!(w, "continue ")?;
-			}
+		write!(w, "if desired == {level} then ")?;
+		write!(w, "desired = nil ")?;
 
-			write!(w, "else ")?;
-			write!(w, "break ")?;
-			write!(w, "end ")?;
+		if *last == LabelType::Backward {
+			write!(w, "continue ")?;
 		}
-		None => {
-			write!(w, "break ")?;
-		}
+
+		write!(w, "end ")?;
 	}
 
+	write!(w, "break ")?;
 	write!(w, "end ")
 }
 
 impl Driver for Block {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let label = mng.push_label(self.label_type());
+		mng.push_label(self.label_type());
 
 		write!(w, "while true do ")?;
 
@@ -172,10 +164,8 @@ impl Driver for Block {
 
 		write!(w, "end ")?;
 
-		write_br_gadget(mng.label_list(), label, w)?;
 		mng.pop_label();
-
-		Ok(())
+		write_br_parent(mng.label_list(), w)
 	}
 }
 

@@ -34,10 +34,8 @@ impl Manager {
 		&self.label_list
 	}
 
-	pub fn push_label(&mut self, label: Option<LabelType>) -> usize {
+	pub fn push_label(&mut self, label: Option<LabelType>) {
 		self.label_list.push(label);
-
-		self.label_list.len() - 1
 	}
 
 	pub fn pop_label(&mut self) {
