@@ -514,7 +514,7 @@ do
 	end
 
 	function extend.i64_n8(num)
-		num = bit_and(num, 0xFF)
+		num = bit_and(num, 0xFF * NUM_ONE)
 
 		if num >= 0x80 then
 			return num - 0x100
@@ -524,7 +524,7 @@ do
 	end
 
 	function extend.i64_n16(num)
-		num = bit_and(num, 0xFFFF)
+		num = bit_and(num, 0xFFFF * NUM_ONE)
 
 		if num >= 0x8000 then
 			return num - 0x10000
@@ -534,7 +534,7 @@ do
 	end
 
 	function extend.i64_n32(num)
-		num = bit_and(num, 0xFFFFFFFF)
+		num = bit_and(num, 0xFFFFFFFF * NUM_ONE)
 
 		if num >= 0x80000000 then
 			return num - 0x100000000
