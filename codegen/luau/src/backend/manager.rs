@@ -12,7 +12,6 @@ use crate::analyzer::as_symbol::AsSymbol;
 pub struct Manager {
 	table_map: HashMap<usize, usize>,
 	label_list: Vec<Option<LabelType>>,
-	num_param: usize,
 }
 
 impl Manager {
@@ -24,10 +23,6 @@ impl Manager {
 
 	pub fn set_table_map(&mut self, map: HashMap<usize, usize>) {
 		self.table_map = map;
-	}
-
-	pub fn set_num_param(&mut self, num_param: usize) {
-		self.num_param = num_param;
 	}
 
 	pub fn label_list(&self) -> &[Option<LabelType>] {
@@ -65,14 +60,6 @@ where
 
 pub fn write_ascending(prefix: &str, range: Range<usize>, w: &mut dyn Write) -> Result<()> {
 	write_separated(range, |i, w| write!(w, "{prefix}_{i}"), w)
-}
-
-pub fn write_variable(var: usize, mng: &Manager, w: &mut dyn Write) -> Result<()> {
-	if let Some(rem) = var.checked_sub(mng.num_param) {
-		write!(w, "loc_{rem} ")
-	} else {
-		write!(w, "param_{var} ")
-	}
 }
 
 pub fn write_cmp_op(cmp: &CmpOp, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {

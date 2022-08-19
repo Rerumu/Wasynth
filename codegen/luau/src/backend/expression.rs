@@ -10,9 +10,7 @@ use wasm_ast::node::{
 
 use crate::analyzer::as_symbol::AsSymbol;
 
-use super::manager::{
-	write_cmp_op, write_condition, write_separated, write_variable, Driver, Manager,
-};
+use super::manager::{write_cmp_op, write_condition, write_separated, Driver, Manager};
 
 macro_rules! impl_write_number {
 	($name:tt, $numeric:ty) => {
@@ -47,8 +45,8 @@ impl Driver for GetTemporary {
 }
 
 impl Driver for GetLocal {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write_variable(self.var(), mng, w)
+	fn write(&self, _: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		write!(w, "loc_{} ", self.var())
 	}
 }
 

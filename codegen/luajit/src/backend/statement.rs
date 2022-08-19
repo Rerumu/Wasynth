@@ -11,9 +11,7 @@ use wasmparser::ValType;
 
 use crate::analyzer::br_table;
 
-use super::manager::{
-	write_ascending, write_condition, write_separated, write_variable, Driver, Manager,
-};
+use super::manager::{write_ascending, write_condition, write_separated, Driver, Manager};
 
 impl Driver for Br {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
@@ -223,8 +221,7 @@ impl Driver for SetTemporary {
 
 impl Driver for SetLocal {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write_variable(self.var(), mng, w)?;
-		write!(w, "= ")?;
+		write!(w, "loc_{} = ", self.var())?;
 		self.value().write(mng, w)
 	}
 }
@@ -281,12 +278,12 @@ impl Driver for Statement {
 
 fn write_parameter_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 	write!(w, "function(")?;
-	write_ascending("param", 0..ast.num_param(), w)?;
+	write_ascending("loc", 0..ast.num_param(), w)?;
 	write!(w, ")")
 }
 
 fn write_variable_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
-	let mut total = 0;
+	let mut total = ast.num_param();
 
 	for data in ast.local_data().iter().filter(|v| v.0 != 0) {
 		let range = total..total + usize::try_from(data.0).unwrap();
@@ -322,7 +319,6 @@ impl Driver for FuncData {
 		}
 
 		mng.set_table_map(br_map);
-		mng.set_num_param(self.num_param());
 		self.code().write(mng, w)?;
 
 		if self.num_result() != 0 {
