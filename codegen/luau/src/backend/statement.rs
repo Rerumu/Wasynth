@@ -11,7 +11,10 @@ use wasmparser::ValType;
 
 use crate::analyzer::br_target;
 
-use super::manager::{write_ascending, write_condition, write_separated, Driver, Manager};
+use super::{
+	expression::Condition,
+	manager::{write_ascending, write_separated, Driver, DriverNoContext, Manager},
+};
 
 impl Driver for Br {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
@@ -90,7 +93,7 @@ fn write_table_setup(table: &BrTable, mng: &mut Manager, w: &mut dyn Write) -> R
 	write!(w, "end ")?;
 
 	write!(w, "local temp = br_map[{id}][")?;
-	table.condition().write(mng, w)?;
+	table.condition().write(w)?;
 	write!(w, "] or {} ", table.default().target())
 }
 
@@ -170,7 +173,7 @@ impl Driver for Block {
 impl Driver for BrIf {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "if ")?;
-		write_condition(self.condition(), mng, w)?;
+		Condition(self.condition()).write(w)?;
 		write!(w, "then ")?;
 		self.target().write(mng, w)?;
 		write!(w, "end ")
@@ -180,7 +183,7 @@ impl Driver for BrIf {
 impl Driver for If {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "if ")?;
-		write_condition(self.condition(), mng, w)?;
+		Condition(self.condition()).write(w)?;
 		write!(w, "then ")?;
 
 		self.on_true().write(mng, w)?;
@@ -204,71 +207,71 @@ fn write_call_store(result: Range<usize>, w: &mut dyn Write) -> Result<()> {
 	write!(w, " = ")
 }
 
-impl Driver for Call {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+impl DriverNoContext for Call {
+	fn write(&self, w: &mut dyn Write) -> Result<()> {
 		write_call_store(self.result(), w)?;
 
 		write!(w, "FUNC_LIST[{}](", self.function())?;
-		self.param_list().write(mng, w)?;
+		self.param_list().write(w)?;
 		write!(w, ")")
 	}
 }
 
-impl Driver for CallIndirect {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+impl DriverNoContext for CallIndirect {
+	fn write(&self, w: &mut dyn Write) -> Result<()> {
 		write_call_store(self.result(), w)?;
 
 		write!(w, "TABLE_LIST[{}].data[", self.table())?;
-		self.index().write(mng, w)?;
+		self.index().write(w)?;
 		write!(w, "](")?;
-		self.param_list().write(mng, w)?;
+		self.param_list().write(w)?;
 		write!(w, ")")
 	}
 }
 
-impl Driver for SetTemporary {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+impl DriverNoContext for SetTemporary {
+	fn write(&self, w: &mut dyn Write) -> Result<()> {
 		write!(w, "reg_{} = ", self.var())?;
-		self.value().write(mng, w)
+		self.value().write(w)
 	}
 }
 
-impl Driver for SetLocal {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+impl DriverNoContext for SetLocal {
+	fn write(&self, w: &mut dyn Write) -> Result<()> {
 		write!(w, "loc_{} = ", self.var())?;
-		self.value().write(mng, w)
+		self.value().write(w)
 	}
 }
 
-impl Driver for SetGlobal {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+impl DriverNoContext for SetGlobal {
+	fn write(&self, w: &mut dyn Write) -> Result<()> {
 		write!(w, "GLOBAL_LIST[{}].value = ", self.var())?;
-		self.value().write(mng, w)
+		self.value().write(w)
 	}
 }
 
-impl Driver for StoreAt {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+impl DriverNoContext for StoreAt {
+	fn write(&self, w: &mut dyn Write) -> Result<()> {
 		write!(w, "store_{}(memory_at_0, ", self.store_type().as_name())?;
-		self.pointer().write(mng, w)?;
+		self.pointer().write(w)?;
 
 		if self.offset() != 0 {
 			write!(w, "+ {}", self.offset())?;
 		}
 
 		write!(w, ", ")?;
-		self.value().write(mng, w)?;
+		self.value().write(w)?;
 		write!(w, ")")
 	}
 }
 
-impl Driver for MemoryGrow {
-	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+impl DriverNoContext for MemoryGrow {
+	fn write(&self, w: &mut dyn Write) -> Result<()> {
 		let result = self.result();
 		let memory = self.memory();
 
 		write!(w, "reg_{result} = rt.allocator.grow(memory_at_{memory}, ")?;
-		self.size().write(mng, w)?;
+		self.size().write(w)?;
 		write!(w, ")")
 	}
 }
@@ -279,13 +282,13 @@ impl Driver for Statement {
 			Self::Block(s) => s.write(mng, w),
 			Self::BrIf(s) => s.write(mng, w),
 			Self::If(s) => s.write(mng, w),
-			Self::Call(s) => s.write(mng, w),
-			Self::CallIndirect(s) => s.write(mng, w),
-			Self::SetTemporary(s) => s.write(mng, w),
-			Self::SetLocal(s) => s.write(mng, w),
-			Self::SetGlobal(s) => s.write(mng, w),
-			Self::StoreAt(s) => s.write(mng, w),
-			Self::MemoryGrow(s) => s.write(mng, w),
+			Self::Call(s) => s.write(w),
+			Self::CallIndirect(s) => s.write(w),
+			Self::SetTemporary(s) => s.write(w),
+			Self::SetLocal(s) => s.write(w),
+			Self::SetGlobal(s) => s.write(w),
+			Self::StoreAt(s) => s.write(w),
+			Self::MemoryGrow(s) => s.write(w),
 		}
 	}
 }

@@ -15,7 +15,7 @@ use wasmparser::{
 
 use crate::{
 	analyzer::localize,
-	backend::manager::{Driver, Manager},
+	backend::manager::{Driver, DriverNoContext, Manager},
 };
 
 trait AsIEName {
@@ -54,7 +54,7 @@ fn write_constant(init: &InitExpr, type_info: &TypeInfo, w: &mut dyn Write) -> R
 	let func = Factory::from_type_info(type_info).create_anonymous(&code);
 
 	if let Some(Statement::SetTemporary(stat)) = func.code().code().last() {
-		stat.value().write(&mut Manager::default(), w)
+		stat.value().write(w)
 	} else {
 		write!(w, r#"error("Valueless constant")"#)
 	}

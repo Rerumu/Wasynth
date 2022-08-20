@@ -4,9 +4,7 @@ use std::{
 	ops::Range,
 };
 
-use wasm_ast::node::{BrTable, CmpOp, Expression, LabelType};
-
-use crate::analyzer::as_symbol::AsSymbol;
+use wasm_ast::node::{BrTable, LabelType};
 
 #[derive(Default)]
 pub struct Manager {
@@ -42,6 +40,10 @@ pub trait Driver {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()>;
 }
 
+pub trait DriverNoContext {
+	fn write(&self, w: &mut dyn Write) -> Result<()>;
+}
+
 pub fn write_separated<I, T, M>(mut iter: I, mut func: M, w: &mut dyn Write) -> Result<()>
 where
 	M: FnMut(T, &mut dyn Write) -> Result<()>,
@@ -60,29 +62,4 @@ where
 
 pub fn write_ascending(prefix: &str, range: Range<usize>, w: &mut dyn Write) -> Result<()> {
 	write_separated(range, |i, w| write!(w, "{prefix}_{i}"), w)
-}
-
-pub fn write_cmp_op(cmp: &CmpOp, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-	if let Some(symbol) = cmp.op_type().as_symbol() {
-		cmp.lhs().write(mng, w)?;
-		write!(w, "{symbol} ")?;
-		cmp.rhs().write(mng, w)
-	} else {
-		let (head, tail) = cmp.op_type().as_name();
-
-		write!(w, "{head}_{tail}(")?;
-		cmp.lhs().write(mng, w)?;
-		write!(w, ", ")?;
-		cmp.rhs().write(mng, w)?;
-		write!(w, ")")
-	}
-}
-
-pub fn write_condition(data: &Expression, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-	if let Expression::CmpOp(node) = data {
-		write_cmp_op(node, mng, w)
-	} else {
-		data.write(mng, w)?;
-		write!(w, "~= 0 ")
-	}
 }
