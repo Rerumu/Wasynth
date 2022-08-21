@@ -46,7 +46,7 @@ fn write_named_array(name: &str, len: usize, w: &mut dyn Write) -> Result<()> {
 		None => return Ok(()),
 	};
 
-	write!(w, "local {name} = table_new({len}, 1)")
+	writeln!(w, "local {name} = table_new({len}, 1)")
 }
 
 fn write_constant(init: &InitExpr, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
@@ -56,7 +56,7 @@ fn write_constant(init: &InitExpr, type_info: &TypeInfo, w: &mut dyn Write) -> R
 	if let Some(Statement::SetTemporary(stat)) = func.code().code().last() {
 		stat.value().write(w)
 	} else {
-		write!(w, r#"error("Valueless constant")"#)
+		writeln!(w, r#"error("Valueless constant")"#)
 	}
 }
 
@@ -69,7 +69,8 @@ fn write_import_of(list: &[Import], wanted: External, w: &mut dyn Write) -> Resu
 		.filter(|v| External::from(v.ty) == wanted)
 		.enumerate()
 	{
-		write!(w, r#"{upper}[{i}] = wasm["{module}"].{lower}["{name}"]"#)?;
+		write!(w, "\t")?;
+		writeln!(w, r#"{upper}[{i}] = wasm["{module}"].{lower}["{name}"]"#)?;
 	}
 
 	Ok(())
@@ -79,13 +80,14 @@ fn write_export_of(list: &[Export], wanted: External, w: &mut dyn Write) -> Resu
 	let lower = wanted.as_ie_name();
 	let upper = lower.to_uppercase();
 
-	write!(w, "{lower} = {{")?;
+	writeln!(w, "\t\t{lower} = {{")?;
 
 	for Export { name, index, .. } in list.iter().filter(|v| External::from(v.kind) == wanted) {
-		write!(w, r#"["{name}"] = {upper}[{index}],"#)?;
+		write!(w, "\t\t\t")?;
+		writeln!(w, r#"["{name}"] = {upper}[{index}],"#)?;
 	}
 
-	write!(w, "}},")
+	writeln!(w, "\t\t}},")
 }
 
 fn write_import_list(list: &[Import], w: &mut dyn Write) -> Result<()> {
@@ -111,9 +113,9 @@ fn write_table_list(wasm: &Module, w: &mut dyn Write) -> Result<()> {
 		let min = table.initial;
 		let max = table.maximum.unwrap_or(0xFFFF);
 
-		write!(
+		writeln!(
 			w,
-			"TABLE_LIST[{index}] = {{ min = {min}, max = {max}, data = {{}} }}"
+			"\tTABLE_LIST[{index}] = {{ min = {min}, max = {max}, data = {{}} }}"
 		)?;
 	}
 
@@ -129,7 +131,7 @@ fn write_memory_list(wasm: &Module, w: &mut dyn Write) -> Result<()> {
 		let min = ty.initial;
 		let max = ty.maximum.unwrap_or(0xFFFF);
 
-		write!(w, "MEMORY_LIST[{index}] = rt.allocator.new({min}, {max})")?;
+		writeln!(w, "\tMEMORY_LIST[{index}] = rt.allocator.new({min}, {max})")?;
 	}
 
 	Ok(())
@@ -142,9 +144,9 @@ fn write_global_list(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> 
 	for (i, global) in global.iter().enumerate() {
 		let index = offset + i;
 
-		write!(w, "GLOBAL_LIST[{index}] = {{ value =")?;
+		write!(w, "\tGLOBAL_LIST[{index}] = {{ value = ")?;
 		write_constant(&global.init_expr, type_info, w)?;
-		write!(w, "}}")?;
+		writeln!(w, " }}")?;
 	}
 
 	Ok(())
@@ -160,13 +162,14 @@ fn write_element_list(list: &[Element], type_info: &TypeInfo, w: &mut dyn Write)
 			_ => unimplemented!(),
 		};
 
-		write!(w, "do ")?;
-		write!(w, "local target = TABLE_LIST[{index}].data ")?;
-		write!(w, "local offset =")?;
+		writeln!(w, "\tdo")?;
+		writeln!(w, "\t\tlocal target = TABLE_LIST[{index}].data")?;
+		write!(w, "\t\tlocal offset = ")?;
 
 		write_constant(&init, type_info, w)?;
 
-		write!(w, "local data = {{")?;
+		writeln!(w)?;
+		write!(w, "\t\tlocal data = {{ ")?;
 
 		for item in element.items.get_items_reader().unwrap() {
 			match item.unwrap() {
@@ -175,11 +178,9 @@ fn write_element_list(list: &[Element], type_info: &TypeInfo, w: &mut dyn Write)
 			}?;
 		}
 
-		write!(w, "}}")?;
-
-		write!(w, "table.move(data, 1, #data, offset, target)")?;
-
-		write!(w, "end ")?;
+		writeln!(w, " }}")?;
+		writeln!(w, "\t\ttable.move(data, 1, #data, offset, target)")?;
+		writeln!(w, "\tend")?;
 	}
 
 	Ok(())
@@ -195,10 +196,9 @@ fn write_data_list(list: &[Data], type_info: &TypeInfo, w: &mut dyn Write) -> Re
 			} => (memory_index, init_expr),
 		};
 
-		write!(w, "rt.store.string(")?;
-		write!(w, "MEMORY_LIST[{index}],")?;
+		write!(w, "\trt.store.string(MEMORY_LIST[{index}], ")?;
 		write_constant(&init, type_info, w)?;
-		write!(w, r#","{}")"#, data.data.escape_ascii())?;
+		writeln!(w, r#","{}")"#, data.data.escape_ascii())?;
 	}
 
 	Ok(())
@@ -219,17 +219,19 @@ fn write_local_operation(head: &str, tail: &str, w: &mut dyn Write) -> Result<()
 	write!(w, "local {head}_{tail} = ")?;
 
 	match (head, tail) {
-		("abs" | "ceil" | "floor" | "sqrt", _) => write!(w, "math.{head} "),
-		("rem", "i32") => write!(w, "math.fmod "),
-		("band" | "bor" | "bxor" | "bnot", _) => write!(w, "bit.{head} "),
-		("shl", _) => write!(w, "bit.lshift "),
-		("shr", "i32" | "i64") => write!(w, "bit.arshift "),
-		("shr", "u32" | "u64") => write!(w, "bit.rshift "),
-		("rotl", _) => write!(w, "bit.rol "),
-		("rotr", _) => write!(w, "bit.ror "),
-		("convert", "f32_i64" | "f64_i64") => write!(w, "tonumber "),
-		_ => write!(w, "rt.{head}.{tail} "),
-	}
+		("abs" | "ceil" | "floor" | "sqrt", _) => write!(w, "math.{head}"),
+		("rem", "i32") => write!(w, "math.fmod"),
+		("band" | "bor" | "bxor" | "bnot", _) => write!(w, "bit.{head}"),
+		("shl", _) => write!(w, "bit.lshift"),
+		("shr", "i32" | "i64") => write!(w, "bit.arshift"),
+		("shr", "u32" | "u64") => write!(w, "bit.rshift"),
+		("rotl", _) => write!(w, "bit.rol"),
+		("rotr", _) => write!(w, "bit.ror"),
+		("convert", "f32_i64" | "f64_i64") => write!(w, "tonumber"),
+		_ => write!(w, "rt.{head}.{tail}"),
+	}?;
+
+	writeln!(w)
 }
 
 fn write_localize_used(func_list: &[FuncData], w: &mut dyn Write) -> Result<BTreeSet<usize>> {
@@ -246,17 +248,17 @@ fn write_localize_used(func_list: &[FuncData], w: &mut dyn Write) -> Result<BTre
 	}
 
 	for mem in &mem_set {
-		write!(w, "local memory_at_{mem} ")?;
+		writeln!(w, "local memory_at_{mem}")?;
 	}
 
 	Ok(mem_set)
 }
 
 fn write_func_start(wasm: &Module, index: u32, w: &mut dyn Write) -> Result<()> {
-	write!(w, "FUNC_LIST[{index}] =")?;
+	write!(w, "FUNC_LIST[{index}] = ")?;
 
 	match wasm.name_section().get(&index) {
-		Some(name) => write!(w, "--[[ {name} ]]"),
+		Some(name) => write!(w, "--[[ {name} ]] "),
 		None => Ok(()),
 	}
 }
@@ -279,29 +281,30 @@ fn write_module_start(
 	mem_set: &BTreeSet<usize>,
 	w: &mut dyn Write,
 ) -> Result<()> {
-	write!(w, "local function run_init_code()")?;
+	writeln!(w, "local function run_init_code()")?;
 	write_table_list(wasm, w)?;
 	write_memory_list(wasm, w)?;
 	write_global_list(wasm, type_info, w)?;
 	write_element_list(wasm.element_section(), type_info, w)?;
 	write_data_list(wasm.data_section(), type_info, w)?;
-	write!(w, "end ")?;
+	writeln!(w, "end")?;
 
-	write!(w, "return function(wasm)")?;
+	writeln!(w, "return function(wasm)")?;
 	write_import_list(wasm.import_section(), w)?;
-	write!(w, "run_init_code()")?;
+	writeln!(w, "\trun_init_code()")?;
 
 	for mem in mem_set {
-		write!(w, "memory_at_{mem} = MEMORY_LIST[{mem}]")?;
+		writeln!(w, "\tmemory_at_{mem} = MEMORY_LIST[{mem}]")?;
 	}
 
 	if let Some(start) = wasm.start_section() {
-		write!(w, "FUNC_LIST[{start}]()")?;
+		writeln!(w, "\tFUNC_LIST[{start}]()")?;
 	}
 
-	write!(w, "return {{")?;
+	writeln!(w, "\treturn {{")?;
 	write_export_list(wasm.export_section(), w)?;
-	write!(w, "}} end ")
+	writeln!(w, "\t}}")?;
+	writeln!(w, "end")
 }
 
 /// # Errors
@@ -318,7 +321,7 @@ pub fn from_module_typed(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write)
 	let func_list = build_func_list(wasm, type_info);
 	let mem_set = write_localize_used(&func_list, w)?;
 
-	write!(w, "local table_new = require(\"table.new\")")?;
+	writeln!(w, "local table_new = require(\"table.new\")")?;
 	write_named_array("FUNC_LIST", wasm.function_space(), w)?;
 	write_named_array("TABLE_LIST", wasm.table_space(), w)?;
 	write_named_array("MEMORY_LIST", wasm.memory_space(), w)?;

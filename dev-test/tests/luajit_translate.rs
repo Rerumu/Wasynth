@@ -92,9 +92,9 @@ impl Target for LuaJIT {
 				};
 				let data = Module::from_data(&bytes);
 
-				write!(w, "assert_trap((function() ")?;
+				writeln!(w, "assert_trap((function()")?;
 				codegen_luajit::from_module_untyped(&data, w)?;
-				writeln!(w, " end)(), linked)")
+				writeln!(w, "end)(), linked)")
 			}
 		}
 	}
@@ -140,7 +140,7 @@ impl Target for LuaJIT {
 		let runtime = codegen_luajit::RUNTIME;
 
 		writeln!(w, "local rt = (function()")?;
-		writeln!(w, "{runtime}")?;
+		write!(w, "{runtime}")?;
 		writeln!(w, "end)()")?;
 
 		writeln!(w, "{ASSERTION}")
@@ -149,7 +149,7 @@ impl Target for LuaJIT {
 	fn write_module(data: &Module, name: Option<&str>, w: &mut dyn Write) -> Result<()> {
 		let type_info = TypeInfo::from_module(data);
 
-		write!(w, r#"loaded["temp"] = (function() "#)?;
+		writeln!(w, r#"loaded["temp"] = (function()"#)?;
 		codegen_luajit::from_module_typed(data, &type_info, w)?;
 		writeln!(w, "end)()(linked)")?;
 

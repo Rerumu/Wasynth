@@ -9,7 +9,7 @@ use wasm_ast::node::{
 };
 use wasmparser::ValType;
 
-use crate::analyzer::br_table;
+use crate::{analyzer::br_table, indentation, indented, line};
 
 use super::{
 	expression::Condition,
@@ -21,13 +21,14 @@ impl Driver for Br {
 		let level = *mng.label_list().iter().nth_back(self.target()).unwrap();
 
 		if !self.align().is_aligned() {
+			indentation!(mng, w)?;
 			write_ascending("reg", self.align().new_range(), w)?;
 			write!(w, " = ")?;
 			write_ascending("reg", self.align().old_range(), w)?;
-			write!(w, " ")?;
+			writeln!(w)?;
 		}
 
-		write!(w, "goto continue_at_{level} ")
+		line!(mng, w, "goto continue_at_{level}")
 	}
 }
 
@@ -36,7 +37,6 @@ fn to_ordered_table<'a>(list: &'a [Br], default: &'a Br) -> Vec<&'a Br> {
 
 	data.sort_by_key(|v| v.target());
 	data.dedup_by_key(|v| v.target());
-
 	data
 }
 
@@ -54,39 +54,51 @@ fn write_search_layer(
 	let br = list[center];
 
 	if range.start != center {
-		write!(w, "if temp < {} then ", br.target())?;
+		line!(mng, w, "if temp < {} then", br.target())?;
+		mng.indent();
 		write_search_layer(range.start..center, list, mng, w)?;
-		write!(w, "else")?;
+		mng.dedent();
+		indented!(mng, w, "else")?;
 	}
 
 	if range.end != center + 1 {
-		write!(w, "if temp > {} then ", br.target())?;
+		writeln!(w, "if temp > {} then", br.target())?;
+		mng.indent();
 		write_search_layer(center + 1..range.end, list, mng, w)?;
-		write!(w, "else")?;
+		mng.dedent();
+		indented!(mng, w, "else")?;
 	}
 
-	write!(w, " ")?;
+	writeln!(w)?;
+	mng.indent();
 	br.write(mng, w)?;
-	write!(w, "end ")
+	mng.dedent();
+	line!(mng, w, "end")
 }
 
 fn write_table_setup(table: &BrTable, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 	let id = mng.get_table_index(table);
 
-	write!(w, "if not br_map[{id}] then ")?;
-	write!(w, "br_map[{id}] = (function() return {{[0] =")?;
+	line!(mng, w, "if not br_map[{id}] then")?;
+	mng.indent();
+	line!(mng, w, "br_map[{id}] = (function()")?;
+	mng.indent();
+	indented!(mng, w, "return {{ [0] = ")?;
 
 	table
 		.data()
 		.iter()
-		.try_for_each(|v| write!(w, "{},", v.target()))?;
+		.try_for_each(|v| write!(w, "{}, ", v.target()))?;
 
-	write!(w, "}} end)()")?;
-	write!(w, "end ")?;
+	writeln!(w, "}}")?;
+	mng.dedent();
+	line!(mng, w, "end)()")?;
+	mng.dedent();
+	line!(mng, w, "end")?;
 
-	write!(w, "temp = br_map[{id}][")?;
+	indented!(mng, w, "temp = br_map[{id}][")?;
 	table.condition().write(w)?;
-	write!(w, "] or {} ", table.default().target())
+	writeln!(w, "] or {}", table.default().target())
 }
 
 impl Driver for BrTable {
@@ -111,7 +123,7 @@ impl Driver for BrTable {
 impl Driver for Terminator {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
-			Self::Unreachable => write!(w, "error(\"out of code bounds\")"),
+			Self::Unreachable => line!(mng, w, r#"error("out of code bounds")"#),
 			Self::Br(s) => s.write(mng, w),
 			Self::BrTable(s) => s.write(mng, w),
 		}
@@ -121,10 +133,11 @@ impl Driver for Terminator {
 fn write_inner_block(block: &Block, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 	block.code().iter().try_for_each(|s| s.write(mng, w))?;
 
-	match block.last() {
-		Some(v) => v.write(mng, w),
-		None => Ok(()),
+	if let Some(v) = block.last() {
+		v.write(mng, w)?;
 	}
+
+	Ok(())
 }
 
 impl Driver for Block {
@@ -134,18 +147,20 @@ impl Driver for Block {
 		match self.label_type() {
 			Some(LabelType::Forward) => {
 				write_inner_block(self, mng, w)?;
-				write!(w, "::continue_at_{label}::")?;
+				line!(mng, w, "::continue_at_{label}::")?;
 			}
 			Some(LabelType::Backward) => {
-				write!(w, "::continue_at_{label}::")?;
-				write!(w, "while true do ")?;
+				line!(mng, w, "::continue_at_{label}::")?;
+				line!(mng, w, "while true do")?;
+				mng.indent();
 				write_inner_block(self, mng, w)?;
 
 				if self.last().is_none() {
-					write!(w, "break ")?;
+					line!(mng, w, "break")?;
 				}
 
-				write!(w, "end ")?;
+				mng.dedent();
+				line!(mng, w, "end")?;
 			}
 			None => write_inner_block(self, mng, w)?,
 		}
@@ -158,29 +173,34 @@ impl Driver for Block {
 
 impl Driver for BrIf {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "if ")?;
+		indented!(mng, w, "if ")?;
 		Condition(self.condition()).write(w)?;
-		write!(w, "then ")?;
+		writeln!(w, " then")?;
+		mng.indent();
 		self.target().write(mng, w)?;
-		write!(w, "end ")
+		mng.dedent();
+		line!(mng, w, "end")
 	}
 }
 
 impl Driver for If {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "if ")?;
+		indented!(mng, w, "if ")?;
 		Condition(self.condition()).write(w)?;
-		write!(w, "then ")?;
+		writeln!(w, " then")?;
 
+		mng.indent();
 		self.on_true().write(mng, w)?;
+		mng.dedent();
 
 		if let Some(v) = self.on_false() {
-			write!(w, "else ")?;
-
+			line!(mng, w, "else")?;
+			mng.indent();
 			v.write(mng, w)?;
+			mng.dedent();
 		}
 
-		write!(w, "end ")
+		line!(mng, w, "end")
 	}
 }
 
@@ -262,19 +282,25 @@ impl DriverNoContext for MemoryGrow {
 	}
 }
 
+fn write_stat(stat: &dyn DriverNoContext, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+	indentation!(mng, w)?;
+	stat.write(w)?;
+	writeln!(w)
+}
+
 impl Driver for Statement {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
 			Self::Block(s) => s.write(mng, w),
 			Self::BrIf(s) => s.write(mng, w),
 			Self::If(s) => s.write(mng, w),
-			Self::Call(s) => s.write(w),
-			Self::CallIndirect(s) => s.write(w),
-			Self::SetTemporary(s) => s.write(w),
-			Self::SetLocal(s) => s.write(w),
-			Self::SetGlobal(s) => s.write(w),
-			Self::StoreAt(s) => s.write(w),
-			Self::MemoryGrow(s) => s.write(w),
+			Self::Call(s) => write_stat(s, mng, w),
+			Self::CallIndirect(s) => write_stat(s, mng, w),
+			Self::SetTemporary(s) => write_stat(s, mng, w),
+			Self::SetLocal(s) => write_stat(s, mng, w),
+			Self::SetGlobal(s) => write_stat(s, mng, w),
+			Self::StoreAt(s) => write_stat(s, mng, w),
+			Self::MemoryGrow(s) => write_stat(s, mng, w),
 		}
 	}
 }
@@ -282,10 +308,10 @@ impl Driver for Statement {
 fn write_parameter_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 	write!(w, "function(")?;
 	write_ascending("loc", 0..ast.num_param(), w)?;
-	write!(w, ")")
+	writeln!(w, ")")
 }
 
-fn write_variable_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
+fn write_variable_list(ast: &FuncData, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 	let mut total = ast.num_param();
 
 	for data in ast.local_data().iter().filter(|v| v.0 != 0) {
@@ -294,17 +320,17 @@ fn write_variable_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 
 		total = range.end;
 
-		write!(w, "local ")?;
+		indented!(mng, w, "local ")?;
 		write_ascending("loc", range.clone(), w)?;
 		write!(w, " = ")?;
 		write_separated(range, |_, w| w.write_all(typed), w)?;
-		write!(w, " ")?;
+		writeln!(w)?;
 	}
 
 	if ast.num_stack() != 0 {
-		write!(w, "local ")?;
+		indented!(mng, w, "local ")?;
 		write_ascending("reg", 0..ast.num_stack(), w)?;
-		write!(w, " ")?;
+		writeln!(w)?;
 	}
 
 	Ok(())
@@ -314,22 +340,26 @@ impl Driver for FuncData {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let br_map = br_table::visit(self);
 
+		mng.indent();
+
 		write_parameter_list(self, w)?;
-		write_variable_list(self, w)?;
+		write_variable_list(self, mng, w)?;
 
 		if !br_map.is_empty() {
-			write!(w, "local br_map, temp = {{}}, nil ")?;
+			line!(mng, w, "local br_map, temp = {{}}, nil")?;
 		}
 
 		mng.set_table_map(br_map);
 		self.code().write(mng, w)?;
 
 		if self.num_result() != 0 {
-			write!(w, "return ")?;
+			indented!(mng, w, "return ")?;
 			write_ascending("reg", 0..self.num_result(), w)?;
-			write!(w, " ")?;
+			writeln!(w)?;
 		}
 
-		write!(w, "end ")
+		mng.dedent();
+
+		line!(mng, w, "end")
 	}
 }

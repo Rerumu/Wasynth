@@ -16,11 +16,11 @@ macro_rules! impl_write_number {
 	($name:tt, $numeric:ty) => {
 		fn $name(number: $numeric, w: &mut dyn Write) -> Result<()> {
 			match (number.classify(), number.is_sign_negative()) {
-				(FpCategory::Nan, true) => write!(w, "(0.0 / 0.0) "),
-				(FpCategory::Nan, false) => write!(w, "-(0.0 / 0.0) "),
-				(FpCategory::Infinite, true) => write!(w, "-math.huge "),
-				(FpCategory::Infinite, false) => write!(w, "math.huge "),
-				_ => write!(w, "{number:e} "),
+				(FpCategory::Nan, true) => write!(w, "(0.0 / 0.0)"),
+				(FpCategory::Nan, false) => write!(w, "-(0.0 / 0.0)"),
+				(FpCategory::Infinite, true) => write!(w, "-math.huge"),
+				(FpCategory::Infinite, false) => write!(w, "math.huge"),
+				_ => write!(w, "{number:e}"),
 			}
 		}
 	};
@@ -30,9 +30,9 @@ impl DriverNoContext for Select {
 	fn write(&self, w: &mut dyn Write) -> Result<()> {
 		write!(w, "(")?;
 		Condition(self.condition()).write(w)?;
-		write!(w, "and ")?;
+		write!(w, " and ")?;
 		self.on_true().write(w)?;
-		write!(w, "or ")?;
+		write!(w, " or ")?;
 		self.on_false().write(w)?;
 		write!(w, ")")
 	}
@@ -40,19 +40,19 @@ impl DriverNoContext for Select {
 
 impl DriverNoContext for GetTemporary {
 	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write!(w, "reg_{} ", self.var())
+		write!(w, "reg_{}", self.var())
 	}
 }
 
 impl DriverNoContext for GetLocal {
 	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write!(w, "loc_{} ", self.var())
+		write!(w, "loc_{}", self.var())
 	}
 }
 
 impl DriverNoContext for GetGlobal {
 	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write!(w, "GLOBAL_LIST[{}].value ", self.var())
+		write!(w, "GLOBAL_LIST[{}].value", self.var())
 	}
 }
 
@@ -62,7 +62,7 @@ impl DriverNoContext for LoadAt {
 		self.pointer().write(w)?;
 
 		if self.offset() != 0 {
-			write!(w, "+ {}", self.offset())?;
+			write!(w, " + {}", self.offset())?;
 		}
 
 		write!(w, ")")
@@ -71,7 +71,7 @@ impl DriverNoContext for LoadAt {
 
 impl DriverNoContext for MemorySize {
 	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write!(w, "memory_at_{}.min ", self.memory())
+		write!(w, "memory_at_{}.min", self.memory())
 	}
 }
 
@@ -81,8 +81,8 @@ impl_write_number!(write_f64, f64);
 impl DriverNoContext for Value {
 	fn write(&self, w: &mut dyn Write) -> Result<()> {
 		match self {
-			Self::I32(i) => write!(w, "{i} "),
-			Self::I64(i) => write!(w, "{i}LL "),
+			Self::I32(i) => write!(w, "{i}"),
+			Self::I64(i) => write!(w, "{i}LL"),
 			Self::F32(f) => write_f32(*f, w),
 			Self::F64(f) => write_f64(*f, w),
 		}
@@ -104,7 +104,7 @@ impl DriverNoContext for BinOp {
 		if let Some(symbol) = self.op_type().as_symbol() {
 			write!(w, "(")?;
 			self.lhs().write(w)?;
-			write!(w, "{symbol} ")?;
+			write!(w, " {symbol} ")?;
 			self.rhs().write(w)?;
 			write!(w, ")")
 		} else {
@@ -127,7 +127,7 @@ impl DriverNoContext for CmpOpBoolean<'_> {
 
 		if let Some(symbol) = cmp.op_type().as_symbol() {
 			cmp.lhs().write(w)?;
-			write!(w, "{symbol} ")?;
+			write!(w, " {symbol} ")?;
 			cmp.rhs().write(w)
 		} else {
 			let (head, tail) = cmp.op_type().as_name();
@@ -145,7 +145,7 @@ impl DriverNoContext for CmpOp {
 	fn write(&self, w: &mut dyn Write) -> Result<()> {
 		write!(w, "(")?;
 		CmpOpBoolean(self).write(w)?;
-		write!(w, "and 1 or 0)")
+		write!(w, " and 1 or 0)")
 	}
 }
 
@@ -157,7 +157,7 @@ impl DriverNoContext for Condition<'_> {
 			CmpOpBoolean(node).write(w)
 		} else {
 			self.0.write(w)?;
-			write!(w, "~= 0 ")
+			write!(w, " ~= 0")
 		}
 	}
 }
