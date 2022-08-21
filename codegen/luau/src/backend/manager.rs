@@ -6,10 +6,36 @@ use std::{
 
 use wasm_ast::node::{BrTable, LabelType};
 
+#[macro_export]
+macro_rules! indentation {
+	($mng:tt, $w:tt) => {{
+		let mut iter = 0..$mng.indentation();
+
+		iter.try_for_each(|_| write!($w, "\t"))
+	}};
+}
+
+#[macro_export]
+macro_rules! indented {
+	($mng:tt, $w:tt, $($args:tt)*) => {{
+		indentation!($mng, $w)?;
+		write!($w, $($args)*)
+	}};
+}
+
+#[macro_export]
+macro_rules! line {
+	($mng:tt, $w:tt, $($args:tt)*) => {{
+		indentation!($mng, $w)?;
+		writeln!($w, $($args)*)
+	}};
+}
+
 #[derive(Default)]
 pub struct Manager {
 	table_map: HashMap<usize, usize>,
 	label_list: Vec<Option<LabelType>>,
+	indentation: usize,
 }
 
 impl Manager {
@@ -33,6 +59,18 @@ impl Manager {
 
 	pub fn pop_label(&mut self) {
 		self.label_list.pop().unwrap();
+	}
+
+	pub fn indentation(&self) -> usize {
+		self.indentation
+	}
+
+	pub fn indent(&mut self) {
+		self.indentation += 1;
+	}
+
+	pub fn dedent(&mut self) {
+		self.indentation -= 1;
 	}
 }
 
