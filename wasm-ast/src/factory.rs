@@ -614,7 +614,7 @@ impl<'a> Factory<'a> {
 			Operator::I64Const { value } => self.target.push_constant(value),
 			Operator::F32Const { value } => self.target.push_constant(value.bits()),
 			Operator::F64Const { value } => self.target.push_constant(value.bits()),
-			_ => unimplemented!(),
+			_ => panic!("Unsupported instruction: {:?}", op),
 		}
 	}
 
