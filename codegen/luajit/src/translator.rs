@@ -211,7 +211,7 @@ fn build_func_list(wasm: &Module, type_info: &TypeInfo) -> Vec<FuncData> {
 	wasm.code_section()
 		.iter()
 		.enumerate()
-		.map(|f| builder.create_indexed(f.0 + offset, f.1))
+		.map(|f| builder.create_indexed(f.0 + offset, f.1).unwrap())
 		.collect()
 }
 

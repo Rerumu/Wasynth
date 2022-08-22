@@ -1,7 +1,7 @@
-use wasmparser::{BlockType, FunctionBody, MemoryImmediate, Operator};
+use wasmparser::{BlockType, FunctionBody, MemoryImmediate, Operator, Result};
 
 use crate::{
-	module::TypeInfo,
+	module::{read_checked, TypeInfo},
 	node::{
 		BinOp, BinOpType, Block, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType,
 		Expression, FuncData, GetGlobal, GetLocal, If, LabelType, LoadAt, LoadType, MemoryGrow,
@@ -248,24 +248,23 @@ impl<'a> Factory<'a> {
 		}
 	}
 
-	/// # Panics
+	/// # Errors
 	///
-	/// Panics if the function is malformed.
-	#[must_use]
-	pub fn create_indexed(&mut self, index: usize, func: &FunctionBody) -> FuncData {
-		let code: Result<Vec<_>, _> = func.get_operators_reader().unwrap().into_iter().collect();
-		let local: Result<Vec<_>, _> = func.get_locals_reader().unwrap().into_iter().collect();
+	/// Returns an error if the function is malformed.
+	pub fn create_indexed(&mut self, index: usize, func: &FunctionBody) -> Result<FuncData> {
+		let code = read_checked(func.get_operators_reader()?)?;
+		let local = read_checked(func.get_locals_reader()?)?;
 
 		let (num_param, num_result) = self.type_info.by_func_index(index);
-		let data = self.build_stat_list(&code.unwrap(), num_result);
+		let data = self.build_stat_list(&code, num_result);
 
-		FuncData {
-			local_data: local.unwrap(),
+		Ok(FuncData {
+			local_data: local,
 			num_result,
 			num_param,
 			num_stack: data.stack.capacity,
 			code: data.into(),
-		}
+		})
 	}
 
 	fn start_block(&mut self, ty: BlockType, variant: BlockVariant) {
