@@ -5,7 +5,7 @@ use wasm_smith::Module as RngModule;
 
 libfuzzer_sys::fuzz_target!(|module: RngModule| {
 	let data = module.to_bytes();
-	let wasm = Module::from_data(&data);
+	let wasm = Module::try_from_data(&data).unwrap();
 
 	let sink = &mut std::io::sink();
 

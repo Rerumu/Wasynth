@@ -2,16 +2,8 @@ use std::collections::HashMap;
 
 use wasmparser::{
 	BlockType, Data, Element, Export, ExternalKind, FunctionBody, Global, Import, MemoryType, Name,
-	NameSectionReader, Parser, Payload, TableType, Type, TypeRef,
+	NameSectionReader, Parser, Payload, Result, TableType, Type, TypeRef,
 };
-
-macro_rules! to_section {
-	($data:ident) => {{
-		let read: Result<_, _> = $data.into_iter().collect();
-
-		read.unwrap()
-	}};
-}
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum External {
@@ -46,6 +38,13 @@ impl From<ExternalKind> for External {
 	}
 }
 
+pub(crate) fn read_checked<T, I>(reader: I) -> Result<Vec<T>>
+where
+	I: IntoIterator<Item = Result<T>>,
+{
+	reader.into_iter().collect()
+}
+
 pub struct Module<'a> {
 	type_section: Vec<Type>,
 	import_section: Vec<Import<'a>>,
@@ -64,8 +63,10 @@ pub struct Module<'a> {
 }
 
 impl<'a> Module<'a> {
-	#[must_use]
-	pub fn from_data(data: &'a [u8]) -> Self {
+	/// # Errors
+	///
+	/// Returns a `BinaryReaderError` if any module section is malformed.
+	pub fn try_from_data(data: &'a [u8]) -> Result<Self> {
 		let mut temp = Module {
 			type_section: Vec::new(),
 			import_section: Vec::new(),
@@ -81,22 +82,22 @@ impl<'a> Module<'a> {
 			start_section: None,
 		};
 
-		temp.load_data(data);
-		temp
+		temp.load_data(data)?;
+		Ok(temp)
 	}
 
-	fn load_data(&mut self, data: &'a [u8]) {
-		for payload in Parser::new(0).parse_all(data).flatten() {
-			match payload {
-				Payload::TypeSection(v) => self.type_section = to_section!(v),
-				Payload::ImportSection(v) => self.import_section = to_section!(v),
-				Payload::FunctionSection(v) => self.func_section = to_section!(v),
-				Payload::TableSection(v) => self.table_section = to_section!(v),
-				Payload::MemorySection(v) => self.memory_section = to_section!(v),
-				Payload::GlobalSection(v) => self.global_section = to_section!(v),
-				Payload::ExportSection(v) => self.export_section = to_section!(v),
-				Payload::ElementSection(v) => self.element_section = to_section!(v),
-				Payload::DataSection(v) => self.data_section = to_section!(v),
+	fn load_data(&mut self, data: &'a [u8]) -> Result<()> {
+		for payload in Parser::new(0).parse_all(data) {
+			match payload? {
+				Payload::TypeSection(v) => self.type_section = read_checked(v)?,
+				Payload::ImportSection(v) => self.import_section = read_checked(v)?,
+				Payload::FunctionSection(v) => self.func_section = read_checked(v)?,
+				Payload::TableSection(v) => self.table_section = read_checked(v)?,
+				Payload::MemorySection(v) => self.memory_section = read_checked(v)?,
+				Payload::GlobalSection(v) => self.global_section = read_checked(v)?,
+				Payload::ExportSection(v) => self.export_section = read_checked(v)?,
+				Payload::ElementSection(v) => self.element_section = read_checked(v)?,
+				Payload::DataSection(v) => self.data_section = read_checked(v)?,
 				Payload::CodeSectionEntry(v) => {
 					self.code_section.push(v);
 				}
@@ -104,9 +105,9 @@ impl<'a> Module<'a> {
 					self.start_section = Some(func);
 				}
 				Payload::CustomSection(v) if v.name() == "name" => {
-					for name in NameSectionReader::new(v.data(), v.data_offset()).unwrap() {
-						if let Name::Function(map) = name.unwrap() {
-							let mut iter = map.get_map().unwrap();
+					for name in NameSectionReader::new(v.data(), v.data_offset())? {
+						if let Name::Function(map) = name? {
+							let mut iter = map.get_map()?;
 
 							while let Ok(elem) = iter.read() {
 								self.name_section.insert(elem.index, elem.name);
@@ -117,6 +118,8 @@ impl<'a> Module<'a> {
 				_ => {}
 			}
 		}
+
+		Ok(())
 	}
 
 	#[must_use]

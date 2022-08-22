@@ -90,7 +90,7 @@ impl Target for LuaJIT {
 					Wat::Module(ast) => ast.encode().unwrap(),
 					Wat::Component(_) => unimplemented!(),
 				};
-				let data = Module::from_data(&bytes);
+				let data = Module::try_from_data(&bytes).unwrap();
 
 				writeln!(w, "assert_trap((function()")?;
 				codegen_luajit::from_module_untyped(&data, w)?;

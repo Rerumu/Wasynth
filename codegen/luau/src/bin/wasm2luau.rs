@@ -22,7 +22,7 @@ fn do_runtime(lock: &mut dyn Write) -> Result<()> {
 
 fn main() -> Result<()> {
 	let data = load_arg_source()?;
-	let wasm = Module::from_data(&data);
+	let wasm = Module::try_from_data(&data).unwrap();
 
 	let lock = &mut std::io::stdout().lock();
 

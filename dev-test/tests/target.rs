@@ -81,7 +81,7 @@ pub trait Target: Sized {
 				let mut ast = try_into_ast_module(data).expect("Must be a module");
 				let bytes = ast.encode().unwrap();
 
-				let data = AstModule::from_data(&bytes);
+				let data = AstModule::try_from_data(&bytes).unwrap();
 				let name = ast.id.as_ref().map(Id::name);
 
 				Self::write_module(&data, name, w)?;
