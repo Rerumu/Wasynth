@@ -281,7 +281,7 @@ impl DriverNoContext for StoreAt {
 		self.pointer().write(w)?;
 
 		if self.offset() != 0 {
-			write!(w, "+ {}", self.offset())?;
+			write!(w, " + {}", self.offset())?;
 		}
 
 		write!(w, ", ")?;
