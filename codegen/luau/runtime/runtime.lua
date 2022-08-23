@@ -622,6 +622,7 @@ do
 	local math_floor = math.floor
 
 	local string_byte = string.byte
+	local string_char = string.char
 	local string_unpack = string.unpack
 
 	local reinterpret_f32_i32 = module.reinterpret.f32_i32
@@ -828,6 +829,18 @@ do
 		local raw = load_i64(memory, addr)
 
 		return reinterpret_f64_i64(raw)
+	end
+
+	function load.string(memory, addr, len)
+		local buffer = table.create(len)
+
+		for i = 1, len do
+			local raw = load_byte(memory.data, addr + i - 1)
+
+			buffer[i] = string_char(raw)
+		end
+
+		return table.concat(buffer)
 	end
 
 	function store.i32_n8(memory, addr, value)

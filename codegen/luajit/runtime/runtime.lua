@@ -706,6 +706,12 @@ do
 		return by_offset(memory.data, addr).f64
 	end
 
+	function load.string(memory, addr, len)
+		local start = cast(alias_t, memory.data) + addr
+
+		return ffi.string(start, len)
+	end
+
 	function store.i32_n8(memory, addr, value)
 		by_offset(memory.data, addr).i8 = value
 	end
