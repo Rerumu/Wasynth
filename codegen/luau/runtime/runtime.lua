@@ -833,9 +833,10 @@ do
 
 	function load.string(memory, addr, len)
 		local buffer = table.create(len)
+		local data = memory.data
 
 		for i = 1, len do
-			local raw = load_byte(memory.data, addr + i - 1)
+			local raw = load_byte(data, addr + i - 1)
 
 			buffer[i] = string_char(raw)
 		end
