@@ -104,8 +104,8 @@ impl StatList {
 			store_type,
 			memory,
 			offset,
-			value: self.stack.pop(),
-			pointer: self.stack.pop(),
+			value: self.stack.pop().into(),
+			pointer: self.stack.pop().into(),
 		});
 
 		self.leak_memory_write(memory);
@@ -312,7 +312,7 @@ impl<'a> Factory<'a> {
 		let stat = match now.block_data {
 			BlockData::Forward { .. } | BlockData::Backward { .. } => Statement::Block(now.into()),
 			BlockData::If { .. } => Statement::If(If {
-				condition: self.target.stack.pop(),
+				condition: self.target.stack.pop().into(),
 				on_true: now.into(),
 				on_false: None,
 			}),
@@ -376,7 +376,7 @@ impl<'a> Factory<'a> {
 
 	fn add_call_indirect(&mut self, ty: usize, table: usize) {
 		let (num_param, num_result) = self.type_info.by_type_index(ty);
-		let index = self.target.stack.pop();
+		let index = self.target.stack.pop().into();
 		let param_list = self.target.stack.pop_len(num_param).collect();
 
 		self.target.leak_pre_call();
@@ -458,7 +458,7 @@ impl<'a> Factory<'a> {
 			Operator::BrIf { relative_depth } => {
 				let target = relative_depth.try_into().unwrap();
 				let data = Statement::BrIf(BrIf {
-					condition: self.target.stack.pop(),
+					condition: self.target.stack.pop().into(),
 					target: self.get_br_terminator(target),
 				});
 
@@ -466,7 +466,7 @@ impl<'a> Factory<'a> {
 				self.target.code.push(data);
 			}
 			Operator::BrTable { ref table } => {
-				let condition = self.target.stack.pop();
+				let condition = self.target.stack.pop().into();
 				let data = table
 					.targets()
 					.map(Result::unwrap)
@@ -532,7 +532,7 @@ impl<'a> Factory<'a> {
 				let var = local_index.try_into().unwrap();
 				let data = Statement::SetLocal(SetLocal {
 					var,
-					value: self.target.stack.pop(),
+					value: self.target.stack.pop().into(),
 				});
 
 				self.target.leak_local_write(var);
@@ -543,7 +543,7 @@ impl<'a> Factory<'a> {
 				let get = Expression::GetLocal(GetLocal { var });
 				let set = Statement::SetLocal(SetLocal {
 					var,
-					value: self.target.stack.pop(),
+					value: self.target.stack.pop().into(),
 				});
 
 				self.target.leak_local_write(var);
@@ -560,7 +560,7 @@ impl<'a> Factory<'a> {
 				let var = global_index.try_into().unwrap();
 				let data = Statement::SetGlobal(SetGlobal {
 					var,
-					value: self.target.stack.pop(),
+					value: self.target.stack.pop().into(),
 				});
 
 				self.target.leak_global_write(var);

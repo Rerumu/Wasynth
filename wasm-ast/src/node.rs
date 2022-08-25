@@ -849,7 +849,7 @@ impl Br {
 }
 
 pub struct BrTable {
-	pub(crate) condition: Expression,
+	pub(crate) condition: Box<Expression>,
 	pub(crate) data: Vec<Br>,
 	pub(crate) default: Br,
 }
@@ -908,7 +908,7 @@ impl Block {
 }
 
 pub struct BrIf {
-	pub(crate) condition: Expression,
+	pub(crate) condition: Box<Expression>,
 	pub(crate) target: Br,
 }
 
@@ -925,7 +925,7 @@ impl BrIf {
 }
 
 pub struct If {
-	pub(crate) condition: Expression,
+	pub(crate) condition: Box<Expression>,
 	pub(crate) on_true: Block,
 	pub(crate) on_false: Option<Block>,
 }
@@ -972,7 +972,7 @@ impl Call {
 
 pub struct CallIndirect {
 	pub(crate) table: usize,
-	pub(crate) index: Expression,
+	pub(crate) index: Box<Expression>,
 	pub(crate) result: Range<usize>,
 	pub(crate) param_list: Vec<Expression>,
 }
@@ -1001,7 +1001,7 @@ impl CallIndirect {
 
 pub struct SetTemporary {
 	pub(crate) var: usize,
-	pub(crate) value: Expression,
+	pub(crate) value: Box<Expression>,
 }
 
 impl SetTemporary {
@@ -1018,7 +1018,7 @@ impl SetTemporary {
 
 pub struct SetLocal {
 	pub(crate) var: usize,
-	pub(crate) value: Expression,
+	pub(crate) value: Box<Expression>,
 }
 
 impl SetLocal {
@@ -1035,7 +1035,7 @@ impl SetLocal {
 
 pub struct SetGlobal {
 	pub(crate) var: usize,
-	pub(crate) value: Expression,
+	pub(crate) value: Box<Expression>,
 }
 
 impl SetGlobal {
@@ -1054,8 +1054,8 @@ pub struct StoreAt {
 	pub(crate) store_type: StoreType,
 	pub(crate) memory: usize,
 	pub(crate) offset: u32,
-	pub(crate) pointer: Expression,
-	pub(crate) value: Expression,
+	pub(crate) pointer: Box<Expression>,
+	pub(crate) value: Box<Expression>,
 }
 
 impl StoreAt {

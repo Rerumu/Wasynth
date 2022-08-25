@@ -139,7 +139,7 @@ impl Stack {
 			let get = Expression::GetTemporary(GetTemporary { var });
 			let set = Statement::SetTemporary(SetTemporary {
 				var,
-				value: std::mem::replace(&mut old.data, get),
+				value: std::mem::replace(&mut old.data, get).into(),
 			});
 
 			self.capacity = self.capacity.max(var + 1);
