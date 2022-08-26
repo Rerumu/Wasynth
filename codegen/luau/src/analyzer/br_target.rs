@@ -10,20 +10,32 @@ struct Visit {
 	has_branch: bool,
 }
 
+impl Visit {
+	fn set_branch(&mut self, br: &Br) {
+		if br.target() != 0 {
+			self.has_branch = true;
+		}
+	}
+}
+
 impl Visitor for Visit {
-	fn visit_br(&mut self, _: &Br) {
-		self.has_branch = true;
+	fn visit_br(&mut self, stat: &Br) {
+		self.set_branch(stat);
 	}
 
-	fn visit_br_if(&mut self, _: &BrIf) {
-		self.has_branch = true;
+	fn visit_br_if(&mut self, stat: &BrIf) {
+		self.set_branch(stat.target());
 	}
 
 	fn visit_br_table(&mut self, table: &BrTable) {
-		self.has_branch = true;
+		self.set_branch(table.default());
 
 		if table.data().is_empty() {
 			return;
+		}
+
+		for target in table.data() {
+			self.set_branch(target);
 		}
 
 		let id = table as *const _ as usize;
