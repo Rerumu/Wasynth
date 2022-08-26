@@ -754,6 +754,19 @@ do
 		ffi.copy(start, data, len or #data)
 	end
 
+	function store.copy(memory, dst, src, len)
+		local dst_addr = by_offset(memory.data, dst)
+		local src_addr = by_offset(memory.data, src)
+
+		ffi.copy(dst_addr, src_addr, len)
+	end
+
+	function store.fill(memory, addr, value, len)
+		local start = by_offset(memory.data, addr)
+
+		ffi.fill(start, len, value)
+	end
+
 	local WASM_PAGE_SIZE = 65536
 
 	local function finalizer(memory)

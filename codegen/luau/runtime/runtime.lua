@@ -927,6 +927,20 @@ do
 		end
 	end
 
+	function store.copy(memory, dst, src, len)
+		for i = 1, len do
+			local v = load_byte(memory, src + i - 1)
+
+			store_byte(memory, dst + i - 1, v)
+		end
+	end
+
+	function store.fill(memory, dst, value, len)
+		for i = 1, len do
+			store_byte(memory, dst + i - 1, value)
+		end
+	end
+
 	function allocator.new(min, max)
 		return { min = min, max = max, data = {} }
 	end

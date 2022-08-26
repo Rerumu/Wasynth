@@ -4,7 +4,7 @@ use std::{
 };
 
 use wasm_ast::node::{
-	Block, Br, BrIf, BrTable, Call, CallIndirect, FuncData, If, LabelType, MemoryGrow, SetGlobal,
+	Block, Br, BrIf, BrTable, Call, CallIndirect, FuncData, If, LabelType, MemoryGrow, MemoryCopy, MemoryFill, SetGlobal,
 	SetLocal, SetTemporary, Statement, StoreAt, Terminator,
 };
 use wasmparser::ValType;
@@ -282,6 +282,32 @@ impl DriverNoContext for MemoryGrow {
 	}
 }
 
+impl DriverNoContext for MemoryCopy {
+	fn write(&self, w: &mut dyn Write) -> Result<()> {
+		let dst = self.dst();
+		let src = self.src();
+
+		write!(w, "store.copy(memory_at_0, {dst}, {src}, ")?;
+		self.size().write(w)?;
+		write!(w, ")")
+
+	}
+}
+
+impl DriverNoContext for MemoryFill {
+	fn write(&self, w: &mut dyn Write) -> Result<()> {
+		let mem = self.mem();
+		let value = self.value();
+		let n = self.n();
+
+		write!(w, "store.fill(memory_at_0, {mem}, ")?;
+		value.write(w)?;
+		write!(w, ", ")?;
+		n.write(w)?;
+		write!(w, ")")
+	}
+}
+
 fn write_stat(stat: &dyn DriverNoContext, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 	indentation!(mng, w)?;
 	stat.write(w)?;
@@ -301,6 +327,8 @@ impl Driver for Statement {
 			Self::SetGlobal(s) => write_stat(s, mng, w),
 			Self::StoreAt(s) => write_stat(s, mng, w),
 			Self::MemoryGrow(s) => write_stat(s, mng, w),
+			Self::MemoryCopy(s) => write_stat(s, mng, w),
+			Self::MemoryFill(s) => write_stat(s, mng, w),
 		}
 	}
 }
