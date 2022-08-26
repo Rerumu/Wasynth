@@ -28,11 +28,11 @@ macro_rules! impl_write_number {
 
 impl DriverNoContext for Select {
 	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write!(w, "(")?;
+		write!(w, "(if ")?;
 		Condition(self.condition()).write(w)?;
-		write!(w, " and ")?;
+		write!(w, " then ")?;
 		self.on_true().write(w)?;
-		write!(w, " or ")?;
+		write!(w, " else ")?;
 		self.on_false().write(w)?;
 		write!(w, ")")
 	}
@@ -163,9 +163,9 @@ impl DriverNoContext for CmpOpBoolean<'_> {
 
 impl DriverNoContext for CmpOp {
 	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write!(w, "(")?;
+		write!(w, "(if ")?;
 		CmpOpBoolean(self).write(w)?;
-		write!(w, " and 1 or 0)")
+		write!(w, " then 1 else 0)")
 	}
 }
 
