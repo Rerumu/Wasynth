@@ -38,7 +38,7 @@ enum BlockData {
 
 impl Default for BlockData {
 	fn default() -> Self {
-		BlockData::Forward { num_result: 0 }
+		Self::Forward { num_result: 0 }
 	}
 }
 
