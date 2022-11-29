@@ -3,5 +3,6 @@ members = [
 	"codegen/luajit",
 	"codegen/luau",
 	"dev-test",
-	"wasm-ast"
+	"wasm-ast",
+	"wasm-ir"
 ]
