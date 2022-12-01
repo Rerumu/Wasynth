@@ -60,6 +60,15 @@ where
 	}
 }
 
+#[derive(Clone)]
+pub struct Undefined;
+
+impl From<Undefined> for Node {
+	fn from(undefined: Undefined) -> Self {
+		Self::Simple(Simple::Undefined(undefined))
+	}
+}
+
 pub enum Ordering {
 	Memory,
 	Global,
@@ -304,6 +313,7 @@ impl From<CastOp> for Node {
 }
 
 pub enum Simple {
+	Undefined(Undefined),
 	Ordering(Ordering),
 	Unreachable(Unreachable),
 

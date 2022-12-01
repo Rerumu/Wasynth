@@ -218,6 +218,7 @@ fn label_of_cast_op(op: CastOpType) -> String {
 
 pub fn label_of_simple(simple: &Simple) -> String {
 	match simple {
+		Simple::Undefined(_) => "undefined".into(),
 		Simple::Ordering(v) => label_of_ordering(v),
 		Simple::Unreachable(_) => "unreachable".into(),
 		Simple::Argument(_) => "argument".into(),
