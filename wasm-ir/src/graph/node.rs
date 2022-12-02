@@ -101,6 +101,7 @@ impl From<Argument> for Node {
 	}
 }
 
+#[derive(Clone)]
 pub enum Number {
 	I32(i32),
 	I64(i64),
@@ -342,6 +343,20 @@ pub enum Simple {
 #[derive(Default)]
 pub struct EdgeList {
 	pub(crate) data: Vec<Edge>,
+}
+
+impl From<Vec<Edge>> for EdgeList {
+	fn from(data: Vec<Edge>) -> Self {
+		Self { data }
+	}
+}
+
+impl FromIterator<Edge> for EdgeList {
+	fn from_iter<I: IntoIterator<Item = Edge>>(iter: I) -> Self {
+		let data = iter.into_iter().collect();
+
+		Self { data }
+	}
 }
 
 #[derive(Default)]
