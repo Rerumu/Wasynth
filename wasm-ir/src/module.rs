@@ -216,3 +216,66 @@ impl<'a> Module<'a> {
 		self.start_section
 	}
 }
+
+pub struct TypeInfo<'a> {
+	type_list: &'a [Type],
+	func_list: Vec<usize>,
+}
+
+impl<'a> TypeInfo<'a> {
+	#[must_use]
+	pub fn from_module(wasm: &'a Module) -> Self {
+		let mut temp = Self {
+			type_list: &wasm.type_section,
+			func_list: Vec::new(),
+		};
+
+		temp.load_import_list(&wasm.import_section);
+		temp.load_func_list(&wasm.func_section);
+		temp
+	}
+
+	fn load_import_list(&mut self, list: &[Import]) {
+		let iter = list
+			.iter()
+			.copied()
+			.filter_map(|v| match v.ty {
+				TypeRef::Func(v) => Some(v),
+				_ => None,
+			})
+			.map(|v| usize::try_from(v).unwrap());
+
+		self.func_list.extend(iter);
+	}
+
+	fn load_func_list(&mut self, list: &[u32]) {
+		let iter = list.iter().copied().map(|v| usize::try_from(v).unwrap());
+
+		self.func_list.extend(iter);
+	}
+
+	pub(crate) fn by_type_index(&self, index: usize) -> &FuncType {
+		let Type::Func(ty) = &self.type_list[index];
+
+		ty
+	}
+
+	pub(crate) fn by_func_index(&self, index: usize) -> &FuncType {
+		let adjusted = self.func_list[index];
+
+		self.by_type_index(adjusted)
+	}
+
+	pub(crate) fn by_block_type(&self, ty: BlockType) -> (usize, usize) {
+		match ty {
+			BlockType::Empty => (0, 0),
+			BlockType::Type(_) => (0, 1),
+			BlockType::FuncType(i) => {
+				let id = i.try_into().unwrap();
+				let ty = self.by_type_index(id);
+
+				(ty.params.len(), ty.returns.len())
+			}
+		}
+	}
+}
