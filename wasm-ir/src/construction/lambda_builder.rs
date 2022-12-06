@@ -103,9 +103,9 @@ impl PortMap {
 impl From<&FunctionData<'_>> for PortMap {
 	fn from(function: &FunctionData) -> Self {
 		Self {
-			param_count: function.param_count,
-			local_count: function.local_list.len(),
-			max_stack_size: function.max_stack_size,
+			param_count: function.param_count(),
+			local_count: function.local_count(),
+			max_stack_size: function.max_stack_size(),
 		}
 	}
 }
@@ -169,13 +169,11 @@ impl SimpleBuilder {
 	}
 
 	fn load_theta_in(&mut self, function: &FunctionData, buffer: &mut Vec<Edge>) {
-		for &(len, ty) in &function.local_list {
-			let len = len.try_into().unwrap();
-
+		for &(len, ty) in function.local_list() {
 			self.load_repeated(len, Number::zero_of(ty), buffer);
 		}
 
-		self.load_repeated(function.max_stack_size, Undefined, buffer);
+		self.load_repeated(function.max_stack_size(), Undefined, buffer);
 	}
 
 	fn drain_stack(&mut self, len: usize) -> Drain<Edge> {
@@ -518,7 +516,7 @@ impl<'t> LambdaBuilder<'t> {
 	fn start_machine(&mut self, function: &FunctionData) {
 		let destination = Target {
 			id: function.bound(0).end,
-			result_count: function.result_count,
+			result_count: function.result_count(),
 		};
 
 		self.start_state(0, destination, destination);
@@ -633,7 +631,7 @@ impl<'t> LambdaBuilder<'t> {
 	}
 
 	fn build_block_list(&mut self, function: &FunctionData) -> Vec<(Edge, EdgeList)> {
-		let mut iter = function.code.iter().enumerate();
+		let mut iter = function.code().iter().enumerate();
 
 		self.start_machine(function);
 
@@ -753,7 +751,7 @@ impl<'t> LambdaBuilder<'t> {
 			.simple
 			.port_map
 			.get_stack_iter(theta)
-			.take(function.result_count)
+			.take(function.result_count())
 			.collect();
 
 		let arena = std::mem::take(&mut self.simple.arena);

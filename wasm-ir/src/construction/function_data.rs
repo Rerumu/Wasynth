@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use wasmparser::{FunctionBody, Operator, OperatorsReader, Result, ValType};
+use wasmparser::{FunctionBody, LocalsReader, Operator, OperatorsReader, Result, ValType};
 
 use crate::module::{read_checked, TypeInfo};
 
@@ -9,6 +9,12 @@ use super::passes::{
 	dead_code_elimination::DeadCodeElimination,
 	max_stack_tracking::MaxStackTracking,
 };
+
+fn read_locals(reader: LocalsReader) -> Result<Vec<(usize, ValType)>> {
+	let map = |v: (u32, _)| (usize::try_from(v.0).unwrap(), v.1);
+
+	reader.into_iter().map(|v| v.map(map)).collect()
+}
 
 fn read_operators(reader: OperatorsReader) -> Result<Vec<Operator>> {
 	let mut code = read_checked(reader)?;
@@ -20,14 +26,14 @@ fn read_operators(reader: OperatorsReader) -> Result<Vec<Operator>> {
 
 #[derive(Default)]
 pub struct FunctionData<'c> {
-	pub(crate) local_list: Vec<(u32, ValType)>,
-	pub(crate) code: Vec<Operator<'c>>,
+	local_list: Vec<(usize, ValType)>,
+	code: Vec<Operator<'c>>,
 
-	pub(crate) bound_map: HashMap<usize, Bound>,
-	pub(crate) max_stack_size: usize,
+	bound_map: HashMap<usize, Bound>,
+	max_stack_size: usize,
 
-	pub(crate) param_count: usize,
-	pub(crate) result_count: usize,
+	param_count: usize,
+	result_count: usize,
 }
 
 impl<'c> FunctionData<'c> {
@@ -39,7 +45,7 @@ impl<'c> FunctionData<'c> {
 		index: usize,
 		type_info: &TypeInfo,
 	) -> Result<Self> {
-		let local_list = read_checked(body.get_locals_reader()?)?;
+		let local_list = read_locals(body.get_locals_reader()?)?;
 		let code = read_operators(body.get_operators_reader()?)?;
 		let ty = type_info.by_func_index(index);
 		let bound_map = BlockBoundTracking::default().run(&code);
@@ -73,7 +79,31 @@ impl<'c> FunctionData<'c> {
 		})
 	}
 
+	pub fn local_list(&self) -> &[(usize, ValType)] {
+		&self.local_list
+	}
+
+	pub fn local_count(&self) -> usize {
+		self.local_list.iter().map(|v| v.0).sum()
+	}
+
+	pub fn code(&self) -> &[Operator<'c>] {
+		&self.code
+	}
+
 	pub fn bound(&self, index: usize) -> Bound {
 		self.bound_map.get(&index).copied().unwrap()
+	}
+
+	pub fn max_stack_size(&self) -> usize {
+		self.max_stack_size
+	}
+
+	pub fn param_count(&self) -> usize {
+		self.param_count
+	}
+
+	pub fn result_count(&self) -> usize {
+		self.result_count
 	}
 }
