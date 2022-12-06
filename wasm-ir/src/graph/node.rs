@@ -345,6 +345,14 @@ pub struct EdgeList {
 	pub(crate) data: Vec<Edge>,
 }
 
+impl EdgeList {
+	pub fn select(which: Range<usize>, arena: &mut Arena<Node>) -> (Edge, Self) {
+		let param_edge = Argument.to_arena(arena);
+
+		(param_edge, param_edge.set_port_range(which).collect())
+	}
+}
+
 impl From<Vec<Edge>> for EdgeList {
 	fn from(data: Vec<Edge>) -> Self {
 		Self { data }
@@ -364,6 +372,20 @@ pub struct Gamma {
 	pub(crate) condition: Edge,
 	pub(crate) list_in: EdgeList,
 	pub(crate) list_out: Vec<(Edge, EdgeList)>,
+}
+
+impl Gamma {
+	pub fn select(condition: Edge, list_in: EdgeList, arena: &mut Arena<Node>) -> Self {
+		let list_out = (0..list_in.data.len())
+			.map(|i| EdgeList::select(i..i + 1, arena))
+			.collect();
+
+		Self {
+			condition,
+			list_in,
+			list_out,
+		}
+	}
 }
 
 impl From<Gamma> for Node {
