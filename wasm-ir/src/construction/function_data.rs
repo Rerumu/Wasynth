@@ -91,8 +91,8 @@ impl<'c> FunctionData<'c> {
 		&self.code
 	}
 
-	pub fn bound(&self, index: usize) -> Bound {
-		self.bound_map.get(&index).copied().unwrap()
+	pub fn bound_map(&self) -> &HashMap<usize, Bound> {
+		&self.bound_map
 	}
 
 	pub fn max_stack_size(&self) -> usize {

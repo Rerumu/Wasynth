@@ -133,7 +133,7 @@ impl SimpleBuilder {
 		self.local_list.clear();
 		self.value_stack.clear();
 
-		self.last_block_id = function.bound(0).end;
+		self.last_block_id = function.bound_map().len();
 
 		self.local_list.reserve_exact(local_count);
 		self.value_stack.reserve_exact(port_map.max_stack_size);
@@ -513,10 +513,10 @@ impl<'t> LambdaBuilder<'t> {
 		});
 	}
 
-	fn start_machine(&mut self, function: &FunctionData) {
+	fn start_machine(&mut self, result_count: usize) {
 		let destination = Target {
-			id: function.bound(0).end,
-			result_count: function.result_count(),
+			id: self.simple.last_block_id,
+			result_count,
 		};
 
 		self.start_state(0, destination, destination);
@@ -633,7 +633,7 @@ impl<'t> LambdaBuilder<'t> {
 	fn build_block_list(&mut self, function: &FunctionData) -> Vec<(Edge, EdgeList)> {
 		let mut iter = function.code().iter().enumerate();
 
-		self.start_machine(function);
+		self.start_machine(function.result_count());
 
 		while let Some((i, inst)) = iter.next() {
 			if self.simple.try_add_operation(inst) {
@@ -649,8 +649,8 @@ impl<'t> LambdaBuilder<'t> {
 					iter.next().unwrap();
 				}
 				Operator::Nop => {}
-				Operator::Block { ty } => self.start_block(ty, function.bound(i)),
-				Operator::Loop { ty } => self.start_loop(ty, function.bound(i)),
+				Operator::Block { ty } => self.start_block(ty, function.bound_map()[&i]),
+				Operator::Loop { ty } => self.start_loop(ty, function.bound_map()[&i]),
 				Operator::End => self.end_block(),
 				Operator::Br { relative_depth } => {
 					self.add_br_unconditional(relative_depth);
