@@ -40,6 +40,7 @@ do
 
 	local math_abs = math.abs
 	local math_fmod = math.fmod
+	local math_modf = math.modf
 	local math_round = math.round
 	local math_sign = math.sign
 	local math_min = math.min
@@ -81,13 +82,13 @@ do
 		lhs = to_i32(lhs)
 		rhs = to_i32(rhs)
 
-		return to_u32(lhs / rhs)
+		return to_u32((math_modf(lhs / rhs)))
 	end
 
 	function div.u32(lhs, rhs)
 		assert(rhs ~= 0, "division by zero")
 
-		return to_u32(lhs / rhs)
+		return to_u32((math_modf(lhs / rhs)))
 	end
 
 	function rem.i32(lhs, rhs)
