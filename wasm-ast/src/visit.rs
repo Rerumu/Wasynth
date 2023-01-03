@@ -166,8 +166,6 @@ impl<T: Visitor> Driver<T> for Expression {
 			Self::GetGlobal(v) => v.accept(visitor),
 			Self::LoadAt(v) => v.accept(visitor),
 			Self::MemorySize(v) => v.accept(visitor),
-			Self::MemoryCopy(v) => v.accept(visitor),
-			Self::MemoryFill(v) => v.accept(visitor),
 			Self::Value(v) => v.accept(visitor),
 			Self::UnOp(v) => v.accept(visitor),
 			Self::BinOp(v) => v.accept(visitor),
@@ -315,6 +313,8 @@ impl<T: Visitor> Driver<T> for Statement {
 			Self::SetGlobal(v) => v.accept(visitor),
 			Self::StoreAt(v) => v.accept(visitor),
 			Self::MemoryGrow(v) => v.accept(visitor),
+			Self::MemoryCopy(v) => v.accept(visitor),
+			Self::MemoryFill(v) => v.accept(visitor),
 		}
 
 		visitor.visit_statement(self);
