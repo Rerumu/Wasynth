@@ -945,17 +945,17 @@ do
 		end
 	end
 	
-	function allocator.copy(memory, dst, src, len)
-		for i = 1, len do
-			local v = load_byte(memory, src + i - 1)
+	function allocator.copy(memory, destination, source, length)
+		for i = 1, length do
+			local v = load_byte(memory, source + i - 1)
 
-			store_byte(memory, dst + i - 1, v)
+			store_byte(memory, destination + i - 1, v)
 		end
 	end
 
-	function allocator.fill(memory, dst, value, len)
-		for i = 1, len do
-			store_byte(memory, dst + i - 1, value)
+	function allocator.fill(memory, destination, value, length)
+		for i = 1, length do
+			store_byte(memory, destination + i - 1, value)
 		end
 	end
 
