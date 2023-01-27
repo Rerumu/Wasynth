@@ -1,4 +1,4 @@
-use wasmparser::{BlockType, FunctionBody, MemoryImmediate, Operator, Result};
+use wasmparser::{BlockType, FunctionBody, MemArg, Operator, Result};
 
 use crate::{
 	module::{read_checked, TypeInfo},
@@ -82,7 +82,7 @@ impl StatList {
 	leak_on!(leak_global_write, Global);
 	leak_on!(leak_memory_write, Memory);
 
-	fn push_load(&mut self, load_type: LoadType, memarg: MemoryImmediate) {
+	fn push_load(&mut self, load_type: LoadType, memarg: MemArg) {
 		let memory = memarg.memory.try_into().unwrap();
 		let offset = memarg.offset.try_into().unwrap();
 
@@ -96,7 +96,7 @@ impl StatList {
 		self.stack.push_with_single(data);
 	}
 
-	fn add_store(&mut self, store_type: StoreType, memarg: MemoryImmediate) {
+	fn add_store(&mut self, store_type: StoreType, memarg: MemArg) {
 		let memory = memarg.memory.try_into().unwrap();
 		let offset = memarg.offset.try_into().unwrap();
 
@@ -429,16 +429,16 @@ impl<'a> Factory<'a> {
 				self.target.set_terminator(Terminator::Unreachable);
 			}
 			Operator::Nop => {}
-			Operator::Block { ty } => {
-				self.start_block(ty, BlockVariant::Forward);
+			Operator::Block { blockty } => {
+				self.start_block(blockty, BlockVariant::Forward);
 			}
-			Operator::Loop { ty } => {
-				self.start_block(ty, BlockVariant::Backward);
+			Operator::Loop { blockty } => {
+				self.start_block(blockty, BlockVariant::Backward);
 			}
-			Operator::If { ty } => {
+			Operator::If { blockty } => {
 				let cond = self.target.stack.pop();
 
-				self.start_block(ty, BlockVariant::If);
+				self.start_block(blockty, BlockVariant::If);
 				self.pending.last_mut().unwrap().stack.push(cond);
 			}
 			Operator::Else => {
@@ -465,15 +465,15 @@ impl<'a> Factory<'a> {
 				self.target.leak_all();
 				self.target.code.push(data);
 			}
-			Operator::BrTable { ref table } => {
+			Operator::BrTable { ref targets } => {
 				let condition = self.target.stack.pop().into();
-				let data = table
+				let data = targets
 					.targets()
 					.map(Result::unwrap)
 					.map(|v| self.get_br_terminator(v.try_into().unwrap()))
 					.collect();
 
-				let default = self.get_br_terminator(table.default().try_into().unwrap());
+				let default = self.get_br_terminator(targets.default().try_into().unwrap());
 
 				let term = Terminator::BrTable(BrTable {
 					condition,
@@ -497,9 +497,11 @@ impl<'a> Factory<'a> {
 				self.add_call(index);
 			}
 			Operator::CallIndirect {
-				index, table_byte, ..
+				type_index,
+				table_byte,
+				..
 			} => {
-				let index = index.try_into().unwrap();
+				let index = type_index.try_into().unwrap();
 
 				self.add_call_indirect(index, table_byte.into());
 			}

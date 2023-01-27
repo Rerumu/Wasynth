@@ -7,8 +7,8 @@ use std::{
 
 use wasm_ast::module::Module as AstModule;
 use wast::{
-	core::Module as WaModule, parser::ParseBuffer, token::Id, AssertExpression, QuoteWat, Wast,
-	WastDirective, WastExecute, WastInvoke, Wat,
+	core::Module as WaModule, parser::ParseBuffer, token::Id, QuoteWat, Wast, WastDirective,
+	WastExecute, WastInvoke, WastRet, Wat,
 };
 
 macro_rules! impl_write_number_nan {
@@ -23,8 +23,8 @@ macro_rules! impl_write_number_nan {
 			}
 		}
 
-		pub fn $name_nan(data: &wast::NanPattern<$pattern>, w: &mut dyn Write) -> Result<()> {
-			use wast::NanPattern;
+		pub fn $name_nan(data: &wast::core::NanPattern<$pattern>, w: &mut dyn Write) -> Result<()> {
+			use wast::core::NanPattern;
 
 			match data {
 				NanPattern::CanonicalNan => write!(w, "LUA_NAN_CANONICAL"),
@@ -65,7 +65,7 @@ pub trait Target: Sized {
 
 	fn write_assert_return(
 		data: &mut WastExecute,
-		result: &[AssertExpression],
+		result: &[WastRet],
 		w: &mut dyn Write,
 	) -> Result<()>;
 

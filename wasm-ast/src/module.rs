@@ -105,11 +105,10 @@ impl<'a> Module<'a> {
 					self.start_section = Some(func);
 				}
 				Payload::CustomSection(v) if v.name() == "name" => {
-					for name in NameSectionReader::new(v.data(), v.data_offset())? {
+					for name in NameSectionReader::new(v.data(), v.data_offset()) {
 						if let Name::Function(map) = name? {
-							let mut iter = map.get_map()?;
-
-							while let Ok(elem) = iter.read() {
+							let mut iter = map.into_iter();
+							while let Some(Ok(elem)) = iter.next() {
 								self.name_section.insert(elem.index, elem.name);
 							}
 						}
@@ -250,7 +249,7 @@ impl<'a> TypeInfo<'a> {
 	pub(crate) fn by_type_index(&self, index: usize) -> (usize, usize) {
 		let Type::Func(ty) = &self.type_list[index];
 
-		(ty.params.len(), ty.returns.len())
+		(ty.params().len(), ty.results().len())
 	}
 
 	pub(crate) fn by_func_index(&self, index: usize) -> (usize, usize) {
