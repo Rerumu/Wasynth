@@ -9,7 +9,7 @@ use wasm_ast::{
 	node::{FuncData, Statement},
 };
 use wasmparser::{
-	Data, DataKind, Element, ElementItem, ElementKind, Export, Import, InitExpr, Operator,
+	ConstExpr, Data, DataKind, Element, ElementItems, ElementKind, Export, Import, Operator,
 	OperatorsReader,
 };
 
@@ -49,7 +49,7 @@ fn write_named_array(name: &str, len: usize, w: &mut dyn Write) -> Result<()> {
 	writeln!(w, "local {name} = table_new({len}, 1)")
 }
 
-fn write_constant(init: &InitExpr, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
+fn write_constant(init: &ConstExpr, type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
 	let code = reader_to_code(init.get_operators_reader());
 	let func = Factory::from_type_info(type_info).create_anonymous(&code);
 
@@ -157,8 +157,8 @@ fn write_element_list(list: &[Element], type_info: &TypeInfo, w: &mut dyn Write)
 		let (index, init) = match element.kind {
 			ElementKind::Active {
 				table_index,
-				init_expr,
-			} => (table_index, init_expr),
+				offset_expr,
+			} => (table_index, offset_expr),
 			_ => unimplemented!(),
 		};
 
@@ -171,13 +171,20 @@ fn write_element_list(list: &[Element], type_info: &TypeInfo, w: &mut dyn Write)
 		writeln!(w)?;
 		write!(w, "\t\tlocal data = {{ ")?;
 
-		for item in element.items.get_items_reader().unwrap() {
-			match item.unwrap() {
-				ElementItem::Func(index) => write!(w, "FUNC_LIST[{index}],"),
-				ElementItem::Expr(init) => write_constant(&init, type_info, w),
-			}?;
+		match element.items.clone() {
+			ElementItems::Functions(functions) => {
+				for index in functions {
+					let index = index.unwrap();
+					write!(w, "FUNC_LIST[{index}],")?;
+				}
+			}
+			ElementItems::Expressions(expressions) => {
+				for init in expressions {
+					let init = init.unwrap();
+					write_constant(&init, type_info, w)?;
+				}
+			}
 		}
-
 		writeln!(w, " }}")?;
 		writeln!(w, "\t\ttable.move(data, 1, #data, offset, target)")?;
 		writeln!(w, "\tend")?;
@@ -192,8 +199,8 @@ fn write_data_list(list: &[Data], type_info: &TypeInfo, w: &mut dyn Write) -> Re
 			DataKind::Passive => unimplemented!(),
 			DataKind::Active {
 				memory_index,
-				init_expr,
-			} => (memory_index, init_expr),
+				offset_expr,
+			} => (memory_index, offset_expr),
 		};
 
 		write!(w, "\trt.store.string(MEMORY_LIST[{index}], ")?;

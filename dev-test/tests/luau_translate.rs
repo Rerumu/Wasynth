@@ -5,8 +5,8 @@ use std::{
 
 use wasm_ast::module::{Module, TypeInfo};
 use wast::{
-	core::{Expression, Instruction},
-	AssertExpression, WastExecute, WastInvoke, Wat,
+	core::{WastArgCore, WastRetCore},
+	WastArg, WastExecute, WastInvoke, WastRet, Wat,
 };
 
 use target::{get_name_from_id, Target};
@@ -31,26 +31,22 @@ impl Luau {
 		write!(w, "rt.i64.from_u32({data_1}, {data_2})")
 	}
 
-	fn write_expression(data: &Expression, w: &mut dyn Write) -> Result<()> {
-		let data = &data.instrs;
-
-		assert_eq!(data.len(), 1, "Only one instruction supported");
-
-		match &data[0] {
-			Instruction::I32Const(v) => Self::write_i32(*v, w),
-			Instruction::I64Const(v) => Self::write_i64(*v, w),
-			Instruction::F32Const(v) => target::write_f32(f32::from_bits(v.bits), w),
-			Instruction::F64Const(v) => target::write_f64(f64::from_bits(v.bits), w),
-			_ => panic!("Unsupported instruction"),
+	fn write_arg(data: &WastArg, w: &mut dyn Write) -> Result<()> {
+		match data {
+			WastArg::Core(WastArgCore::I32(v)) => Self::write_i32(*v, w),
+			WastArg::Core(WastArgCore::I64(v)) => Self::write_i64(*v, w),
+			WastArg::Core(WastArgCore::F32(v)) => target::write_f32(f32::from_bits(v.bits), w),
+			WastArg::Core(WastArgCore::F64(v)) => target::write_f64(f64::from_bits(v.bits), w),
+			_ => panic!("Unsupported expression"),
 		}
 	}
 
-	fn write_simple_expression(data: &AssertExpression, w: &mut dyn Write) -> Result<()> {
+	fn write_ret(data: &WastRet, w: &mut dyn Write) -> Result<()> {
 		match data {
-			AssertExpression::I32(v) => Self::write_i32(*v, w),
-			AssertExpression::I64(v) => Self::write_i64(*v, w),
-			AssertExpression::F32(v) => target::write_f32_nan(v, w),
-			AssertExpression::F64(v) => target::write_f64_nan(v, w),
+			WastRet::Core(WastRetCore::I32(v)) => Self::write_i32(*v, w),
+			WastRet::Core(WastRetCore::I64(v)) => Self::write_i64(*v, w),
+			WastRet::Core(WastRetCore::F32(v)) => target::write_f32_nan(v, w),
+			WastRet::Core(WastRetCore::F64(v)) => target::write_f64_nan(v, w),
 			_ => panic!("Unsupported expression"),
 		}
 	}
@@ -64,7 +60,7 @@ impl Luau {
 
 		data.args.iter().try_for_each(|v| {
 			write!(w, ", ")?;
-			Self::write_expression(v, w)
+			Self::write_arg(v, w)
 		})?;
 
 		write!(w, ")")
@@ -114,7 +110,7 @@ impl Target for Luau {
 
 	fn write_assert_return(
 		data: &mut WastExecute,
-		result: &[AssertExpression],
+		result: &[WastRet],
 		w: &mut dyn Write,
 	) -> Result<()> {
 		match data {
@@ -125,7 +121,7 @@ impl Target for Luau {
 				write!(w, "}}, {{")?;
 
 				for v in result {
-					Self::write_simple_expression(v, w)?;
+					Self::write_ret(v, w)?;
 					write!(w, ", ")?;
 				}
 
@@ -137,7 +133,7 @@ impl Target for Luau {
 				write!(w, "assert_eq(")?;
 				write!(w, r#"loaded["{name}"].global_list["{global}"].value"#)?;
 				write!(w, ", ")?;
-				Self::write_simple_expression(&result[0], w)?;
+				Self::write_ret(&result[0], w)?;
 				writeln!(w, ")")
 			}
 			WastExecute::Wat(_) => panic!("Wat not supported"),

@@ -9,14 +9,14 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4.0"
-wasm-smith = "0.11.0"
+wasm-smith = "0.12.0"
 wasm-ast = { path = "../wasm-ast" }
 codegen-luajit = { path = "../codegen/luajit" }
 codegen-luau = { path = "../codegen/luau" }
 
 [dev-dependencies]
 test-generator = "0.3.0"
-wast = "42.0.0"
+wast = "52.0.2"
 
 [[bin]]
 name = "luajit_translate"
