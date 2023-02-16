@@ -5,8 +5,8 @@ use crate::{
 	node::{
 		BinOp, BinOpType, Block, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType,
 		Expression, FuncData, GetGlobal, GetLocal, If, LabelType, LoadAt, LoadType, MemoryGrow,
-		MemorySize, Select, SetGlobal, SetLocal, Statement, StoreAt, StoreType, Terminator, UnOp,
-		UnOpType, Value,
+		MemoryCopy, MemoryFill, MemorySize, Select, SetGlobal, SetLocal, Statement, StoreAt, 
+		StoreType, Terminator, UnOp, UnOpType, Value,
 	},
 	stack::{ReadType, Stack},
 };
@@ -609,6 +609,29 @@ impl<'a> Factory<'a> {
 				});
 
 				self.target.leak_memory_write(memory);
+				self.target.code.push(data);
+			}
+			Operator::MemoryCopy { src, dst }	=> {
+				let size = self.target.stack.pop().into();
+
+				let data = Statement::MemoryCopy(MemoryCopy {
+					dst,
+					src,
+					size,
+				});
+
+				self.target.code.push(data);
+			}
+			Operator::MemoryFill { mem } => {
+				let n = self.target.stack.pop().into();
+				let value = self.target.stack.pop().into();
+
+				let data = Statement::MemoryFill(MemoryFill {
+					mem,
+					n,
+					value,
+				});
+
 				self.target.code.push(data);
 			}
 			Operator::I32Const { value } => self.target.push_constant(value),

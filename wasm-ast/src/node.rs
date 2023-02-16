@@ -1108,6 +1108,48 @@ impl MemoryGrow {
 	}
 }
 
+pub struct MemoryCopy {
+	pub(crate) dst: u32,
+	pub(crate) src: u32,
+	pub(crate) size: Box<Expression>,
+}
+
+impl MemoryCopy {
+	#[must_use]
+	pub fn dst(&self) -> u32 {
+		self.dst
+	}
+	#[must_use]
+	pub fn src(&self) -> u32 {
+		self.src
+	}
+	#[must_use]
+	pub fn size(&self) -> &Expression {
+		&self.size
+	}
+}
+
+pub struct MemoryFill {
+	pub(crate) mem: u32,
+	pub(crate) value: Box<Expression>,
+	pub(crate) n: Box<Expression>,
+}
+
+impl MemoryFill {
+	#[must_use]
+	pub fn mem(&self) -> u32 {
+		self.mem
+	}
+	#[must_use]
+	pub fn value(&self) -> &Expression {
+		&self.value
+	}
+	#[must_use]
+	pub fn n(&self) -> &Expression {
+		&self.n
+	}
+}
+
 pub enum Statement {
 	Block(Block),
 	BrIf(BrIf),
@@ -1119,6 +1161,8 @@ pub enum Statement {
 	SetGlobal(SetGlobal),
 	StoreAt(StoreAt),
 	MemoryGrow(MemoryGrow),
+	MemoryCopy(MemoryCopy),
+	MemoryFill(MemoryFill)
 }
 
 pub struct FuncData {

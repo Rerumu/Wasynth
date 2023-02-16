@@ -1,6 +1,6 @@
 use crate::node::{
 	BinOp, Block, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Expression, FuncData, GetGlobal,
-	GetLocal, GetTemporary, If, LoadAt, MemoryGrow, MemorySize, Select, SetGlobal, SetLocal,
+	GetLocal, GetTemporary, If, LoadAt, MemoryGrow, MemorySize, MemoryCopy, MemoryFill, Select, SetGlobal, SetLocal,
 	SetTemporary, Statement, StoreAt, Terminator, UnOp, Value,
 };
 
@@ -55,6 +55,10 @@ pub trait Visitor {
 
 	fn visit_memory_grow(&mut self, _: &MemoryGrow) {}
 
+	fn visit_memory_copy(&mut self, _: &MemoryCopy) {}
+
+	fn visit_memory_fill(&mut self, _: &MemoryFill) {}
+
 	fn visit_statement(&mut self, _: &Statement) {}
 }
 
@@ -101,6 +105,23 @@ impl<T: Visitor> Driver<T> for LoadAt {
 impl<T: Visitor> Driver<T> for MemorySize {
 	fn accept(&self, visitor: &mut T) {
 		visitor.visit_memory_size(self);
+	}
+}
+
+impl<T: Visitor> Driver<T> for MemoryCopy {
+	fn accept(&self, visitor: &mut T) {
+		self.size().accept(visitor);
+
+		visitor.visit_memory_copy(self);
+	}
+}
+
+impl<T: Visitor> Driver<T> for MemoryFill {
+	fn accept(&self, visitor: &mut T) {
+		self.value().accept(visitor);
+		self.n().accept(visitor);
+
+		visitor.visit_memory_fill(self);
 	}
 }
 
@@ -292,6 +313,8 @@ impl<T: Visitor> Driver<T> for Statement {
 			Self::SetGlobal(v) => v.accept(visitor),
 			Self::StoreAt(v) => v.accept(visitor),
 			Self::MemoryGrow(v) => v.accept(visitor),
+			Self::MemoryCopy(v) => v.accept(visitor),
+			Self::MemoryFill(v) => v.accept(visitor),
 		}
 
 		visitor.visit_statement(self);

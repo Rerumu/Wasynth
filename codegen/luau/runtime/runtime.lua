@@ -944,6 +944,20 @@ do
 			return old
 		end
 	end
+	
+	function allocator.copy(memory, destination, source, length)
+		for i = 1, length do
+			local v = load_byte(memory, source + i - 1)
+
+			store_byte(memory, destination + i - 1, v)
+		end
+	end
+
+	function allocator.fill(memory, destination, value, length)
+		for i = 1, length do
+			store_byte(memory, destination + i - 1, value)
+		end
+	end
 
 	module.load = load
 	module.store = store
@@ -951,3 +965,4 @@ do
 end
 
 return module
+

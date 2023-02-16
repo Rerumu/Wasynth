@@ -795,6 +795,19 @@ do
 			return old
 		end
 	end
+	
+	function allocator.copy(memory, destination, source, length)
+		local destination_addr = by_offset(memory.data, destination)
+		local source_addr = by_offset(memory.data, source)
+
+		ffi.copy(destination_addr, source_addr, length)
+	end
+
+	function allocator.fill(memory, address, value, length)
+		local start = by_offset(memory.data, address)
+
+		ffi.fill(start, length, value)
+	end
 
 	module.load = load
 	module.store = store
