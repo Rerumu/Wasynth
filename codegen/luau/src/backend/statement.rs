@@ -4,8 +4,8 @@ use std::{
 };
 
 use wasm_ast::node::{
-	Block, Br, BrIf, BrTable, Call, CallIndirect, FuncData, If, LabelType, MemoryGrow, MemoryCopy, 
-	MemoryFill, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, Terminator,
+	Block, Br, BrIf, BrTable, Call, CallIndirect, FuncData, If, LabelType, MemoryCopy, MemoryFill,
+	MemoryGrow, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, Terminator,
 };
 use wasmparser::ValType;
 

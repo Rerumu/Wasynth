@@ -4,8 +4,8 @@ use crate::{
 	module::{read_checked, TypeInfo},
 	node::{
 		BinOp, BinOpType, Block, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType,
-		Expression, FuncData, GetGlobal, GetLocal, If, LabelType, LoadAt, LoadType, MemoryGrow,
-		MemoryCopy, MemoryFill, MemorySize, Select, SetGlobal, SetLocal, Statement, StoreAt, 
+		Expression, FuncData, GetGlobal, GetLocal, If, LabelType, LoadAt, LoadType, MemoryCopy,
+		MemoryFill, MemoryGrow, MemorySize, Select, SetGlobal, SetLocal, Statement, StoreAt,
 		StoreType, Terminator, UnOp, UnOpType, Value,
 	},
 	stack::{ReadType, Stack},
@@ -611,12 +611,12 @@ impl<'a> Factory<'a> {
 				self.target.leak_memory_write(memory);
 				self.target.code.push(data);
 			}
-			Operator::MemoryCopy { src, dst }	=> {
+			Operator::MemoryCopy { dst_mem, src_mem } => {
 				let size = self.target.stack.pop().into();
 
 				let data = Statement::MemoryCopy(MemoryCopy {
-					dst,
-					src,
+					dst: dst_mem,
+					src: src_mem,
 					size,
 				});
 
@@ -626,11 +626,7 @@ impl<'a> Factory<'a> {
 				let n = self.target.stack.pop().into();
 				let value = self.target.stack.pop().into();
 
-				let data = Statement::MemoryFill(MemoryFill {
-					mem,
-					n,
-					value,
-				});
+				let data = Statement::MemoryFill(MemoryFill { mem, n, value });
 
 				self.target.code.push(data);
 			}

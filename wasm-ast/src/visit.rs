@@ -1,7 +1,7 @@
 use crate::node::{
 	BinOp, Block, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Expression, FuncData, GetGlobal,
-	GetLocal, GetTemporary, If, LoadAt, MemoryGrow, MemorySize, MemoryCopy, MemoryFill, Select, SetGlobal, SetLocal,
-	SetTemporary, Statement, StoreAt, Terminator, UnOp, Value,
+	GetLocal, GetTemporary, If, LoadAt, MemoryCopy, MemoryFill, MemoryGrow, MemorySize, Select,
+	SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, Terminator, UnOp, Value,
 };
 
 pub trait Visitor {

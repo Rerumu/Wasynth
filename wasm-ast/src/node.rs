@@ -1162,7 +1162,7 @@ pub enum Statement {
 	StoreAt(StoreAt),
 	MemoryGrow(MemoryGrow),
 	MemoryCopy(MemoryCopy),
-	MemoryFill(MemoryFill)
+	MemoryFill(MemoryFill),
 }
 
 pub struct FuncData {
