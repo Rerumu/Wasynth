@@ -4,8 +4,8 @@ use std::{
 };
 
 use wasm_ast::node::{
-	Block, Br, BrIf, BrTable, Call, CallIndirect, FuncData, If, LabelType, MemoryGrow, MemoryCopy, 
-	MemoryFill, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, Terminator,
+	Block, Br, BrIf, BrTable, Call, CallIndirect, FuncData, If, LabelType, MemoryCopy, MemoryFill,
+	MemoryGrow, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, Terminator,
 };
 use wasmparser::ValType;
 
@@ -290,7 +290,6 @@ impl DriverNoContext for MemoryCopy {
 		write!(w, "rt.allocator.copy(memory_at_0, {dst}, {src}, ")?;
 		self.size().write(w)?;
 		write!(w, ")")
-
 	}
 }
 
@@ -328,7 +327,7 @@ impl Driver for Statement {
 			Self::StoreAt(s) => write_stat(s, mng, w),
 			Self::MemoryGrow(s) => write_stat(s, mng, w),
 			Self::MemoryCopy(s) => write_stat(s, mng, w),
-			Self::MemoryFill(s) => write_stat(s, mng, w)
+			Self::MemoryFill(s) => write_stat(s, mng, w),
 		}
 	}
 }
