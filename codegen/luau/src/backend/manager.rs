@@ -34,6 +34,7 @@ macro_rules! line {
 #[derive(Default)]
 pub struct Manager {
 	table_map: HashMap<usize, usize>,
+	has_branch: bool,
 	label_list: Vec<Option<LabelType>>,
 	indentation: usize,
 }
@@ -45,8 +46,13 @@ impl Manager {
 		self.table_map[&id]
 	}
 
-	pub fn set_table_map(&mut self, map: HashMap<usize, usize>) {
-		self.table_map = map;
+	pub fn set_branch_information(&mut self, table_map: HashMap<usize, usize>, has_branch: bool) {
+		self.table_map = table_map;
+		self.has_branch = has_branch;
+	}
+
+	pub const fn has_branch(&self) -> bool {
+		self.has_branch
 	}
 
 	pub fn label_list(&self) -> &[Option<LabelType>] {

@@ -140,7 +140,7 @@ impl Driver for Terminator {
 }
 
 fn write_br_parent(mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-	if mng.label_list().iter().all(Option::is_none) {
+	if !mng.has_branch() || mng.label_list().iter().all(Option::is_none) {
 		return Ok(());
 	}
 
@@ -389,22 +389,22 @@ fn write_variable_list(ast: &FuncData, mng: &mut Manager, w: &mut dyn Write) -> 
 
 impl Driver for FuncData {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let br_data = br_target::visit(self);
+		let (table_map, has_branch) = br_target::visit(self);
 
 		mng.indent();
 
 		write_parameter_list(self, w)?;
 		write_variable_list(self, mng, w)?;
 
-		if br_data.1 {
+		if has_branch {
 			line!(mng, w, "local desired")?;
 		}
 
-		if !br_data.0.is_empty() {
+		if !table_map.is_empty() {
 			line!(mng, w, "local br_map = {{}}")?;
 		}
 
-		mng.set_table_map(br_data.0);
+		mng.set_branch_information(table_map, has_branch);
 		self.code().write(mng, w)?;
 
 		if self.num_result() != 0 {
