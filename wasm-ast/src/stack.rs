@@ -17,7 +17,7 @@ pub struct Slot {
 }
 
 impl Slot {
-	fn is_temporary(&self, id: usize) -> bool {
+	const fn is_temporary(&self, id: usize) -> bool {
 		matches!(self.data, Expression::GetTemporary(ref v) if v.var() == id)
 	}
 

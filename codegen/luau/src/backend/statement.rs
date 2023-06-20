@@ -27,7 +27,7 @@ impl Driver for Br {
 		}
 
 		if self.target() == 0 {
-			if let Some(Some(LabelType::Backward)) = mng.label_list().last() {
+			if mng.label_list().last() == Some(&Some(LabelType::Backward)) {
 				line!(mng, w, "continue")
 			} else {
 				line!(mng, w, "break")

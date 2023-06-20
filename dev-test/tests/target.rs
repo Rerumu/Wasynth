@@ -13,6 +13,7 @@ use wast::{
 
 macro_rules! impl_write_number_nan {
 	($name:ident, $name_nan:ident, $numeric:ty, $pattern:ty) => {
+		#[allow(clippy::missing_errors_doc)]
 		pub fn $name(number: $numeric, w: &mut dyn Write) -> Result<()> {
 			match (number.classify(), number.is_sign_negative()) {
 				(FpCategory::Nan, true) => write!(w, "-LUA_NAN_DEFAULT "),
@@ -23,6 +24,7 @@ macro_rules! impl_write_number_nan {
 			}
 		}
 
+		#[allow(clippy::missing_errors_doc)]
 		pub fn $name_nan(data: &wast::core::NanPattern<$pattern>, w: &mut dyn Write) -> Result<()> {
 			use wast::core::NanPattern;
 
@@ -42,6 +44,7 @@ macro_rules! impl_write_number_nan {
 impl_write_number_nan!(write_f32, write_f32_nan, f32, wast::token::Float32);
 impl_write_number_nan!(write_f64, write_f64_nan, f64, wast::token::Float64);
 
+#[allow(clippy::missing_const_for_fn)]
 fn try_into_ast_module(data: QuoteWat) -> Option<WaModule> {
 	if let QuoteWat::Wat(Wat::Module(data)) = data {
 		Some(data)
@@ -54,6 +57,7 @@ pub fn get_name_from_id(id: Option<Id>) -> &str {
 	id.as_ref().map_or("temp", Id::name)
 }
 
+#[allow(clippy::missing_errors_doc)]
 pub trait Target: Sized {
 	fn executable() -> String;
 
@@ -144,7 +148,7 @@ pub trait Target: Sized {
 			.join(name)
 			.with_extension("wast.lua");
 
-		std::fs::write(&temp, &data)?;
+		std::fs::write(&temp, data)?;
 		Self::run_command(&temp)
 	}
 }

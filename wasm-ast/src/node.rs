@@ -23,7 +23,7 @@ pub enum LoadType {
 
 impl LoadType {
 	#[must_use]
-	pub fn as_name(self) -> &'static str {
+	pub const fn as_name(self) -> &'static str {
 		match self {
 			Self::I32 => "i32",
 			Self::I64 => "i64",
@@ -85,7 +85,7 @@ pub enum StoreType {
 
 impl StoreType {
 	#[must_use]
-	pub fn as_name(self) -> &'static str {
+	pub const fn as_name(self) -> &'static str {
 		match self {
 			Self::I32 => "i32",
 			Self::I64 => "i64",
@@ -188,7 +188,7 @@ pub enum UnOpType {
 
 impl UnOpType {
 	#[must_use]
-	pub fn as_name(self) -> (&'static str, &'static str) {
+	pub const fn as_name(self) -> (&'static str, &'static str) {
 		match self {
 			Self::Clz_I32 => ("clz", "i32"),
 			Self::Ctz_I32 => ("ctz", "i32"),
@@ -373,7 +373,7 @@ pub enum BinOpType {
 
 impl BinOpType {
 	#[must_use]
-	pub fn as_name(self) -> (&'static str, &'static str) {
+	pub const fn as_name(self) -> (&'static str, &'static str) {
 		match self {
 			Self::Add_I32 => ("add", "i32"),
 			Self::Sub_I32 => ("sub", "i32"),
@@ -520,7 +520,7 @@ pub enum CmpOpType {
 
 impl CmpOpType {
 	#[must_use]
-	pub fn as_name(self) -> (&'static str, &'static str) {
+	pub const fn as_name(self) -> (&'static str, &'static str) {
 		match self {
 			Self::Eq_I32 => ("eq", "i32"),
 			Self::Ne_I32 => ("ne", "i32"),
@@ -633,7 +633,7 @@ pub struct GetTemporary {
 
 impl GetTemporary {
 	#[must_use]
-	pub fn var(&self) -> usize {
+	pub const fn var(&self) -> usize {
 		self.var
 	}
 }
@@ -644,7 +644,7 @@ pub struct GetLocal {
 
 impl GetLocal {
 	#[must_use]
-	pub fn var(&self) -> usize {
+	pub const fn var(&self) -> usize {
 		self.var
 	}
 }
@@ -655,7 +655,7 @@ pub struct GetGlobal {
 
 impl GetGlobal {
 	#[must_use]
-	pub fn var(&self) -> usize {
+	pub const fn var(&self) -> usize {
 		self.var
 	}
 }
@@ -669,22 +669,22 @@ pub struct LoadAt {
 
 impl LoadAt {
 	#[must_use]
-	pub fn load_type(&self) -> LoadType {
+	pub const fn load_type(&self) -> LoadType {
 		self.load_type
 	}
 
 	#[must_use]
-	pub fn memory(&self) -> usize {
+	pub const fn memory(&self) -> usize {
 		self.memory
 	}
 
 	#[must_use]
-	pub fn offset(&self) -> u32 {
+	pub const fn offset(&self) -> u32 {
 		self.offset
 	}
 
 	#[must_use]
-	pub fn pointer(&self) -> &Expression {
+	pub const fn pointer(&self) -> &Expression {
 		&self.pointer
 	}
 }
@@ -695,7 +695,7 @@ pub struct MemorySize {
 
 impl MemorySize {
 	#[must_use]
-	pub fn memory(&self) -> usize {
+	pub const fn memory(&self) -> usize {
 		self.memory
 	}
 }
@@ -739,7 +739,7 @@ pub struct UnOp {
 
 impl UnOp {
 	#[must_use]
-	pub fn op_type(&self) -> UnOpType {
+	pub const fn op_type(&self) -> UnOpType {
 		self.op_type
 	}
 
@@ -757,7 +757,7 @@ pub struct BinOp {
 
 impl BinOp {
 	#[must_use]
-	pub fn op_type(&self) -> BinOpType {
+	pub const fn op_type(&self) -> BinOpType {
 		self.op_type
 	}
 
@@ -780,7 +780,7 @@ pub struct CmpOp {
 
 impl CmpOp {
 	#[must_use]
-	pub fn op_type(&self) -> CmpOpType {
+	pub const fn op_type(&self) -> CmpOpType {
 		self.op_type
 	}
 
@@ -816,17 +816,17 @@ pub struct Align {
 
 impl Align {
 	#[must_use]
-	pub fn is_aligned(&self) -> bool {
+	pub const fn is_aligned(&self) -> bool {
 		self.length == 0 || self.new == self.old
 	}
 
 	#[must_use]
-	pub fn new_range(&self) -> Range<usize> {
+	pub const fn new_range(&self) -> Range<usize> {
 		self.new..self.new + self.length
 	}
 
 	#[must_use]
-	pub fn old_range(&self) -> Range<usize> {
+	pub const fn old_range(&self) -> Range<usize> {
 		self.old..self.old + self.length
 	}
 }
@@ -838,12 +838,12 @@ pub struct Br {
 
 impl Br {
 	#[must_use]
-	pub fn target(&self) -> usize {
+	pub const fn target(&self) -> usize {
 		self.target
 	}
 
 	#[must_use]
-	pub fn align(&self) -> &Align {
+	pub const fn align(&self) -> &Align {
 		&self.align
 	}
 }
@@ -866,7 +866,7 @@ impl BrTable {
 	}
 
 	#[must_use]
-	pub fn default(&self) -> &Br {
+	pub const fn default(&self) -> &Br {
 		&self.default
 	}
 }
@@ -892,7 +892,7 @@ pub struct Block {
 
 impl Block {
 	#[must_use]
-	pub fn label_type(&self) -> Option<LabelType> {
+	pub const fn label_type(&self) -> Option<LabelType> {
 		self.label_type
 	}
 
@@ -902,7 +902,7 @@ impl Block {
 	}
 
 	#[must_use]
-	pub fn last(&self) -> Option<&Terminator> {
+	pub const fn last(&self) -> Option<&Terminator> {
 		self.last.as_ref()
 	}
 }
@@ -919,7 +919,7 @@ impl BrIf {
 	}
 
 	#[must_use]
-	pub fn target(&self) -> &Br {
+	pub const fn target(&self) -> &Br {
 		&self.target
 	}
 }
@@ -937,12 +937,12 @@ impl If {
 	}
 
 	#[must_use]
-	pub fn on_true(&self) -> &Block {
+	pub const fn on_true(&self) -> &Block {
 		&self.on_true
 	}
 
 	#[must_use]
-	pub fn on_false(&self) -> Option<&Block> {
+	pub const fn on_false(&self) -> Option<&Block> {
 		self.on_false.as_ref()
 	}
 }
@@ -955,7 +955,7 @@ pub struct Call {
 
 impl Call {
 	#[must_use]
-	pub fn function(&self) -> usize {
+	pub const fn function(&self) -> usize {
 		self.function
 	}
 
@@ -979,7 +979,7 @@ pub struct CallIndirect {
 
 impl CallIndirect {
 	#[must_use]
-	pub fn table(&self) -> usize {
+	pub const fn table(&self) -> usize {
 		self.table
 	}
 
@@ -1006,7 +1006,7 @@ pub struct SetTemporary {
 
 impl SetTemporary {
 	#[must_use]
-	pub fn var(&self) -> usize {
+	pub const fn var(&self) -> usize {
 		self.var
 	}
 
@@ -1023,7 +1023,7 @@ pub struct SetLocal {
 
 impl SetLocal {
 	#[must_use]
-	pub fn var(&self) -> usize {
+	pub const fn var(&self) -> usize {
 		self.var
 	}
 
@@ -1040,7 +1040,7 @@ pub struct SetGlobal {
 
 impl SetGlobal {
 	#[must_use]
-	pub fn var(&self) -> usize {
+	pub const fn var(&self) -> usize {
 		self.var
 	}
 
@@ -1060,17 +1060,17 @@ pub struct StoreAt {
 
 impl StoreAt {
 	#[must_use]
-	pub fn store_type(&self) -> StoreType {
+	pub const fn store_type(&self) -> StoreType {
 		self.store_type
 	}
 
 	#[must_use]
-	pub fn memory(&self) -> usize {
+	pub const fn memory(&self) -> usize {
 		self.memory
 	}
 
 	#[must_use]
-	pub fn offset(&self) -> u32 {
+	pub const fn offset(&self) -> u32 {
 		self.offset
 	}
 
@@ -1093,12 +1093,12 @@ pub struct MemoryGrow {
 
 impl MemoryGrow {
 	#[must_use]
-	pub fn memory(&self) -> usize {
+	pub const fn memory(&self) -> usize {
 		self.memory
 	}
 
 	#[must_use]
-	pub fn result(&self) -> usize {
+	pub const fn result(&self) -> usize {
 		self.result
 	}
 
@@ -1116,11 +1116,11 @@ pub struct MemoryCopy {
 
 impl MemoryCopy {
 	#[must_use]
-	pub fn dst(&self) -> u32 {
+	pub const fn dst(&self) -> u32 {
 		self.dst
 	}
 	#[must_use]
-	pub fn src(&self) -> u32 {
+	pub const fn src(&self) -> u32 {
 		self.src
 	}
 	#[must_use]
@@ -1137,7 +1137,7 @@ pub struct MemoryFill {
 
 impl MemoryFill {
 	#[must_use]
-	pub fn mem(&self) -> u32 {
+	pub const fn mem(&self) -> u32 {
 		self.mem
 	}
 	#[must_use]
@@ -1180,22 +1180,22 @@ impl FuncData {
 	}
 
 	#[must_use]
-	pub fn num_result(&self) -> usize {
+	pub const fn num_result(&self) -> usize {
 		self.num_result
 	}
 
 	#[must_use]
-	pub fn num_param(&self) -> usize {
+	pub const fn num_param(&self) -> usize {
 		self.num_param
 	}
 
 	#[must_use]
-	pub fn num_stack(&self) -> usize {
+	pub const fn num_stack(&self) -> usize {
 		self.num_stack
 	}
 
 	#[must_use]
-	pub fn code(&self) -> &Block {
+	pub const fn code(&self) -> &Block {
 		&self.code
 	}
 }

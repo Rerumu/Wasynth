@@ -65,7 +65,7 @@ impl Manager {
 		self.label_list.pop().unwrap();
 	}
 
-	pub fn indentation(&self) -> usize {
+	pub const fn indentation(&self) -> usize {
 		self.indentation
 	}
 

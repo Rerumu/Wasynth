@@ -293,10 +293,7 @@ impl<'a> Factory<'a> {
 	}
 
 	fn start_else(&mut self) {
-		let ty = match self.target.block_data {
-			BlockData::If { ty, .. } => ty,
-			_ => unreachable!(),
-		};
+		let BlockData::If { ty, .. } = self.target.block_data else { unreachable!() };
 
 		self.target.leak_all();
 		self.end_block();
@@ -626,7 +623,7 @@ impl<'a> Factory<'a> {
 				let n = self.target.stack.pop().into();
 				let value = self.target.stack.pop().into();
 
-				let data = Statement::MemoryFill(MemoryFill { mem, n, value });
+				let data = Statement::MemoryFill(MemoryFill { mem, value, n });
 
 				self.target.code.push(data);
 			}
@@ -634,7 +631,7 @@ impl<'a> Factory<'a> {
 			Operator::I64Const { value } => self.target.push_constant(value),
 			Operator::F32Const { value } => self.target.push_constant(value.bits()),
 			Operator::F64Const { value } => self.target.push_constant(value.bits()),
-			_ => panic!("Unsupported instruction: {:?}", op),
+			_ => panic!("Unsupported instruction: {op:?}"),
 		}
 	}
 

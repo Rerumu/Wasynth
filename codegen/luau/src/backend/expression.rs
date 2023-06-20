@@ -125,17 +125,16 @@ impl DriverNoContext for BinOp {
 			write!(w, "(")?;
 			self.lhs().write(w)?;
 			write!(w, " {symbol} ")?;
-			self.rhs().write(w)?;
-			write!(w, ")")
 		} else {
 			let (head, tail) = self.op_type().as_name();
 
 			write!(w, "{head}_{tail}(")?;
 			self.lhs().write(w)?;
 			write!(w, ", ")?;
-			self.rhs().write(w)?;
-			write!(w, ")")
 		}
+
+		self.rhs().write(w)?;
+		write!(w, ")")
 	}
 }
 

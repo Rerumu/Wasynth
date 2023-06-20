@@ -25,11 +25,11 @@ trait AsIEName {
 impl AsIEName for External {
 	fn as_ie_name(&self) -> &str {
 		match self {
-			External::Func => "func_list",
-			External::Table => "table_list",
-			External::Memory => "memory_list",
-			External::Global => "global_list",
-			External::Tag => unimplemented!(),
+			Self::Func => "func_list",
+			Self::Table => "table_list",
+			Self::Memory => "memory_list",
+			Self::Global => "global_list",
+			Self::Tag => unimplemented!(),
 		}
 	}
 }
@@ -41,10 +41,7 @@ fn reader_to_code(reader: OperatorsReader) -> Vec<Operator> {
 }
 
 fn write_named_array(name: &str, len: usize, w: &mut dyn Write) -> Result<()> {
-	let len = match len.checked_sub(1) {
-		Some(len) => len,
-		None => return Ok(()),
-	};
+	let Some(len) = len.checked_sub(1) else { return Ok(()) };
 
 	writeln!(w, "local {name} = table_new({len}, 1)")
 }
@@ -154,13 +151,7 @@ fn write_global_list(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> 
 
 fn write_element_list(list: &[Element], type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
 	for element in list {
-		let (index, init) = match element.kind {
-			ElementKind::Active {
-				table_index,
-				offset_expr,
-			} => (table_index, offset_expr),
-			_ => unimplemented!(),
-		};
+		let ElementKind::Active { table_index: index, offset_expr: init } = element.kind else { unreachable!() };
 
 		writeln!(w, "\tdo")?;
 		writeln!(w, "\t\tlocal target = TABLE_LIST[{index}].data")?;
@@ -264,10 +255,9 @@ fn write_localize_used(func_list: &[FuncData], w: &mut dyn Write) -> Result<BTre
 fn write_func_start(wasm: &Module, index: u32, w: &mut dyn Write) -> Result<()> {
 	write!(w, "FUNC_LIST[{index}] = ")?;
 
-	match wasm.name_section().get(&index) {
-		Some(name) => write!(w, "--[[ {name} ]] "),
-		None => Ok(()),
-	}
+	wasm.name_section()
+		.get(&index)
+		.map_or_else(|| Ok(()), |name| write!(w, "--[[ {name} ]] "))
 }
 
 fn write_func_list(wasm: &Module, func_list: &[FuncData], w: &mut dyn Write) -> Result<()> {

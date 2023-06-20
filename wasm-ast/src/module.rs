@@ -17,11 +17,11 @@ pub enum External {
 impl From<TypeRef> for External {
 	fn from(value: TypeRef) -> Self {
 		match value {
-			TypeRef::Func(_) => External::Func,
-			TypeRef::Table(_) => External::Table,
-			TypeRef::Memory(_) => External::Memory,
-			TypeRef::Global(_) => External::Global,
-			TypeRef::Tag(_) => External::Tag,
+			TypeRef::Func(_) => Self::Func,
+			TypeRef::Table(_) => Self::Table,
+			TypeRef::Memory(_) => Self::Memory,
+			TypeRef::Global(_) => Self::Global,
+			TypeRef::Tag(_) => Self::Tag,
 		}
 	}
 }
@@ -29,11 +29,11 @@ impl From<TypeRef> for External {
 impl From<ExternalKind> for External {
 	fn from(value: ExternalKind) -> Self {
 		match value {
-			ExternalKind::Func => External::Func,
-			ExternalKind::Table => External::Table,
-			ExternalKind::Memory => External::Memory,
-			ExternalKind::Global => External::Global,
-			ExternalKind::Tag => External::Tag,
+			ExternalKind::Func => Self::Func,
+			ExternalKind::Table => Self::Table,
+			ExternalKind::Memory => Self::Memory,
+			ExternalKind::Global => Self::Global,
+			ExternalKind::Tag => Self::Tag,
 		}
 	}
 }
@@ -199,12 +199,12 @@ impl<'a> Module<'a> {
 	}
 
 	#[must_use]
-	pub fn name_section(&self) -> &HashMap<u32, &'a str> {
+	pub const fn name_section(&self) -> &HashMap<u32, &'a str> {
 		&self.name_section
 	}
 
 	#[must_use]
-	pub fn start_section(&self) -> Option<u32> {
+	pub const fn start_section(&self) -> Option<u32> {
 		self.start_section
 	}
 }
