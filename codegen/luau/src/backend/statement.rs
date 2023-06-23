@@ -359,6 +359,15 @@ impl Driver for Statement {
 	}
 }
 
+fn has_sane_variables(ast: &FuncData) -> bool {
+	let local_count = ast.local_data().iter().map(|v| v.0).sum::<u32>();
+	let local_count = usize::try_from(local_count).unwrap();
+	let param_count = ast.num_param();
+	let temp_count = ast.num_stack();
+
+	temp_count + param_count + local_count < 170
+}
+
 fn write_parameter_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 	write!(w, "function(")?;
 	write_ascending("loc", 0..ast.num_param(), w)?;
@@ -396,6 +405,13 @@ fn write_variable_list(ast: &FuncData, mng: &mut Manager, w: &mut dyn Write) -> 
 
 impl Driver for FuncData {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		if !has_sane_variables(self) {
+			return Err(std::io::Error::new(
+				std::io::ErrorKind::Other,
+				"too many variables in function",
+			));
+		}
+
 		let (table_map, has_branch) = br_target::visit(self);
 
 		mng.indent();
