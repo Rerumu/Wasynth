@@ -151,7 +151,9 @@ fn write_global_list(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> 
 
 fn write_element_list(list: &[Element], type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
 	for element in list {
-		let ElementKind::Active { table_index: index, offset_expr: init } = element.kind else { unreachable!() };
+		let ElementKind::Active { table_index: index, offset_expr: init } = element.kind else {
+			unimplemented!("passive elements not supported")
+		};
 
 		writeln!(w, "\tdo")?;
 		writeln!(w, "\t\tlocal target = TABLE_LIST[{index}].data")?;
@@ -188,7 +190,7 @@ fn write_element_list(list: &[Element], type_info: &TypeInfo, w: &mut dyn Write)
 fn write_data_list(list: &[Data], type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
 	for data in list {
 		let (index, init) = match data.kind {
-			DataKind::Passive => unimplemented!(),
+			DataKind::Passive => unimplemented!("passive data not supported"),
 			DataKind::Active {
 				memory_index,
 				offset_expr,
