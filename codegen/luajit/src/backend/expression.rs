@@ -58,7 +58,10 @@ impl DriverNoContext for GetGlobal {
 
 impl DriverNoContext for LoadAt {
 	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write!(w, "load_{}(memory_at_0, ", self.load_type().as_name())?;
+		let name = self.load_type().as_name();
+		let memory = self.memory();
+
+		write!(w, "load_{name}(memory_at_{memory}, ")?;
 		self.pointer().write(w)?;
 
 		if self.offset() != 0 {

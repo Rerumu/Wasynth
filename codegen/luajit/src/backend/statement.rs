@@ -258,7 +258,11 @@ impl DriverNoContext for SetGlobal {
 
 impl DriverNoContext for StoreAt {
 	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write!(w, "store_{}(memory_at_0, ", self.store_type().as_name())?;
+		let name = self.store_type().as_name();
+		let memory = self.memory();
+
+		write!(w, "store_{name}(memory_at_{memory}, ")?;
+
 		self.pointer().write(w)?;
 
 		if self.offset() != 0 {
