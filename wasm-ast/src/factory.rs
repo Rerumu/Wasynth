@@ -57,7 +57,7 @@ impl From<BlockData> for LabelType {
 struct StatList {
 	stack: Stack,
 	code: Vec<Statement>,
-	last: Option<Terminator>,
+	last: Option<Box<Terminator>>,
 
 	block_data: BlockData,
 	has_reference: bool,
@@ -199,7 +199,7 @@ impl StatList {
 
 	fn set_terminator(&mut self, term: Terminator) {
 		self.leak_all();
-		self.last = Some(term);
+		self.last = Some(term.into());
 	}
 }
 
@@ -310,15 +310,13 @@ impl<'a> Factory<'a> {
 			BlockData::Forward { .. } | BlockData::Backward { .. } => Statement::Block(now.into()),
 			BlockData::If { .. } => Statement::If(If {
 				condition: self.target.stack.pop().into(),
-				on_true: now.into(),
+				on_true: Box::new(now.into()),
 				on_false: None,
 			}),
 			BlockData::Else { .. } => {
-				if let Statement::If(v) = self.target.code.last_mut().unwrap() {
-					v.on_false = Some(now.into());
-				} else {
-					unreachable!()
-				}
+				let Statement::If(last) = self.target.code.last_mut().unwrap() else { unreachable!() };
+
+				last.on_false = Some(Box::new(now.into()));
 
 				return;
 			}

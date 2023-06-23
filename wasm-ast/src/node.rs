@@ -887,7 +887,7 @@ pub enum Terminator {
 pub struct Block {
 	pub(crate) label_type: Option<LabelType>,
 	pub(crate) code: Vec<Statement>,
-	pub(crate) last: Option<Terminator>,
+	pub(crate) last: Option<Box<Terminator>>,
 }
 
 impl Block {
@@ -902,8 +902,8 @@ impl Block {
 	}
 
 	#[must_use]
-	pub const fn last(&self) -> Option<&Terminator> {
-		self.last.as_ref()
+	pub fn last(&self) -> Option<&Terminator> {
+		self.last.as_deref()
 	}
 }
 
@@ -926,8 +926,8 @@ impl BrIf {
 
 pub struct If {
 	pub(crate) condition: Box<Expression>,
-	pub(crate) on_true: Block,
-	pub(crate) on_false: Option<Block>,
+	pub(crate) on_true: Box<Block>,
+	pub(crate) on_false: Option<Box<Block>>,
 }
 
 impl If {
@@ -937,13 +937,13 @@ impl If {
 	}
 
 	#[must_use]
-	pub const fn on_true(&self) -> &Block {
+	pub fn on_true(&self) -> &Block {
 		&self.on_true
 	}
 
 	#[must_use]
-	pub const fn on_false(&self) -> Option<&Block> {
-		self.on_false.as_ref()
+	pub fn on_false(&self) -> Option<&Block> {
+		self.on_false.as_deref()
 	}
 }
 
