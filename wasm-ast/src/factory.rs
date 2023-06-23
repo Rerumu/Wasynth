@@ -4,9 +4,9 @@ use crate::{
 	module::{read_checked, TypeInfo},
 	node::{
 		BinOp, BinOpType, Block, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType,
-		Expression, FuncData, GetGlobal, GetLocal, If, LabelType, LoadAt, LoadType, MemoryCopy,
-		MemoryFill, MemoryGrow, MemorySize, Select, SetGlobal, SetLocal, Statement, StoreAt,
-		StoreType, Terminator, UnOp, UnOpType, Value,
+		Expression, FuncData, GetGlobal, GetLocal, If, LabelType, LoadAt, LoadType, MemoryArgument,
+		MemoryCopy, MemoryFill, MemoryGrow, MemorySize, Select, SetGlobal, SetLocal, Statement,
+		StoreAt, StoreType, Terminator, UnOp, UnOpType, Value,
 	},
 	stack::{ReadType, Stack},
 };
@@ -611,19 +611,43 @@ impl<'a> Factory<'a> {
 			Operator::MemoryCopy { dst_mem, src_mem } => {
 				let size = self.target.stack.pop().into();
 
+				let source = MemoryArgument {
+					memory: src_mem.try_into().unwrap(),
+					pointer: self.target.stack.pop().into(),
+				};
+
+				let destination = MemoryArgument {
+					memory: dst_mem.try_into().unwrap(),
+					pointer: self.target.stack.pop().into(),
+				};
+
+				self.target.leak_memory_write(source.memory);
+				self.target.leak_memory_write(destination.memory);
+
 				let data = Statement::MemoryCopy(MemoryCopy {
-					dst: dst_mem,
-					src: src_mem,
+					destination,
+					source,
 					size,
 				});
 
 				self.target.code.push(data);
 			}
 			Operator::MemoryFill { mem } => {
-				let n = self.target.stack.pop().into();
+				let size = self.target.stack.pop().into();
 				let value = self.target.stack.pop().into();
 
-				let data = Statement::MemoryFill(MemoryFill { mem, value, n });
+				let destination = MemoryArgument {
+					memory: mem.try_into().unwrap(),
+					pointer: self.target.stack.pop().into(),
+				};
+
+				self.target.leak_memory_write(destination.memory);
+
+				let data = Statement::MemoryFill(MemoryFill {
+					destination,
+					size,
+					value,
+				});
 
 				self.target.code.push(data);
 			}

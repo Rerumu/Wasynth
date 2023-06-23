@@ -754,6 +754,19 @@ do
 		ffi.copy(start, data, len or #data)
 	end
 
+	function store.copy(memory_1, addr_1, memory_2, addr_2, len)
+		local start_1 = by_offset(memory_1.data, addr_1)
+		local start_2 = by_offset(memory_2.data, addr_2)
+
+		ffi.copy(start_1, start_2, len)
+	end
+
+	function store.fill(memory, addr, len, value)
+		local start = by_offset(memory.data, addr)
+
+		ffi.fill(start, len, value)
+	end
+
 	local WASM_PAGE_SIZE = 65536
 
 	local function finalizer(memory)
@@ -794,19 +807,6 @@ do
 
 			return old
 		end
-	end
-	
-	function allocator.copy(memory, destination, source, length)
-		local destination_addr = by_offset(memory.data, destination)
-		local source_addr = by_offset(memory.data, source)
-
-		ffi.copy(destination_addr, source_addr, length)
-	end
-
-	function allocator.fill(memory, address, value, length)
-		local start = by_offset(memory.data, address)
-
-		ffi.fill(start, length, value)
 	end
 
 	module.load = load

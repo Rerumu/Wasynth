@@ -307,26 +307,29 @@ impl DriverNoContext for MemoryGrow {
 
 impl DriverNoContext for MemoryCopy {
 	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		let dst = self.dst();
-		let src = self.src();
-		let size = self.size();
+		let memory_1 = self.destination().memory();
+		let memory_2 = self.source().memory();
 
-		write!(w, "rt.store.copy(memory_at_0, {dst}, {src}, ")?;
-		size.write(w)?;
+		write!(w, "rt.store.copy(memory_at_{memory_1}, ")?;
+		self.destination().pointer().write(w)?;
+		write!(w, ", memory_at_{memory_2}, ")?;
+		self.source().pointer().write(w)?;
+		write!(w, ", ")?;
+		self.size().write(w)?;
 		write!(w, ")")
 	}
 }
 
 impl DriverNoContext for MemoryFill {
 	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		let mem = self.mem();
-		let value = self.value();
-		let n = self.n();
+		let memory = self.destination().memory();
 
-		write!(w, "rt.store.copy(memory_at_0, {mem}, ")?;
-		value.write(w)?;
+		write!(w, "rt.store.fill(memory_at_{memory}, ")?;
+		self.destination().pointer().write(w)?;
 		write!(w, ", ")?;
-		n.write(w)?;
+		self.size().write(w)?;
+		write!(w, ", ")?;
+		self.value().write(w)?;
 		write!(w, ")")
 	}
 }

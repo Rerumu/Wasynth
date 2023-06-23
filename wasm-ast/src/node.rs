@@ -1108,21 +1108,40 @@ impl MemoryGrow {
 	}
 }
 
+pub struct MemoryArgument {
+	pub(crate) memory: usize,
+	pub(crate) pointer: Box<Expression>,
+}
+
+impl MemoryArgument {
+	#[must_use]
+	pub const fn memory(&self) -> usize {
+		self.memory
+	}
+
+	#[must_use]
+	pub fn pointer(&self) -> &Expression {
+		&self.pointer
+	}
+}
+
 pub struct MemoryCopy {
-	pub(crate) dst: u32,
-	pub(crate) src: u32,
+	pub(crate) destination: MemoryArgument,
+	pub(crate) source: MemoryArgument,
 	pub(crate) size: Box<Expression>,
 }
 
 impl MemoryCopy {
 	#[must_use]
-	pub const fn dst(&self) -> u32 {
-		self.dst
+	pub const fn destination(&self) -> &MemoryArgument {
+		&self.destination
 	}
+
 	#[must_use]
-	pub const fn src(&self) -> u32 {
-		self.src
+	pub const fn source(&self) -> &MemoryArgument {
+		&self.source
 	}
+
 	#[must_use]
 	pub fn size(&self) -> &Expression {
 		&self.size
@@ -1130,23 +1149,25 @@ impl MemoryCopy {
 }
 
 pub struct MemoryFill {
-	pub(crate) mem: u32,
+	pub(crate) destination: MemoryArgument,
+	pub(crate) size: Box<Expression>,
 	pub(crate) value: Box<Expression>,
-	pub(crate) n: Box<Expression>,
 }
 
 impl MemoryFill {
 	#[must_use]
-	pub const fn mem(&self) -> u32 {
-		self.mem
+	pub const fn destination(&self) -> &MemoryArgument {
+		&self.destination
 	}
+
+	#[must_use]
+	pub fn size(&self) -> &Expression {
+		&self.size
+	}
+
 	#[must_use]
 	pub fn value(&self) -> &Expression {
 		&self.value
-	}
-	#[must_use]
-	pub fn n(&self) -> &Expression {
-		&self.n
 	}
 }
 

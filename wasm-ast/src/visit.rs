@@ -110,6 +110,8 @@ impl<T: Visitor> Driver<T> for MemorySize {
 
 impl<T: Visitor> Driver<T> for MemoryCopy {
 	fn accept(&self, visitor: &mut T) {
+		self.destination().pointer().accept(visitor);
+		self.source().pointer().accept(visitor);
 		self.size().accept(visitor);
 
 		visitor.visit_memory_copy(self);
@@ -118,8 +120,9 @@ impl<T: Visitor> Driver<T> for MemoryCopy {
 
 impl<T: Visitor> Driver<T> for MemoryFill {
 	fn accept(&self, visitor: &mut T) {
+		self.destination().pointer().accept(visitor);
+		self.size().accept(visitor);
 		self.value().accept(visitor);
-		self.n().accept(visitor);
 
 		visitor.visit_memory_fill(self);
 	}

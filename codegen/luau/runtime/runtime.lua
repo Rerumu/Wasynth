@@ -849,8 +849,6 @@ do
 		store_byte(memory.data, addr, value)
 	end
 
-	local store_i8 = store.i32_n8
-
 	function store.i32_n16(memory, addr, value)
 		store_byte(memory.data, addr, value)
 		store_byte(memory.data, addr + 1, bit_rshift(value, 8))
@@ -911,7 +909,7 @@ do
 	end
 
 	function store.string(memory, addr, data, len)
-		len = len or #data
+		len = if len then len else #data
 
 		local rem = len % 4
 
@@ -924,7 +922,35 @@ do
 		for i = len - rem + 1, len do
 			local v = string_byte(data, i)
 
-			store_i8(memory, addr + i - 1, v)
+			store_i32_n8(memory, addr + i - 1, v)
+		end
+	end
+
+	-- FIXME: `store.copy` and `store.fill` should be ideally using the same batched store as `store.string`
+	function store.copy(memory_1, addr_1, memory_2, addr_2, len)
+		local data_1 = memory_1.data
+		local data_2 = memory_2.data
+
+		if addr_1 <= addr_2 then
+			for i = 1, len do
+				local v = load_byte(data_2, addr_2 + i - 1)
+	
+				store_byte(data_1, addr_1 + i - 1, v)
+			end
+		else
+			for i = len, 1, -1 do
+				local v = load_byte(data_2, addr_2 + i - 1)
+	
+				store_byte(data_1, addr_1 + i - 1, v)
+			end	
+		end
+	end
+
+	function store.fill(memory, addr, len, value)
+		local data = memory.data
+
+		for i = 1, len do
+			store_byte(data, addr + i - 1, value)
 		end
 	end
 
@@ -942,20 +968,6 @@ do
 			memory.min = new
 
 			return old
-		end
-	end
-	
-	function allocator.copy(memory, destination, source, length)
-		for i = 1, length do
-			local v = load_byte(memory, source + i - 1)
-
-			store_byte(memory, destination + i - 1, v)
-		end
-	end
-
-	function allocator.fill(memory, destination, value, length)
-		for i = 1, length do
-			store_byte(memory, destination + i - 1, value)
 		end
 	end
 
