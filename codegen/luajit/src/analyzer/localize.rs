@@ -1,7 +1,10 @@
 use std::collections::BTreeSet;
 
 use wasm_ast::{
-	node::{BinOp, CmpOp, FuncData, LoadAt, MemoryGrow, MemorySize, StoreAt, UnOp},
+	node::{
+		BinOp, CmpOp, FuncData, LoadAt, MemoryCopy, MemoryFill, MemoryGrow, MemorySize, StoreAt,
+		UnOp,
+	},
 	visit::{Driver, Visitor},
 };
 
@@ -16,14 +19,14 @@ impl Visitor for Visit {
 	fn visit_load_at(&mut self, v: &LoadAt) {
 		let name = v.load_type().as_name();
 
-		self.memory_set.insert(0);
+		self.memory_set.insert(v.memory());
 		self.local_set.insert(("load", name));
 	}
 
 	fn visit_store_at(&mut self, v: &StoreAt) {
 		let name = v.store_type().as_name();
 
-		self.memory_set.insert(0);
+		self.memory_set.insert(v.memory());
 		self.local_set.insert(("store", name));
 	}
 
@@ -59,6 +62,15 @@ impl Visitor for Visit {
 
 	fn visit_memory_grow(&mut self, m: &MemoryGrow) {
 		self.memory_set.insert(m.memory());
+	}
+
+	fn visit_memory_copy(&mut self, m: &MemoryCopy) {
+		self.memory_set.insert(m.destination().memory());
+		self.memory_set.insert(m.source().memory());
+	}
+
+	fn visit_memory_fill(&mut self, m: &MemoryFill) {
+		self.memory_set.insert(m.destination().memory());
 	}
 }
 
