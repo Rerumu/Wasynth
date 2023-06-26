@@ -38,14 +38,14 @@ fn get_pinned_registers(
 	locals: usize,
 	temporaries: usize,
 ) -> (usize, usize) {
-	const MAX_LOCAL_COUNT: usize = 170;
+	const MAX_LOCAL_COUNT: usize = 180;
 
 	let available = MAX_LOCAL_COUNT
 		.saturating_sub(upvalues)
 		.saturating_sub(params);
 
-	let locals = available.min(locals);
-	let temporaries = available.saturating_sub(locals).min(temporaries);
+	let temporaries = available.min(temporaries);
+	let locals = available.saturating_sub(temporaries).min(locals);
 
 	(params + locals, temporaries)
 }
