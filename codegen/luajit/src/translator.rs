@@ -107,8 +107,8 @@ fn write_table_list(wasm: &Module, w: &mut dyn Write) -> Result<()> {
 
 	for (i, table) in table.iter().enumerate() {
 		let index = offset + i;
-		let min = table.initial;
-		let max = table.maximum.unwrap_or(0xFFFF);
+		let min = table.ty.initial;
+		let max = table.ty.maximum.unwrap_or(0xFFFF);
 
 		writeln!(
 			w,
@@ -154,6 +154,8 @@ fn write_element_list(list: &[Element], type_info: &TypeInfo, w: &mut dyn Write)
 		let ElementKind::Active { table_index: index, offset_expr: init } = element.kind else {
 			unimplemented!("passive elements not supported")
 		};
+
+		let index = index.unwrap_or(0);
 
 		writeln!(w, "\tdo")?;
 		writeln!(w, "\t\tlocal target = TABLE_LIST[{index}].data")?;
