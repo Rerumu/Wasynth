@@ -9,5 +9,5 @@ libfuzzer_sys::fuzz_target!(|module: RngModule| {
 
 	let sink = &mut std::io::sink();
 
-	codegen_luau::from_module_untyped(&wasm, sink).expect("LuaJIT should succeed");
+	codegen_luau::from_module_untyped(&wasm, sink).expect("Luau should succeed");
 });
