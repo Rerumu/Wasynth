@@ -255,7 +255,9 @@ impl<'a> TypeInfo<'a> {
 	}
 
 	pub(crate) fn by_type_index(&self, index: usize) -> (usize, usize) {
-		let Type::Func(ty) = &self.type_list[index];
+		let Type::Func(ty) = &self.type_list[index] else {
+			unreachable!("type at func index must be a func type");
+		};
 
 		(ty.params().len(), ty.results().len())
 	}
