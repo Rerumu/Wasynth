@@ -1,10 +1,11 @@
 use std::{
 	collections::HashMap,
 	io::{Result, Write},
-	ops::Range,
 };
 
-use wasm_ast::node::{BrTable, LabelType};
+use wasm_ast::node::{BrTable, FuncData, LabelType};
+
+use crate::analyzer::{br_target, localize};
 
 #[macro_export]
 macro_rules! indentation {
@@ -31,28 +32,85 @@ macro_rules! line {
 	}};
 }
 
-#[derive(Default)]
+fn get_pinned_registers(
+	upvalues: usize,
+	params: usize,
+	locals: usize,
+	temporaries: usize,
+) -> (usize, usize) {
+	const MAX_LOCAL_COUNT: usize = 170;
+
+	let available = MAX_LOCAL_COUNT
+		.saturating_sub(upvalues)
+		.saturating_sub(params);
+
+	let locals = available.min(locals);
+	let temporaries = available.saturating_sub(locals).min(temporaries);
+
+	(params + locals, temporaries)
+}
+
 pub struct Manager {
 	table_map: HashMap<usize, usize>,
 	has_branch: bool,
+	num_local: usize,
+	num_temp: usize,
 	label_list: Vec<Option<LabelType>>,
 	indentation: usize,
 }
 
 impl Manager {
+	pub fn empty() -> Self {
+		Self {
+			table_map: HashMap::new(),
+			has_branch: false,
+			num_local: 0,
+			num_temp: usize::MAX,
+			label_list: Vec::new(),
+			indentation: 0,
+		}
+	}
+
+	pub fn function(ast: &FuncData) -> Self {
+		let (upvalues, memories) = localize::visit(ast);
+		let (table_map, has_branch) = br_target::visit(ast);
+		let (num_local, num_temp) = get_pinned_registers(
+			upvalues.len() + memories.len(),
+			ast.num_param(),
+			ast.local_data().len(),
+			ast.num_stack(),
+		);
+
+		Self {
+			table_map,
+			has_branch,
+			num_local,
+			num_temp,
+			label_list: Vec::new(),
+			indentation: 0,
+		}
+	}
+
 	pub fn get_table_index(&self, table: &BrTable) -> usize {
 		let id = table as *const _ as usize;
 
 		self.table_map[&id]
 	}
 
-	pub fn set_branch_information(&mut self, table_map: HashMap<usize, usize>, has_branch: bool) {
-		self.table_map = table_map;
-		self.has_branch = has_branch;
+	pub fn has_table(&self) -> bool {
+		!self.table_map.is_empty()
 	}
 
 	pub const fn has_branch(&self) -> bool {
 		self.has_branch
+	}
+
+	pub const fn num_local(&self) -> usize {
+		self.num_local
+	}
+
+	pub const fn num_temp(&self) -> usize {
+		self.num_temp
 	}
 
 	pub fn label_list(&self) -> &[Option<LabelType>] {
@@ -84,10 +142,6 @@ pub trait Driver {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()>;
 }
 
-pub trait DriverNoContext {
-	fn write(&self, w: &mut dyn Write) -> Result<()>;
-}
-
 pub fn write_separated<I, T, M>(mut iter: I, mut func: M, w: &mut dyn Write) -> Result<()>
 where
 	M: FnMut(T, &mut dyn Write) -> Result<()>,
@@ -102,8 +156,4 @@ where
 		write!(w, ", ")?;
 		func(v, w)
 	})
-}
-
-pub fn write_ascending(prefix: &str, range: Range<usize>, w: &mut dyn Write) -> Result<()> {
-	write_separated(range, |i, w| write!(w, "{prefix}_{i}"), w)
 }

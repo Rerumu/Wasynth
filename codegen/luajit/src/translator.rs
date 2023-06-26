@@ -15,7 +15,7 @@ use wasmparser::{
 
 use crate::{
 	analyzer::localize,
-	backend::manager::{Driver, DriverNoContext, Manager},
+	backend::manager::{Driver, Manager},
 };
 
 trait AsIEName {
@@ -51,7 +51,7 @@ fn write_constant(init: &ConstExpr, type_info: &TypeInfo, w: &mut dyn Write) -> 
 	let func = Factory::from_type_info(type_info).create_anonymous(&code);
 
 	if let Some(Statement::SetTemporary(stat)) = func.code().code().last() {
-		stat.value().write(w)
+		stat.value().write(&mut Manager::empty(), w)
 	} else {
 		writeln!(w, r#"error("Valueless constant")"#)
 	}
@@ -178,6 +178,7 @@ fn write_element_list(list: &[Element], type_info: &TypeInfo, w: &mut dyn Write)
 				}
 			}
 		}
+
 		writeln!(w, " }}")?;
 		writeln!(w, "\t\ttable.move(data, 1, #data, offset, target)")?;
 		writeln!(w, "\tend")?;
@@ -270,7 +271,7 @@ fn write_func_list(wasm: &Module, func_list: &[FuncData], w: &mut dyn Write) -> 
 
 		write_func_start(wasm, index, w)?;
 
-		v.write(&mut Manager::default(), w)
+		v.write(&mut Manager::function(v), w)
 	})
 }
 
@@ -309,9 +310,9 @@ fn write_module_start(
 /// # Errors
 /// Returns `Err` if writing to `Write` failed.
 pub fn from_inst_list(code: &[Operator], type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
-	Factory::from_type_info(type_info)
-		.create_anonymous(code)
-		.write(&mut Manager::default(), w)
+	let ast = Factory::from_type_info(type_info).create_anonymous(code);
+
+	ast.write(&mut Manager::function(&ast), w)
 }
 
 /// # Errors

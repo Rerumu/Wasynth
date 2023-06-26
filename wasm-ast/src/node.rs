@@ -1,5 +1,3 @@
-use std::ops::Range;
-
 use wasmparser::{Operator, ValType};
 
 #[allow(non_camel_case_types)]
@@ -627,22 +625,22 @@ impl Select {
 	}
 }
 
-pub struct GetTemporary {
+pub struct Temporary {
 	pub(crate) var: usize,
 }
 
-impl GetTemporary {
+impl Temporary {
 	#[must_use]
 	pub const fn var(&self) -> usize {
 		self.var
 	}
 }
 
-pub struct GetLocal {
+pub struct Local {
 	pub(crate) var: usize,
 }
 
-impl GetLocal {
+impl Local {
 	#[must_use]
 	pub const fn var(&self) -> usize {
 		self.var
@@ -797,8 +795,8 @@ impl CmpOp {
 
 pub enum Expression {
 	Select(Select),
-	GetTemporary(GetTemporary),
-	GetLocal(GetLocal),
+	GetTemporary(Temporary),
+	GetLocal(Local),
 	GetGlobal(GetGlobal),
 	LoadAt(LoadAt),
 	MemorySize(MemorySize),
@@ -806,6 +804,28 @@ pub enum Expression {
 	UnOp(UnOp),
 	BinOp(BinOp),
 	CmpOp(CmpOp),
+}
+
+#[derive(Clone, Copy)]
+pub struct ResultList {
+	start: usize,
+	end: usize,
+}
+
+impl ResultList {
+	#[must_use]
+	pub const fn new(start: usize, end: usize) -> Self {
+		Self { start, end }
+	}
+
+	#[must_use]
+	pub const fn is_empty(self) -> bool {
+		self.start == self.end
+	}
+
+	pub fn iter(self) -> impl Iterator<Item = Temporary> {
+		(self.start..self.end).map(|var| Temporary { var })
+	}
 }
 
 pub struct Align {
@@ -821,13 +841,13 @@ impl Align {
 	}
 
 	#[must_use]
-	pub const fn new_range(&self) -> Range<usize> {
-		self.new..self.new + self.length
+	pub const fn new_range(&self) -> ResultList {
+		ResultList::new(self.new, self.new + self.length)
 	}
 
 	#[must_use]
-	pub const fn old_range(&self) -> Range<usize> {
-		self.old..self.old + self.length
+	pub const fn old_range(&self) -> ResultList {
+		ResultList::new(self.old, self.old + self.length)
 	}
 }
 
@@ -949,8 +969,8 @@ impl If {
 
 pub struct Call {
 	pub(crate) function: usize,
-	pub(crate) result: Range<usize>,
 	pub(crate) param_list: Vec<Expression>,
+	pub(crate) result_list: ResultList,
 }
 
 impl Call {
@@ -960,21 +980,21 @@ impl Call {
 	}
 
 	#[must_use]
-	pub fn result(&self) -> Range<usize> {
-		self.result.clone()
+	pub fn param_list(&self) -> &[Expression] {
+		&self.param_list
 	}
 
 	#[must_use]
-	pub fn param_list(&self) -> &[Expression] {
-		&self.param_list
+	pub const fn result_list(&self) -> ResultList {
+		self.result_list
 	}
 }
 
 pub struct CallIndirect {
 	pub(crate) table: usize,
 	pub(crate) index: Box<Expression>,
-	pub(crate) result: Range<usize>,
 	pub(crate) param_list: Vec<Expression>,
+	pub(crate) result_list: ResultList,
 }
 
 impl CallIndirect {
@@ -989,25 +1009,25 @@ impl CallIndirect {
 	}
 
 	#[must_use]
-	pub fn result(&self) -> Range<usize> {
-		self.result.clone()
+	pub fn param_list(&self) -> &[Expression] {
+		&self.param_list
 	}
 
 	#[must_use]
-	pub fn param_list(&self) -> &[Expression] {
-		&self.param_list
+	pub const fn result_list(&self) -> ResultList {
+		self.result_list
 	}
 }
 
 pub struct SetTemporary {
-	pub(crate) var: usize,
+	pub(crate) var: Temporary,
 	pub(crate) value: Box<Expression>,
 }
 
 impl SetTemporary {
 	#[must_use]
-	pub const fn var(&self) -> usize {
-		self.var
+	pub const fn var(&self) -> &Temporary {
+		&self.var
 	}
 
 	#[must_use]
@@ -1017,14 +1037,14 @@ impl SetTemporary {
 }
 
 pub struct SetLocal {
-	pub(crate) var: usize,
+	pub(crate) var: Local,
 	pub(crate) value: Box<Expression>,
 }
 
 impl SetLocal {
 	#[must_use]
-	pub const fn var(&self) -> usize {
-		self.var
+	pub const fn var(&self) -> &Local {
+		&self.var
 	}
 
 	#[must_use]
@@ -1087,7 +1107,7 @@ impl StoreAt {
 
 pub struct MemoryGrow {
 	pub(crate) memory: usize,
-	pub(crate) result: usize,
+	pub(crate) result: Temporary,
 	pub(crate) size: Box<Expression>,
 }
 
@@ -1098,8 +1118,8 @@ impl MemoryGrow {
 	}
 
 	#[must_use]
-	pub const fn result(&self) -> usize {
-		self.result
+	pub const fn result(&self) -> &Temporary {
+		&self.result
 	}
 
 	#[must_use]
@@ -1187,7 +1207,7 @@ pub enum Statement {
 }
 
 pub struct FuncData {
-	pub(crate) local_data: Vec<(u32, ValType)>,
+	pub(crate) local_data: Vec<ValType>,
 	pub(crate) num_result: usize,
 	pub(crate) num_param: usize,
 	pub(crate) num_stack: usize,
@@ -1196,7 +1216,7 @@ pub struct FuncData {
 
 impl FuncData {
 	#[must_use]
-	pub fn local_data(&self) -> &[(u32, ValType)] {
+	pub fn local_data(&self) -> &[ValType] {
 		&self.local_data
 	}
 

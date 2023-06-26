@@ -92,7 +92,7 @@ pub fn visit(ast: &FuncData) -> (BTreeSet<(&'static str, &'static str)>, BTreeSe
 		memory_set: BTreeSet::new(),
 	};
 
-	if ast.local_data().iter().any(|v| v.1 == ValType::I64) {
+	if ast.local_data().iter().any(|&v| v == ValType::I64) {
 		visit.local_set.insert(("i64", "ZERO"));
 	}
 

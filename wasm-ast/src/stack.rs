@@ -1,7 +1,7 @@
-use std::{collections::HashSet, ops::Range};
+use std::collections::HashSet;
 
 use crate::node::{
-	Align, Expression, GetGlobal, GetLocal, GetTemporary, LoadAt, SetTemporary, Statement,
+	Align, Expression, GetGlobal, LoadAt, Local, ResultList, SetTemporary, Statement, Temporary,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -68,7 +68,7 @@ impl Stack {
 	pub fn push_with_single(&mut self, data: Expression) {
 		let mut read = HashSet::new();
 		let elem = match data {
-			Expression::GetLocal(GetLocal { var }) => ReadType::Local(var),
+			Expression::GetLocal(Local { var }) => ReadType::Local(var),
 			Expression::GetGlobal(GetGlobal { var }) => ReadType::Global(var),
 			Expression::LoadAt(LoadAt { memory, .. }) => ReadType::Memory(memory),
 			_ => unreachable!(),
@@ -94,19 +94,23 @@ impl Stack {
 		self.var_list.drain(desired..).map(|v| v.data)
 	}
 
-	pub fn push_temporary(&mut self, num: usize) -> Range<usize> {
+	pub fn push_temporaries(&mut self, num: usize) -> ResultList {
 		let start = self.previous + self.len();
 		let range = start..start + num;
 
 		self.capacity = self.capacity.max(range.end);
 
 		for var in range.clone() {
-			let data = Expression::GetTemporary(GetTemporary { var });
+			let data = Expression::GetTemporary(Temporary { var });
 
 			self.push(data);
 		}
 
-		range
+		ResultList::new(range.start, range.end)
+	}
+
+	pub fn push_temporary(&mut self) -> Temporary {
+		self.push_temporaries(1).iter().next().unwrap()
 	}
 
 	// Return the alignment necessary for this block to branch out to a
@@ -136,9 +140,9 @@ impl Stack {
 
 			old.read.clear();
 
-			let get = Expression::GetTemporary(GetTemporary { var });
+			let get = Expression::GetTemporary(Temporary { var });
 			let set = Statement::SetTemporary(SetTemporary {
-				var,
+				var: Temporary { var },
 				value: std::mem::replace(&mut old.data, get).into(),
 			});
 

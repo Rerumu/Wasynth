@@ -1,15 +1,15 @@
 use crate::node::{
 	BinOp, Block, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, Expression, FuncData, GetGlobal,
-	GetLocal, GetTemporary, If, LoadAt, MemoryCopy, MemoryFill, MemoryGrow, MemorySize, Select,
-	SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, Terminator, UnOp, Value,
+	If, LoadAt, Local, MemoryCopy, MemoryFill, MemoryGrow, MemorySize, Select, SetGlobal, SetLocal,
+	SetTemporary, Statement, StoreAt, Temporary, Terminator, UnOp, Value,
 };
 
 pub trait Visitor {
 	fn visit_select(&mut self, _: &Select) {}
 
-	fn visit_get_temporary(&mut self, _: &GetTemporary) {}
+	fn visit_get_temporary(&mut self, _: &Temporary) {}
 
-	fn visit_get_local(&mut self, _: &GetLocal) {}
+	fn visit_get_local(&mut self, _: &Local) {}
 
 	fn visit_get_global(&mut self, _: &GetGlobal) {}
 
@@ -76,13 +76,13 @@ impl<T: Visitor> Driver<T> for Select {
 	}
 }
 
-impl<T: Visitor> Driver<T> for GetTemporary {
+impl<T: Visitor> Driver<T> for Temporary {
 	fn accept(&self, visitor: &mut T) {
 		visitor.visit_get_temporary(self);
 	}
 }
 
-impl<T: Visitor> Driver<T> for GetLocal {
+impl<T: Visitor> Driver<T> for Local {
 	fn accept(&self, visitor: &mut T) {
 		visitor.visit_get_local(self);
 	}

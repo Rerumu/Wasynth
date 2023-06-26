@@ -5,24 +5,30 @@ use std::{
 
 use wasm_ast::node::{
 	Block, Br, BrIf, BrTable, Call, CallIndirect, FuncData, If, LabelType, MemoryCopy, MemoryFill,
-	MemoryGrow, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, Terminator,
+	MemoryGrow, ResultList, SetGlobal, SetLocal, SetTemporary, Statement, StoreAt, Terminator,
 };
 use wasmparser::ValType;
 
-use crate::{analyzer::br_target, indentation, indented, line};
+use crate::{backend::manager::write_separated, indentation, indented, line};
 
 use super::{
 	expression::Condition,
-	manager::{write_ascending, write_separated, Driver, DriverNoContext, Manager},
+	manager::{Driver, Manager},
 };
+
+impl Driver for ResultList {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		write_separated(self.iter(), |t, w| t.write(mng, w), w)
+	}
+}
 
 impl Driver for Br {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		if !self.align().is_aligned() {
 			indentation!(mng, w)?;
-			write_ascending("reg", self.align().new_range(), w)?;
+			self.align().new_range().write(mng, w)?;
 			write!(w, " = ")?;
-			write_ascending("reg", self.align().old_range(), w)?;
+			self.align().old_range().write(mng, w)?;
 			writeln!(w)?;
 		}
 
@@ -106,7 +112,7 @@ fn write_table_setup(table: &BrTable, mng: &mut Manager, w: &mut dyn Write) -> R
 	line!(mng, w, "end")?;
 
 	indented!(mng, w, "temp = br_map[{id}][")?;
-	table.condition().write(w)?;
+	table.condition().write(mng, w)?;
 	writeln!(w, "] or {}", table.default().target())
 }
 
@@ -193,7 +199,7 @@ impl Driver for Block {
 impl Driver for BrIf {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		indented!(mng, w, "if ")?;
-		Condition(self.condition()).write(w)?;
+		Condition(self.condition()).write(mng, w)?;
 		writeln!(w, " then")?;
 		mng.indent();
 		self.target().write(mng, w)?;
@@ -205,7 +211,7 @@ impl Driver for BrIf {
 impl Driver for If {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		indented!(mng, w, "if ")?;
-		Condition(self.condition()).write(w)?;
+		Condition(self.condition()).write(mng, w)?;
 		writeln!(w, " then")?;
 
 		mng.indent();
@@ -223,120 +229,119 @@ impl Driver for If {
 	}
 }
 
-fn write_call_store(result: Range<usize>, w: &mut dyn Write) -> Result<()> {
-	if result.is_empty() {
-		return Ok(());
-	}
-
-	write_ascending("reg", result, w)?;
-	write!(w, " = ")
-}
-
-impl DriverNoContext for Call {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write_call_store(self.result(), w)?;
+impl Driver for Call {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		if !self.result_list().is_empty() {
+			self.result_list().write(mng, w)?;
+			write!(w, " = ")?;
+		}
 
 		write!(w, "FUNC_LIST[{}](", self.function())?;
-		self.param_list().write(w)?;
+		self.param_list().write(mng, w)?;
 		write!(w, ")")
 	}
 }
 
-impl DriverNoContext for CallIndirect {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write_call_store(self.result(), w)?;
+impl Driver for CallIndirect {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		if !self.result_list().is_empty() {
+			self.result_list().write(mng, w)?;
+			write!(w, " = ")?;
+		}
 
 		write!(w, "TABLE_LIST[{}].data[", self.table())?;
-		self.index().write(w)?;
+		self.index().write(mng, w)?;
 		write!(w, "](")?;
-		self.param_list().write(w)?;
+		self.param_list().write(mng, w)?;
 		write!(w, ")")
 	}
 }
 
-impl DriverNoContext for SetTemporary {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write!(w, "reg_{} = ", self.var())?;
-		self.value().write(w)
+impl Driver for SetTemporary {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		self.var().write(mng, w)?;
+		write!(w, " = ")?;
+		self.value().write(mng, w)
 	}
 }
 
-impl DriverNoContext for SetLocal {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write!(w, "loc_{} = ", self.var())?;
-		self.value().write(w)
+impl Driver for SetLocal {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		self.var().write(mng, w)?;
+		write!(w, " = ")?;
+		self.value().write(mng, w)
 	}
 }
 
-impl DriverNoContext for SetGlobal {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for SetGlobal {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "GLOBAL_LIST[{}].value = ", self.var())?;
-		self.value().write(w)
+		self.value().write(mng, w)
 	}
 }
 
-impl DriverNoContext for StoreAt {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for StoreAt {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let name = self.store_type().as_name();
 		let memory = self.memory();
 
 		write!(w, "store_{name}(memory_at_{memory}, ")?;
 
-		self.pointer().write(w)?;
+		self.pointer().write(mng, w)?;
 
 		if self.offset() != 0 {
 			write!(w, " + {}", self.offset())?;
 		}
 
 		write!(w, ", ")?;
-		self.value().write(w)?;
+		self.value().write(mng, w)?;
 		write!(w, ")")
 	}
 }
 
-impl DriverNoContext for MemoryGrow {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		let result = self.result();
+impl Driver for MemoryGrow {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let memory = self.memory();
 
-		write!(w, "reg_{result} = rt.allocator.grow(memory_at_{memory}, ")?;
-		self.size().write(w)?;
+		self.result().write(mng, w)?;
+		write!(w, " = rt.allocator.grow(memory_at_{memory}, ")?;
+		self.size().write(mng, w)?;
 		write!(w, ")")
 	}
 }
 
-impl DriverNoContext for MemoryCopy {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for MemoryCopy {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let memory_1 = self.destination().memory();
 		let memory_2 = self.source().memory();
 
 		write!(w, "rt.store.copy(memory_at_{memory_1}, ")?;
-		self.destination().pointer().write(w)?;
+		self.destination().pointer().write(mng, w)?;
 		write!(w, ", memory_at_{memory_2}, ")?;
-		self.source().pointer().write(w)?;
+		self.source().pointer().write(mng, w)?;
 		write!(w, ", ")?;
-		self.size().write(w)?;
+		self.size().write(mng, w)?;
 		write!(w, ")")
 	}
 }
 
-impl DriverNoContext for MemoryFill {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for MemoryFill {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let memory = self.destination().memory();
 
 		write!(w, "rt.store.fill(memory_at_{memory}, ")?;
-		self.destination().pointer().write(w)?;
+		self.destination().pointer().write(mng, w)?;
 		write!(w, ", ")?;
-		self.size().write(w)?;
+		self.size().write(mng, w)?;
 		write!(w, ", ")?;
-		self.value().write(w)?;
+		self.value().write(mng, w)?;
 		write!(w, ")")
 	}
 }
 
-fn write_stat(stat: &dyn DriverNoContext, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+fn write_stat(stat: &dyn Driver, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 	indentation!(mng, w)?;
-	stat.write(w)?;
+	stat.write(mng, w)?;
 	writeln!(w)
 }
 
@@ -359,45 +364,53 @@ impl Driver for Statement {
 	}
 }
 
-fn has_sane_variables(ast: &FuncData) -> bool {
-	let local_count = ast.local_data().iter().map(|v| v.0).sum::<u32>();
-	let local_count = usize::try_from(local_count).unwrap();
-	let param_count = ast.num_param();
-	let temp_count = ast.num_stack();
-
-	temp_count + param_count + local_count < 170
-}
-
 fn write_parameter_list(ast: &FuncData, w: &mut dyn Write) -> Result<()> {
 	write!(w, "function(")?;
-	write_ascending("loc", 0..ast.num_param(), w)?;
+	write_separated(0..ast.num_param(), |i, w| write!(w, "loc_{i}"), w)?;
 	writeln!(w, ")")
 }
 
+const fn type_to_zero(typ: ValType) -> &'static str {
+	match typ {
+		ValType::F32 | ValType::F64 => "0.0",
+		ValType::I64 => "i64_ZERO",
+		_ => "0",
+	}
+}
+
 fn write_variable_list(ast: &FuncData, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-	let mut total = ast.num_param();
+	let mut locals = ast.local_data().iter().copied();
+	let num_local = mng.num_local() - ast.num_param();
 
-	for data in ast.local_data().iter().filter(|v| v.0 != 0) {
-		let range = total..total + usize::try_from(data.0).unwrap();
-		let zero = if data.1 == ValType::I64 {
-			"i64_ZERO"
-		} else {
-			"0"
-		};
+	for (i, typ) in locals.by_ref().enumerate().take(num_local) {
+		let index = ast.num_param() + i;
+		let zero = type_to_zero(typ);
 
-		total = range.end;
-
-		indented!(mng, w, "local ")?;
-		write_ascending("loc", range.clone(), w)?;
-		write!(w, " = ")?;
-		write_separated(range, |_, w| w.write_all(zero.as_bytes()), w)?;
-		writeln!(w)?;
+		line!(mng, w, "local loc_{index} = {zero}")?;
 	}
 
-	if ast.num_stack() != 0 {
-		indented!(mng, w, "local ")?;
-		write_ascending("reg", 0..ast.num_stack(), w)?;
-		writeln!(w)?;
+	if locals.len() != 0 {
+		indented!(mng, w, "local loc_spill = {{ ")?;
+
+		for typ in locals {
+			let zero = type_to_zero(typ);
+
+			write!(w, "{zero}, ")?;
+		}
+
+		writeln!(w, "}}")?;
+	}
+
+	let mut temporaries = 0..ast.num_stack();
+
+	for i in temporaries.by_ref().take(mng.num_temp()) {
+		line!(mng, w, "local reg_{i}")?;
+	}
+
+	if !temporaries.is_empty() {
+		let len = temporaries.len();
+
+		line!(mng, w, "local reg_spill = table.create({len})")?;
 	}
 
 	Ok(())
@@ -405,34 +418,26 @@ fn write_variable_list(ast: &FuncData, mng: &mut Manager, w: &mut dyn Write) -> 
 
 impl Driver for FuncData {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		if !has_sane_variables(self) {
-			return Err(std::io::Error::new(
-				std::io::ErrorKind::Other,
-				"too many variables in function",
-			));
-		}
-
-		let (table_map, has_branch) = br_target::visit(self);
-
 		mng.indent();
 
 		write_parameter_list(self, w)?;
 		write_variable_list(self, mng, w)?;
 
-		if has_branch {
+		if mng.has_branch() {
 			line!(mng, w, "local desired")?;
 		}
 
-		if !table_map.is_empty() {
+		if mng.has_table() {
 			line!(mng, w, "local br_map = {{}}")?;
 		}
 
-		mng.set_branch_information(table_map, has_branch);
 		self.code().write(mng, w)?;
 
 		if self.num_result() != 0 {
 			indented!(mng, w, "return ")?;
-			write_ascending("reg", 0..self.num_result(), w)?;
+
+			ResultList::new(0, self.num_result()).write(mng, w)?;
+
 			writeln!(w)?;
 		}
 

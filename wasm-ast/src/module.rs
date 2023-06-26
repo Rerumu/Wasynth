@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use wasmparser::{
-	BlockType, Data, Element, Export, ExternalKind, FunctionBody, Global, Import, MemoryType, Name,
-	NameSectionReader, Parser, Payload, Result, TableType, Type, TypeRef,
+	BlockType, Data, Element, Export, ExternalKind, FunctionBody, Global, Import, LocalsReader,
+	MemoryType, Name, NameSectionReader, Parser, Payload, Result, TableType, Type, TypeRef,
+	ValType,
 };
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -43,6 +44,14 @@ where
 	I: IntoIterator<Item = Result<T>>,
 {
 	reader.into_iter().collect()
+}
+
+pub(crate) fn read_checked_locals(reader: LocalsReader) -> Result<Vec<ValType>> {
+	read_checked(reader).map(|locals| {
+		let convert = |(a, b)| std::iter::repeat(b).take(usize::try_from(a).unwrap());
+
+		locals.into_iter().flat_map(convert).collect()
+	})
 }
 
 pub struct Module<'a> {

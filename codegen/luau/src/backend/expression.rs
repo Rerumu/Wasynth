@@ -4,13 +4,12 @@ use std::{
 };
 
 use wasm_ast::node::{
-	BinOp, CmpOp, Expression, GetGlobal, GetLocal, GetTemporary, LoadAt, MemorySize, Select, UnOp,
-	Value,
+	BinOp, CmpOp, Expression, GetGlobal, LoadAt, Local, MemorySize, Select, Temporary, UnOp, Value,
 };
 
 use crate::analyzer::as_symbol::AsSymbol;
 
-use super::manager::{write_separated, DriverNoContext};
+use super::manager::{write_separated, Driver, Manager};
 
 macro_rules! impl_write_number {
 	($name:tt, $numeric:ty) => {
@@ -26,43 +25,55 @@ macro_rules! impl_write_number {
 	};
 }
 
-impl DriverNoContext for Select {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for Select {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "(if ")?;
-		Condition(self.condition()).write(w)?;
+		Condition(self.condition()).write(mng, w)?;
 		write!(w, " then ")?;
-		self.on_true().write(w)?;
+		self.on_true().write(mng, w)?;
 		write!(w, " else ")?;
-		self.on_false().write(w)?;
+		self.on_false().write(mng, w)?;
 		write!(w, ")")
 	}
 }
 
-impl DriverNoContext for GetTemporary {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write!(w, "reg_{}", self.var())
+impl Driver for Temporary {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		let var = self.var();
+
+		if let Some(var) = var.checked_sub(mng.num_temp()) {
+			write!(w, "reg_spill[{}]", var + 1)
+		} else {
+			write!(w, "reg_{var}")
+		}
 	}
 }
 
-impl DriverNoContext for GetLocal {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write!(w, "loc_{}", self.var())
+impl Driver for Local {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		let var = self.var();
+
+		if let Some(var) = var.checked_sub(mng.num_local()) {
+			write!(w, "loc_spill[{}]", var + 1)
+		} else {
+			write!(w, "loc_{var}")
+		}
 	}
 }
 
-impl DriverNoContext for GetGlobal {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for GetGlobal {
+	fn write(&self, _mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "GLOBAL_LIST[{}].value", self.var())
 	}
 }
 
-impl DriverNoContext for LoadAt {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for LoadAt {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let name = self.load_type().as_name();
 		let memory = self.memory();
 
 		write!(w, "load_{name}(memory_at_{memory}, ")?;
-		self.pointer().write(w)?;
+		self.pointer().write(mng, w)?;
 
 		if self.offset() != 0 {
 			write!(w, " + {}", self.offset())?;
@@ -72,8 +83,8 @@ impl DriverNoContext for LoadAt {
 	}
 }
 
-impl DriverNoContext for MemorySize {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for MemorySize {
+	fn write(&self, _mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "memory_at_{}.min", self.memory())
 	}
 }
@@ -101,8 +112,8 @@ fn write_i64(number: i64, w: &mut dyn Write) -> Result<()> {
 impl_write_number!(write_f32, f32);
 impl_write_number!(write_f64, f64);
 
-impl DriverNoContext for Value {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for Value {
+	fn write(&self, _mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
 			Self::I32(i) => write_i32(*i, w),
 			Self::I64(i) => write_i64(*i, w),
@@ -112,97 +123,97 @@ impl DriverNoContext for Value {
 	}
 }
 
-impl DriverNoContext for UnOp {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for UnOp {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let (a, b) = self.op_type().as_name();
 
 		write!(w, "{a}_{b}(")?;
-		self.rhs().write(w)?;
+		self.rhs().write(mng, w)?;
 		write!(w, ")")
 	}
 }
 
-impl DriverNoContext for BinOp {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for BinOp {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		if let Some(symbol) = self.op_type().as_symbol() {
 			write!(w, "(")?;
-			self.lhs().write(w)?;
+			self.lhs().write(mng, w)?;
 			write!(w, " {symbol} ")?;
 		} else {
 			let (head, tail) = self.op_type().as_name();
 
 			write!(w, "{head}_{tail}(")?;
-			self.lhs().write(w)?;
+			self.lhs().write(mng, w)?;
 			write!(w, ", ")?;
 		}
 
-		self.rhs().write(w)?;
+		self.rhs().write(mng, w)?;
 		write!(w, ")")
 	}
 }
 
 struct CmpOpBoolean<'a>(&'a CmpOp);
 
-impl DriverNoContext for CmpOpBoolean<'_> {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for CmpOpBoolean<'_> {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let cmp = self.0;
 
 		if let Some(symbol) = cmp.op_type().as_symbol() {
-			cmp.lhs().write(w)?;
+			cmp.lhs().write(mng, w)?;
 			write!(w, " {symbol} ")?;
-			cmp.rhs().write(w)
+			cmp.rhs().write(mng, w)
 		} else {
 			let (head, tail) = cmp.op_type().as_name();
 
 			write!(w, "{head}_{tail}(")?;
-			cmp.lhs().write(w)?;
+			cmp.lhs().write(mng, w)?;
 			write!(w, ", ")?;
-			cmp.rhs().write(w)?;
+			cmp.rhs().write(mng, w)?;
 			write!(w, ")")
 		}
 	}
 }
 
-impl DriverNoContext for CmpOp {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for CmpOp {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		write!(w, "(if ")?;
-		CmpOpBoolean(self).write(w)?;
+		CmpOpBoolean(self).write(mng, w)?;
 		write!(w, " then 1 else 0)")
 	}
 }
 
 pub struct Condition<'a>(pub &'a Expression);
 
-impl DriverNoContext for Condition<'_> {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for Condition<'_> {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		if let Expression::CmpOp(node) = self.0 {
-			CmpOpBoolean(node).write(w)
+			CmpOpBoolean(node).write(mng, w)
 		} else {
-			self.0.write(w)?;
+			self.0.write(mng, w)?;
 			write!(w, " ~= 0")
 		}
 	}
 }
 
-impl DriverNoContext for Expression {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
+impl Driver for Expression {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		match self {
-			Self::Select(e) => e.write(w),
-			Self::GetTemporary(e) => e.write(w),
-			Self::GetLocal(e) => e.write(w),
-			Self::GetGlobal(e) => e.write(w),
-			Self::LoadAt(e) => e.write(w),
-			Self::MemorySize(e) => e.write(w),
-			Self::Value(e) => e.write(w),
-			Self::UnOp(e) => e.write(w),
-			Self::BinOp(e) => e.write(w),
-			Self::CmpOp(e) => e.write(w),
+			Self::Select(e) => e.write(mng, w),
+			Self::GetTemporary(e) => e.write(mng, w),
+			Self::GetLocal(e) => e.write(mng, w),
+			Self::GetGlobal(e) => e.write(mng, w),
+			Self::LoadAt(e) => e.write(mng, w),
+			Self::MemorySize(e) => e.write(mng, w),
+			Self::Value(e) => e.write(mng, w),
+			Self::UnOp(e) => e.write(mng, w),
+			Self::BinOp(e) => e.write(mng, w),
+			Self::CmpOp(e) => e.write(mng, w),
 		}
 	}
 }
 
-impl DriverNoContext for &[Expression] {
-	fn write(&self, w: &mut dyn Write) -> Result<()> {
-		write_separated(self.iter(), |e, w| e.write(w), w)
+impl Driver for &[Expression] {
+	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+		write_separated(self.iter(), |e, w| e.write(mng, w), w)
 	}
 }

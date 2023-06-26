@@ -1,10 +1,10 @@
 use wasmparser::{BlockType, FunctionBody, MemArg, Operator, Result};
 
 use crate::{
-	module::{read_checked, TypeInfo},
+	module::{read_checked, read_checked_locals, TypeInfo},
 	node::{
 		BinOp, BinOpType, Block, Br, BrIf, BrTable, Call, CallIndirect, CmpOp, CmpOpType,
-		Expression, FuncData, GetGlobal, GetLocal, If, LabelType, LoadAt, LoadType, MemoryArgument,
+		Expression, FuncData, GetGlobal, If, LabelType, LoadAt, LoadType, Local, MemoryArgument,
 		MemoryCopy, MemoryFill, MemoryGrow, MemorySize, Select, SetGlobal, SetLocal, Statement,
 		StoreAt, StoreType, Terminator, UnOp, UnOpType, Value,
 	},
@@ -253,13 +253,13 @@ impl<'a> Factory<'a> {
 	/// Returns an error if the function is malformed.
 	pub fn create_indexed(&mut self, index: usize, func: &FunctionBody) -> Result<FuncData> {
 		let code = read_checked(func.get_operators_reader()?)?;
-		let local = read_checked(func.get_locals_reader()?)?;
+		let local_data = read_checked_locals(func.get_locals_reader()?)?;
 
 		let (num_param, num_result) = self.type_info.by_func_index(index);
 		let data = self.build_stat_list(&code, num_result);
 
 		Ok(FuncData {
-			local_data: local,
+			local_data,
 			num_result,
 			num_param,
 			num_stack: data.stack.capacity,
@@ -279,7 +279,7 @@ impl<'a> Factory<'a> {
 			BlockVariant::If => BlockData::If { num_result, ty },
 			BlockVariant::Else => {
 				old.stack.pop_len(num_result).for_each(drop);
-				old.stack.push_temporary(num_param);
+				old.stack.push_temporaries(num_param);
 
 				BlockData::Else { num_result }
 			}
@@ -287,7 +287,7 @@ impl<'a> Factory<'a> {
 
 		self.target.stack = old.stack.split_last(num_param, num_result);
 
-		old.stack.push_temporary(num_result);
+		old.stack.push_temporaries(num_result);
 
 		self.pending.push(old);
 	}
@@ -358,12 +358,12 @@ impl<'a> Factory<'a> {
 
 		self.target.leak_pre_call();
 
-		let result = self.target.stack.push_temporary(num_result);
+		let result_list = self.target.stack.push_temporaries(num_result);
 
 		let data = Statement::Call(Call {
 			function,
-			result,
 			param_list,
+			result_list,
 		});
 
 		self.target.code.push(data);
@@ -376,13 +376,13 @@ impl<'a> Factory<'a> {
 
 		self.target.leak_pre_call();
 
-		let result = self.target.stack.push_temporary(num_result);
+		let result_list = self.target.stack.push_temporaries(num_result);
 
 		let data = Statement::CallIndirect(CallIndirect {
 			table,
 			index,
-			result,
 			param_list,
+			result_list,
 		});
 
 		self.target.code.push(data);
@@ -521,14 +521,14 @@ impl<'a> Factory<'a> {
 			}
 			Operator::LocalGet { local_index } => {
 				let var = local_index.try_into().unwrap();
-				let data = Expression::GetLocal(GetLocal { var });
+				let data = Expression::GetLocal(Local { var });
 
 				self.target.stack.push_with_single(data);
 			}
 			Operator::LocalSet { local_index } => {
 				let var = local_index.try_into().unwrap();
 				let data = Statement::SetLocal(SetLocal {
-					var,
+					var: Local { var },
 					value: self.target.stack.pop().into(),
 				});
 
@@ -537,9 +537,9 @@ impl<'a> Factory<'a> {
 			}
 			Operator::LocalTee { local_index } => {
 				let var = local_index.try_into().unwrap();
-				let get = Expression::GetLocal(GetLocal { var });
+				let get = Expression::GetLocal(Local { var });
 				let set = Statement::SetLocal(SetLocal {
-					var,
+					var: Local { var },
 					value: self.target.stack.pop().into(),
 				});
 
@@ -594,7 +594,7 @@ impl<'a> Factory<'a> {
 			}
 			Operator::MemoryGrow { mem, .. } => {
 				let size = self.target.stack.pop().into();
-				let result = self.target.stack.push_temporary(1).start;
+				let result = self.target.stack.push_temporary();
 				let memory = mem.try_into().unwrap();
 
 				let data = Statement::MemoryGrow(MemoryGrow {
