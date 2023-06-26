@@ -31,7 +31,7 @@ impl Visitor for Visit {
 		self.local_set.insert(("store", name));
 	}
 
-	fn visit_value(&mut self, v: &Value) {
+	fn visit_value(&mut self, v: Value) {
 		let name = match v {
 			Value::I64(0) => "ZERO",
 			Value::I64(1) => "ONE",

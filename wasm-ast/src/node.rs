@@ -625,35 +625,38 @@ impl Select {
 	}
 }
 
+#[derive(Clone, Copy)]
 pub struct Temporary {
 	pub(crate) var: usize,
 }
 
 impl Temporary {
 	#[must_use]
-	pub const fn var(&self) -> usize {
+	pub const fn var(self) -> usize {
 		self.var
 	}
 }
 
+#[derive(Clone, Copy)]
 pub struct Local {
 	pub(crate) var: usize,
 }
 
 impl Local {
 	#[must_use]
-	pub const fn var(&self) -> usize {
+	pub const fn var(self) -> usize {
 		self.var
 	}
 }
 
+#[derive(Clone, Copy)]
 pub struct GetGlobal {
 	pub(crate) var: usize,
 }
 
 impl GetGlobal {
 	#[must_use]
-	pub const fn var(&self) -> usize {
+	pub const fn var(self) -> usize {
 		self.var
 	}
 }
@@ -687,6 +690,7 @@ impl LoadAt {
 	}
 }
 
+#[derive(Clone, Copy)]
 pub struct MemorySize {
 	pub(crate) memory: usize,
 }
@@ -828,6 +832,7 @@ impl ResultList {
 	}
 }
 
+#[derive(Clone, Copy)]
 pub struct Align {
 	pub(crate) new: usize,
 	pub(crate) old: usize,
@@ -836,21 +841,22 @@ pub struct Align {
 
 impl Align {
 	#[must_use]
-	pub const fn is_aligned(&self) -> bool {
+	pub const fn is_aligned(self) -> bool {
 		self.length == 0 || self.new == self.old
 	}
 
 	#[must_use]
-	pub const fn new_range(&self) -> ResultList {
+	pub const fn new_range(self) -> ResultList {
 		ResultList::new(self.new, self.new + self.length)
 	}
 
 	#[must_use]
-	pub const fn old_range(&self) -> ResultList {
+	pub const fn old_range(self) -> ResultList {
 		ResultList::new(self.old, self.old + self.length)
 	}
 }
 
+#[derive(Clone, Copy)]
 pub struct Br {
 	pub(crate) target: usize,
 	pub(crate) align: Align,
@@ -858,13 +864,13 @@ pub struct Br {
 
 impl Br {
 	#[must_use]
-	pub const fn target(&self) -> usize {
+	pub const fn target(self) -> usize {
 		self.target
 	}
 
 	#[must_use]
-	pub const fn align(&self) -> &Align {
-		&self.align
+	pub const fn align(self) -> Align {
+		self.align
 	}
 }
 
@@ -886,8 +892,8 @@ impl BrTable {
 	}
 
 	#[must_use]
-	pub const fn default(&self) -> &Br {
-		&self.default
+	pub const fn default(&self) -> Br {
+		self.default
 	}
 }
 
@@ -939,8 +945,8 @@ impl BrIf {
 	}
 
 	#[must_use]
-	pub const fn target(&self) -> &Br {
-		&self.target
+	pub const fn target(&self) -> Br {
+		self.target
 	}
 }
 
@@ -1026,8 +1032,8 @@ pub struct SetTemporary {
 
 impl SetTemporary {
 	#[must_use]
-	pub const fn var(&self) -> &Temporary {
-		&self.var
+	pub const fn var(&self) -> Temporary {
+		self.var
 	}
 
 	#[must_use]
@@ -1043,8 +1049,8 @@ pub struct SetLocal {
 
 impl SetLocal {
 	#[must_use]
-	pub const fn var(&self) -> &Local {
-		&self.var
+	pub const fn var(&self) -> Local {
+		self.var
 	}
 
 	#[must_use]
@@ -1118,8 +1124,8 @@ impl MemoryGrow {
 	}
 
 	#[must_use]
-	pub const fn result(&self) -> &Temporary {
-		&self.result
+	pub const fn result(&self) -> Temporary {
+		self.result
 	}
 
 	#[must_use]

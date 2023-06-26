@@ -11,7 +11,7 @@ struct Visit {
 }
 
 impl Visit {
-	fn set_branch(&mut self, br: &Br) {
+	fn set_branch(&mut self, br: Br) {
 		if br.target() != 0 {
 			self.has_branch = true;
 		}
@@ -19,7 +19,7 @@ impl Visit {
 }
 
 impl Visitor for Visit {
-	fn visit_br(&mut self, stat: &Br) {
+	fn visit_br(&mut self, stat: Br) {
 		self.set_branch(stat);
 	}
 
@@ -34,7 +34,7 @@ impl Visitor for Visit {
 			return;
 		}
 
-		for target in table.data() {
+		for &target in table.data() {
 			self.set_branch(target);
 		}
 

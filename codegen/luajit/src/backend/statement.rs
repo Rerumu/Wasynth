@@ -38,8 +38,12 @@ impl Driver for Br {
 	}
 }
 
-fn to_ordered_table<'a>(list: &'a [Br], default: &'a Br) -> Vec<&'a Br> {
-	let mut data: Vec<_> = list.iter().chain(std::iter::once(default)).collect();
+fn to_ordered_table(list: &[Br], default: Br) -> Vec<Br> {
+	let mut data: Vec<_> = list
+		.iter()
+		.copied()
+		.chain(std::iter::once(default))
+		.collect();
 
 	data.sort_by_key(|v| v.target());
 	data.dedup_by_key(|v| v.target());
@@ -48,7 +52,7 @@ fn to_ordered_table<'a>(list: &'a [Br], default: &'a Br) -> Vec<&'a Br> {
 
 fn write_search_layer(
 	range: Range<usize>,
-	list: &[&Br],
+	list: &[Br],
 	mng: &mut Manager,
 	w: &mut dyn Write,
 ) -> Result<()> {
