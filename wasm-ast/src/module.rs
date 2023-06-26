@@ -2,8 +2,7 @@ use std::collections::HashMap;
 
 use wasmparser::{
 	BlockType, Data, Element, Export, ExternalKind, FunctionBody, Global, Import, LocalsReader,
-	MemoryType, Name, NameSectionReader, Parser, Payload, Result, TableType, Type, TypeRef,
-	ValType,
+	MemoryType, Name, NameSectionReader, Parser, Payload, Result, Table, Type, TypeRef, ValType,
 };
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -58,7 +57,7 @@ pub struct Module<'a> {
 	type_section: Vec<Type>,
 	import_section: Vec<Import<'a>>,
 	func_section: Vec<u32>,
-	table_section: Vec<TableType>,
+	table_section: Vec<Table<'a>>,
 	memory_section: Vec<MemoryType>,
 	global_section: Vec<Global<'a>>,
 	export_section: Vec<Export<'a>>,
@@ -173,7 +172,7 @@ impl<'a> Module<'a> {
 	}
 
 	#[must_use]
-	pub fn table_section(&self) -> &[TableType] {
+	pub fn table_section(&self) -> &[Table] {
 		&self.table_section
 	}
 

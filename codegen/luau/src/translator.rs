@@ -107,8 +107,8 @@ fn write_table_list(wasm: &Module, w: &mut dyn Write) -> Result<()> {
 
 	for (i, table) in table.iter().enumerate() {
 		let index = offset + i;
-		let min = table.initial;
-		let max = table.maximum.unwrap_or(0xFFFF);
+		let min = table.ty.initial;
+		let max = table.ty.maximum.unwrap_or(0xFFFF);
 
 		writeln!(
 			w,
@@ -243,9 +243,7 @@ fn write_localize_used(
 		.iter()
 		.any(|g| g.ty.content_type == ValType::I64);
 
-	let has_element_i64 = wasm.element_section().iter().any(|e| e.ty == ValType::I64);
-
-	if has_global_i64 || has_element_i64 {
+	if has_global_i64 {
 		loc_set.insert(("i64", "ZERO"));
 		loc_set.insert(("i64", "ONE"));
 		loc_set.insert(("i64", "from_u32"));

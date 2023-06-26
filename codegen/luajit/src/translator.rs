@@ -107,8 +107,8 @@ fn write_table_list(wasm: &Module, w: &mut dyn Write) -> Result<()> {
 
 	for (i, table) in table.iter().enumerate() {
 		let index = offset + i;
-		let min = table.initial;
-		let max = table.maximum.unwrap_or(0xFFFF);
+		let min = table.ty.initial;
+		let max = table.ty.maximum.unwrap_or(0xFFFF);
 
 		writeln!(
 			w,
