@@ -155,6 +155,8 @@ fn write_element_list(list: &[Element], type_info: &TypeInfo, w: &mut dyn Write)
 			unimplemented!("passive elements not supported")
 		};
 
+		let index = index.unwrap_or(0);
+
 		writeln!(w, "\tdo")?;
 		writeln!(w, "\t\tlocal target = TABLE_LIST[{index}].data")?;
 		write!(w, "\t\tlocal offset = ")?;
