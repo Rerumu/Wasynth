@@ -8,18 +8,8 @@ use crate::{
 		MemoryCopy, MemoryFill, MemoryGrow, MemorySize, Select, SetGlobal, SetLocal, Statement,
 		StoreAt, StoreType, Terminator, UnOp, UnOpType, Value,
 	},
-	stack::{ReadType, Stack},
+	stack::{ReadGet, Stack},
 };
-
-macro_rules! leak_on {
-	($name:tt, $variant:tt) => {
-		fn $name(&mut self, id: usize) {
-			let read = ReadType::$variant(id);
-
-			self.stack.leak_into(&mut self.code, |v| v.has_read(read))
-		}
-	};
-}
 
 #[derive(Clone, Copy)]
 enum BlockVariant {
@@ -73,14 +63,28 @@ impl StatList {
 	}
 
 	fn leak_pre_call(&mut self) {
-		self.stack.leak_into(&mut self.code, |v| {
-			v.has_global_read() || v.has_memory_read()
+		self.stack.leak_into(&mut self.code, |node| {
+			ReadGet::run(node, |_| false, |_| true, |_| true)
 		});
 	}
 
-	leak_on!(leak_local_write, Local);
-	leak_on!(leak_global_write, Global);
-	leak_on!(leak_memory_write, Memory);
+	fn leak_local_write(&mut self, id: usize) {
+		self.stack.leak_into(&mut self.code, |node| {
+			ReadGet::run(node, |var| var.var() == id, |_| false, |_| false)
+		});
+	}
+
+	fn leak_global_write(&mut self, id: usize) {
+		self.stack.leak_into(&mut self.code, |node| {
+			ReadGet::run(node, |_| false, |var| var.var() == id, |_| false)
+		});
+	}
+
+	fn leak_memory_write(&mut self, id: usize) {
+		self.stack.leak_into(&mut self.code, |node| {
+			ReadGet::run(node, |_| false, |_| false, |var| var.memory() == id)
+		});
+	}
 
 	fn push_load(&mut self, load_type: LoadType, memarg: MemArg) {
 		let memory = memarg.memory.try_into().unwrap();
@@ -93,7 +97,7 @@ impl StatList {
 			pointer: self.stack.pop().into(),
 		});
 
-		self.stack.push_with_single(data);
+		self.stack.push(data);
 	}
 
 	fn add_store(&mut self, store_type: StoreType, memarg: MemArg) {
@@ -119,43 +123,32 @@ impl StatList {
 	}
 
 	fn push_un_op(&mut self, op_type: UnOpType) {
-		let rhs = self.stack.pop_with_read();
 		let data = Expression::UnOp(UnOp {
 			op_type,
-			rhs: rhs.0.into(),
+			rhs: self.stack.pop().into(),
 		});
 
-		self.stack.push_with_read(data, rhs.1);
+		self.stack.push(data);
 	}
 
 	fn push_bin_op(&mut self, op_type: BinOpType) {
-		let mut rhs = self.stack.pop_with_read();
-		let lhs = self.stack.pop_with_read();
-
 		let data = Expression::BinOp(BinOp {
 			op_type,
-			rhs: rhs.0.into(),
-			lhs: lhs.0.into(),
+			rhs: self.stack.pop().into(),
+			lhs: self.stack.pop().into(),
 		});
 
-		rhs.1.extend(lhs.1);
-
-		self.stack.push_with_read(data, rhs.1);
+		self.stack.push(data);
 	}
 
 	fn push_cmp_op(&mut self, op_type: CmpOpType) {
-		let mut rhs = self.stack.pop_with_read();
-		let lhs = self.stack.pop_with_read();
-
 		let data = Expression::CmpOp(CmpOp {
 			op_type,
-			rhs: rhs.0.into(),
-			lhs: lhs.0.into(),
+			rhs: self.stack.pop().into(),
+			lhs: self.stack.pop().into(),
 		});
 
-		rhs.1.extend(lhs.1);
-
-		self.stack.push_with_read(data, rhs.1);
+		self.stack.push(data);
 	}
 
 	// Eqz is the only unary comparison so it's "emulated"
@@ -293,7 +286,9 @@ impl<'a> Factory<'a> {
 	}
 
 	fn start_else(&mut self) {
-		let BlockData::If { ty, .. } = self.target.block_data else { unreachable!() };
+		let BlockData::If { ty, .. } = self.target.block_data else {
+			unreachable!()
+		};
 
 		self.target.leak_all();
 		self.end_block();
@@ -314,7 +309,9 @@ impl<'a> Factory<'a> {
 				on_false: None,
 			}),
 			BlockData::Else { .. } => {
-				let Statement::If(last) = self.target.code.last_mut().unwrap() else { unreachable!() };
+				let Statement::If(last) = self.target.code.last_mut().unwrap() else {
+					unreachable!()
+				};
 
 				last.on_false = Some(Box::new(now.into()));
 
@@ -504,26 +501,19 @@ impl<'a> Factory<'a> {
 				self.target.stack.pop();
 			}
 			Operator::Select => {
-				let mut condition = self.target.stack.pop_with_read();
-				let on_false = self.target.stack.pop_with_read();
-				let on_true = self.target.stack.pop_with_read();
-
 				let data = Expression::Select(Select {
-					condition: condition.0.into(),
-					on_true: on_true.0.into(),
-					on_false: on_false.0.into(),
+					condition: self.target.stack.pop().into(),
+					on_false: self.target.stack.pop().into(),
+					on_true: self.target.stack.pop().into(),
 				});
 
-				condition.1.extend(on_true.1);
-				condition.1.extend(on_false.1);
-
-				self.target.stack.push_with_read(data, condition.1);
+				self.target.stack.push(data);
 			}
 			Operator::LocalGet { local_index } => {
 				let var = local_index.try_into().unwrap();
 				let data = Expression::GetLocal(Local { var });
 
-				self.target.stack.push_with_single(data);
+				self.target.stack.push(data);
 			}
 			Operator::LocalSet { local_index } => {
 				let var = local_index.try_into().unwrap();
@@ -544,14 +534,14 @@ impl<'a> Factory<'a> {
 				});
 
 				self.target.leak_local_write(var);
-				self.target.stack.push_with_single(get);
+				self.target.stack.push(get);
 				self.target.code.push(set);
 			}
 			Operator::GlobalGet { global_index } => {
 				let var = global_index.try_into().unwrap();
 				let data = Expression::GetGlobal(GetGlobal { var });
 
-				self.target.stack.push_with_single(data);
+				self.target.stack.push(data);
 			}
 			Operator::GlobalSet { global_index } => {
 				let var = global_index.try_into().unwrap();

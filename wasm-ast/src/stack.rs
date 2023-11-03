@@ -1,42 +1,59 @@
-use std::collections::HashSet;
-
-use crate::node::{
-	Align, Expression, GetGlobal, LoadAt, Local, ResultList, SetTemporary, Statement, Temporary,
+use crate::{
+	node::{
+		Align, Expression, GetGlobal, LoadAt, Local, ResultList, SetTemporary, Statement, Temporary,
+	},
+	visit::{Driver, Visitor},
 };
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ReadType {
-	Local(usize),
-	Global(usize),
-	Memory(usize),
+pub struct ReadGet<A, B, C> {
+	has_local: A,
+	has_global: B,
+	has_memory: C,
+	result: bool,
 }
 
-pub struct Slot {
-	read: HashSet<ReadType>,
-	data: Expression,
+impl<A, B, C> ReadGet<A, B, C>
+where
+	A: Fn(Local) -> bool,
+	B: Fn(GetGlobal) -> bool,
+	C: Fn(&LoadAt) -> bool,
+{
+	pub fn run<D: Driver<Self>>(node: &D, has_local: A, has_global: B, has_memory: C) -> bool {
+		let mut visitor = Self {
+			has_local,
+			has_global,
+			has_memory,
+			result: false,
+		};
+
+		node.accept(&mut visitor);
+
+		visitor.result
+	}
 }
 
-impl Slot {
-	const fn is_temporary(&self, id: usize) -> bool {
-		matches!(self.data, Expression::GetTemporary(ref v) if v.var() == id)
+impl<A, B, C> Visitor for ReadGet<A, B, C>
+where
+	A: Fn(Local) -> bool,
+	B: Fn(GetGlobal) -> bool,
+	C: Fn(&LoadAt) -> bool,
+{
+	fn visit_get_global(&mut self, get_global: GetGlobal) {
+		self.result |= (self.has_global)(get_global);
 	}
 
-	pub fn has_read(&self, id: ReadType) -> bool {
-		self.read.contains(&id)
+	fn visit_load_at(&mut self, load_at: &LoadAt) {
+		self.result |= (self.has_memory)(load_at);
 	}
 
-	pub fn has_global_read(&self) -> bool {
-		self.read.iter().any(|r| matches!(r, ReadType::Global(_)))
-	}
-
-	pub fn has_memory_read(&self) -> bool {
-		self.read.iter().any(|r| matches!(r, ReadType::Memory(_)))
+	fn visit_get_local(&mut self, local: Local) {
+		self.result |= (self.has_local)(local);
 	}
 }
 
 #[derive(Default)]
 pub struct Stack {
-	var_list: Vec<Slot>,
+	var_list: Vec<Expression>,
 	pub capacity: usize,
 	pub previous: usize,
 }
@@ -57,41 +74,18 @@ impl Stack {
 		}
 	}
 
-	pub fn push_with_read(&mut self, data: Expression, read: HashSet<ReadType>) {
-		self.var_list.push(Slot { read, data });
-	}
-
 	pub fn push(&mut self, data: Expression) {
-		self.push_with_read(data, HashSet::new());
-	}
-
-	pub fn push_with_single(&mut self, data: Expression) {
-		let mut read = HashSet::new();
-		let elem = match data {
-			Expression::GetLocal(Local { var }) => ReadType::Local(var),
-			Expression::GetGlobal(GetGlobal { var }) => ReadType::Global(var),
-			Expression::LoadAt(LoadAt { memory, .. }) => ReadType::Memory(memory),
-			_ => unreachable!(),
-		};
-
-		read.insert(elem);
-		self.var_list.push(Slot { read, data });
-	}
-
-	pub fn pop_with_read(&mut self) -> (Expression, HashSet<ReadType>) {
-		let var = self.var_list.pop().unwrap();
-
-		(var.data, var.read)
+		self.var_list.push(data);
 	}
 
 	pub fn pop(&mut self) -> Expression {
-		self.pop_with_read().0
+		self.var_list.pop().unwrap()
 	}
 
 	pub fn pop_len(&'_ mut self, len: usize) -> impl Iterator<Item = Expression> + '_ {
 		let desired = self.len() - len;
 
-		self.var_list.drain(desired..).map(|v| v.data)
+		self.var_list.drain(desired..)
 	}
 
 	pub fn push_temporaries(&mut self, num: usize) -> ResultList {
@@ -129,21 +123,21 @@ impl Stack {
 	// adjusting the capacity and old index accordingly
 	pub fn leak_into<P>(&mut self, code: &mut Vec<Statement>, predicate: P)
 	where
-		P: Fn(&Slot) -> bool,
+		P: Fn(&Expression) -> bool,
 	{
 		for (i, old) in self.var_list.iter_mut().enumerate() {
 			let var = self.previous + i;
+			let is_temporary =
+				matches!(old, Expression::GetTemporary(temporary) if temporary.var() == var);
 
-			if old.is_temporary(var) || !predicate(old) {
+			if is_temporary || !predicate(old) {
 				continue;
 			}
-
-			old.read.clear();
 
 			let get = Expression::GetTemporary(Temporary { var });
 			let set = Statement::SetTemporary(SetTemporary {
 				var: Temporary { var },
-				value: std::mem::replace(&mut old.data, get).into(),
+				value: std::mem::replace(old, get).into(),
 			});
 
 			self.capacity = self.capacity.max(var + 1);
