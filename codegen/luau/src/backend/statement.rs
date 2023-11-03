@@ -382,7 +382,7 @@ const fn type_to_zero(typ: ValType) -> &'static str {
 	}
 }
 
-fn write_variable_list(ast: &FuncData, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
+fn write_variable_list(ast: &FuncData, mng: &Manager, w: &mut dyn Write) -> Result<()> {
 	let mut locals = ast.local_data().iter().copied();
 	let num_local = mng.num_local() - ast.num_param();
 
