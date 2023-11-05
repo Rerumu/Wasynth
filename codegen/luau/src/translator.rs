@@ -41,7 +41,9 @@ fn reader_to_code(reader: OperatorsReader) -> Vec<Operator> {
 }
 
 fn write_named_array(name: &str, len: usize, w: &mut dyn Write) -> Result<()> {
-	let Some(len) = len.checked_sub(1) else { return Ok(()) };
+	let Some(len) = len.checked_sub(1) else {
+		return Ok(());
+	};
 
 	writeln!(w, "local {name} = table.create({len})")
 }
@@ -151,7 +153,11 @@ fn write_global_list(wasm: &Module, type_info: &TypeInfo, w: &mut dyn Write) -> 
 
 fn write_element_list(list: &[Element], type_info: &TypeInfo, w: &mut dyn Write) -> Result<()> {
 	for element in list {
-		let ElementKind::Active { table_index: index, offset_expr: init } = element.kind else {
+		let ElementKind::Active {
+			table_index: index,
+			offset_expr: init,
+		} = element.kind
+		else {
 			unimplemented!("passive elements not supported")
 		};
 
