@@ -19,14 +19,15 @@ struct Luau;
 
 impl Luau {
 	fn write_i32(data: i32, w: &mut dyn Write) -> Result<()> {
-		let data = data as u32;
+		let data = u32::from_ne_bytes(data.to_ne_bytes());
 
 		write!(w, "{data}")
 	}
 
 	fn write_i64(data: i64, w: &mut dyn Write) -> Result<()> {
-		let data_1 = (data & 0xFFFF_FFFF) as u32;
-		let data_2 = (data >> 32 & 0xFFFF_FFFF) as u32;
+		let data = data.to_ne_bytes();
+		let data_1 = u32::from_ne_bytes(data[0..4].try_into().unwrap());
+		let data_2 = u32::from_ne_bytes(data[4..8].try_into().unwrap());
 
 		write!(w, "rt.i64.from_u32({data_1}, {data_2})")
 	}
