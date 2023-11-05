@@ -85,7 +85,7 @@ impl Driver for LoadAt {
 
 impl Driver for MemorySize {
 	fn write(&self, _mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		write!(w, "memory_at_{}.min", self.memory())
+		write!(w, "rt.allocator.size(memory_at_{})", self.memory())
 	}
 }
 

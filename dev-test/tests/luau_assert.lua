@@ -2,7 +2,7 @@ do
 	local WASM_PAGE_SIZE = 65536
 
 	local function is_valid_address(memory, addr, size)
-		return addr >= 0 and addr + size <= memory.min * WASM_PAGE_SIZE
+		return addr >= 0 and addr + size <= rt.allocator.size(memory) * WASM_PAGE_SIZE
 	end
 
 	local function load_checked(name, size)
