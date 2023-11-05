@@ -9,7 +9,9 @@ use wasm_ast::node::{
 };
 use wasmparser::ValType;
 
-use crate::{backend::manager::write_separated, indentation, indented, line};
+use crate::{
+	analyzer::into_string::IntoName, backend::manager::write_separated, indentation, indented, line,
+};
 
 use super::{
 	expression::Condition,
@@ -286,7 +288,7 @@ impl Driver for SetGlobal {
 
 impl Driver for StoreAt {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let name = self.store_type().as_name();
+		let name = self.store_type().into_name();
 		let memory = self.memory();
 
 		write!(w, "store_{name}(memory_at_{memory}, ")?;

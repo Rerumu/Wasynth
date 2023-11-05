@@ -9,7 +9,7 @@ use wasm_ast::{
 };
 use wasmparser::ValType;
 
-use super::as_symbol::AsSymbol;
+use super::into_string::{IntoName, IntoNameTuple, TryIntoSymbol};
 
 struct Visit {
 	local_set: BTreeSet<(&'static str, &'static str)>,
@@ -18,14 +18,14 @@ struct Visit {
 
 impl Visitor for Visit {
 	fn visit_load_at(&mut self, v: &LoadAt) {
-		let name = v.load_type().as_name();
+		let name = v.load_type().into_name();
 
 		self.memory_set.insert(v.memory());
 		self.local_set.insert(("load", name));
 	}
 
 	fn visit_store_at(&mut self, v: &StoreAt) {
-		let name = v.store_type().as_name();
+		let name = v.store_type().into_name();
 
 		self.memory_set.insert(v.memory());
 		self.local_set.insert(("store", name));
@@ -43,27 +43,27 @@ impl Visitor for Visit {
 	}
 
 	fn visit_un_op(&mut self, v: &UnOp) {
-		let name = v.op_type().as_name();
+		let name = v.op_type().into_name_tuple();
 
 		self.local_set.insert(name);
 	}
 
 	fn visit_bin_op(&mut self, v: &BinOp) {
-		if v.op_type().as_symbol().is_some() {
+		if v.op_type().try_into_symbol().is_some() {
 			return;
 		}
 
-		let name = v.op_type().as_name();
+		let name = v.op_type().into_name_tuple();
 
 		self.local_set.insert(name);
 	}
 
 	fn visit_cmp_op(&mut self, v: &CmpOp) {
-		if v.op_type().as_symbol().is_some() {
+		if v.op_type().try_into_symbol().is_some() {
 			return;
 		}
 
-		let name = v.op_type().as_name();
+		let name = v.op_type().into_name_tuple();
 
 		self.local_set.insert(name);
 	}

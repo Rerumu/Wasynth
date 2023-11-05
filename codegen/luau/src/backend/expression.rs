@@ -7,7 +7,7 @@ use wasm_ast::node::{
 	BinOp, CmpOp, Expression, GetGlobal, LoadAt, Local, MemorySize, Select, Temporary, UnOp, Value,
 };
 
-use crate::analyzer::as_symbol::AsSymbol;
+use crate::analyzer::into_string::{IntoName, IntoNameTuple, TryIntoSymbol};
 
 use super::manager::{write_separated, Driver, Manager};
 
@@ -69,7 +69,7 @@ impl Driver for GetGlobal {
 
 impl Driver for LoadAt {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let name = self.load_type().as_name();
+		let name = self.load_type().into_name();
 		let memory = self.memory();
 
 		write!(w, "load_{name}(memory_at_{memory}, ")?;
@@ -125,7 +125,7 @@ impl Driver for Value {
 
 impl Driver for UnOp {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		let (a, b) = self.op_type().as_name();
+		let (a, b) = self.op_type().into_name_tuple();
 
 		write!(w, "{a}_{b}(")?;
 		self.rhs().write(mng, w)?;
@@ -135,12 +135,12 @@ impl Driver for UnOp {
 
 impl Driver for BinOp {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
-		if let Some(symbol) = self.op_type().as_symbol() {
+		if let Some(symbol) = self.op_type().try_into_symbol() {
 			write!(w, "(")?;
 			self.lhs().write(mng, w)?;
 			write!(w, " {symbol} ")?;
 		} else {
-			let (head, tail) = self.op_type().as_name();
+			let (head, tail) = self.op_type().into_name_tuple();
 
 			write!(w, "{head}_{tail}(")?;
 			self.lhs().write(mng, w)?;
@@ -158,12 +158,12 @@ impl Driver for CmpOpBoolean<'_> {
 	fn write(&self, mng: &mut Manager, w: &mut dyn Write) -> Result<()> {
 		let cmp = self.0;
 
-		if let Some(symbol) = cmp.op_type().as_symbol() {
+		if let Some(symbol) = cmp.op_type().try_into_symbol() {
 			cmp.lhs().write(mng, w)?;
 			write!(w, " {symbol} ")?;
 			cmp.rhs().write(mng, w)
 		} else {
-			let (head, tail) = cmp.op_type().as_name();
+			let (head, tail) = cmp.op_type().into_name_tuple();
 
 			write!(w, "{head}_{tail}(")?;
 			cmp.lhs().write(mng, w)?;
