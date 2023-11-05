@@ -1,8 +1,7 @@
 local module = {}
 
-local to_u32 = bit32.band
-
 local bit_and = bit32.band
+local bit_xor = bit32.bxor
 local bit_lshift = bit32.lshift
 local bit_rshift = bit32.rshift
 
@@ -10,11 +9,7 @@ local num_from_u32 = Integer.from_u32
 local num_into_u32 = Integer.into_u32
 
 local function to_i32(num)
-	if num >= 0x80000000 then
-		return num - 0x100000000
-	else
-		return num
-	end
+	return bit_xor(num, 0x80000000) - 0x80000000
 end
 
 local function no_op(num)
@@ -45,23 +40,20 @@ do
 	local math_min = math.min
 	local math_max = math.max
 
-	local string_byte = string.byte
-	local string_pack = string.pack
-
 	local num_divide_signed = Integer.divide_signed
 	local num_divide_unsigned = Integer.divide_unsigned
 
 	function add.i32(lhs, rhs)
-		return to_u32(lhs + rhs)
+		return bit_and(lhs + rhs, 0xFFFFFFFF)
 	end
 
 	function sub.i32(lhs, rhs)
-		return to_u32(lhs - rhs)
+		return bit_and(lhs - rhs, 0xFFFFFFFF)
 	end
 
 	function mul.i32(lhs, rhs)
 		if (lhs + rhs) < 0x8000000 then
-			return to_u32(lhs * rhs)
+			return bit_and(lhs * rhs, 0xFFFFFFFF)
 		else
 			local a16 = bit_rshift(lhs, 16)
 			local a00 = bit_and(lhs, 0xFFFF)
@@ -71,7 +63,7 @@ do
 			local c00 = a00 * b00
 			local c16 = a16 * b00 + a00 * b16
 
-			return to_u32(c00 + bit_lshift(c16, 16))
+			return bit_and(c00 + bit_lshift(c16, 16), 0xFFFFFFFF)
 		end
 	end
 
@@ -81,13 +73,13 @@ do
 		lhs = to_i32(lhs)
 		rhs = to_i32(rhs)
 
-		return to_u32((math_modf(lhs / rhs)))
+		return bit_and(math_modf(lhs / rhs), 0xFFFFFFFF)
 	end
 
 	function div.u32(lhs, rhs)
 		assert(rhs ~= 0, "division by zero")
 
-		return to_u32((math_modf(lhs / rhs)))
+		return bit_and(math_modf(lhs / rhs), 0xFFFFFFFF)
 	end
 
 	function rem.i32(lhs, rhs)
@@ -96,7 +88,7 @@ do
 		lhs = to_i32(lhs)
 		rhs = to_i32(rhs)
 
-		return to_u32(math_fmod(lhs, rhs))
+		return bit_and(math_fmod(lhs, rhs), 0xFFFFFFFF)
 	end
 
 	add.i64 = Integer.add
@@ -405,10 +397,11 @@ do
 	end
 
 	function truncate.i32_f32(num)
-		return to_u32(truncate_f64(num))
+		return bit_and(truncate_f64(num), 0xFFFFFFFF)
 	end
 
-	truncate.i32_f64 = to_u32
+	truncate.i32_f64 = truncate.i32_f32
+
 	truncate.u32_f32 = truncate_f64
 	truncate.u32_f64 = truncate_f64
 
@@ -440,7 +433,7 @@ do
 	function saturate.i32_f32(num)
 		local temp = math_clamp(truncate_f64(num), -0x80000000, 0x7FFFFFFF)
 
-		return to_u32(temp)
+		return bit_and(temp, 0xFFFFFFFF)
 	end
 
 	saturate.i32_f64 = saturate.i32_f32
@@ -448,7 +441,7 @@ do
 	function saturate.u32_f32(num)
 		local temp = math_clamp(truncate_f64(num), 0, 0xFFFFFFFF)
 
-		return to_u32(temp)
+		return temp
 	end
 
 	saturate.u32_f64 = saturate.u32_f32
@@ -483,7 +476,7 @@ do
 		num = bit_and(num, 0xFF)
 
 		if num >= 0x80 then
-			return to_u32(num - 0x100)
+			return bit_and(num - 0x100, 0xFFFFFFFF)
 		else
 			return num
 		end
@@ -493,7 +486,7 @@ do
 		num = bit_and(num, 0xFFFF)
 
 		if num >= 0x8000 then
-			return to_u32(num - 0x10000)
+			return bit_and(num - 0x10000, 0xFFFFFFFF)
 		else
 			return num
 		end
@@ -657,13 +650,7 @@ do
 	local buffer_write_f64 = buffer.writef64
 
 	function load.i32_i8(memory, addr)
-		local value = buffer_read_i8(memory.data, addr)
-
-		if value >= 0 then
-			return value
-		else
-			return value + 0x100000000
-		end
+		return bit_and(buffer_read_i8(memory.data, addr), 0xFFFFFFFF)
 	end
 
 	function load.i32_u8(memory, addr)
@@ -671,13 +658,7 @@ do
 	end
 
 	function load.i32_i16(memory, addr)
-		local value = buffer_read_i16(memory.data, addr)
-
-		if value >= 0 then
-			return value
-		else
-			return value + 0x100000000
-		end
+		return bit_and(buffer_read_i16(memory.data, addr), 0xFFFFFFFF)
 	end
 
 	function load.i32_u16(memory, addr)
