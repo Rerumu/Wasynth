@@ -909,7 +909,9 @@ do
 	end
 
 	function store.string(memory, addr, data, len)
-		len = if len then len else #data
+		if not len then
+			len = #data
+		end
 
 		local rem = len % 4
 
