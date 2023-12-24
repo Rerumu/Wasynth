@@ -1,11 +1,19 @@
-use std::io::{Result, Write};
+use std::io::{ErrorKind, Result, Write};
 
 use wasm_ast::module::Module;
 
 fn load_arg_source() -> Result<Vec<u8>> {
-	let name = std::env::args().nth(1).expect("usage: wasm2luajit <file>");
+	let mut arguments = std::env::args();
+	let path = arguments.next().unwrap_or_else(|| "wasm2luau".to_string());
 
-	std::fs::read(name)
+	arguments.next().map_or_else(
+		|| {
+			eprintln!("usage: {path} <file>\n");
+
+			Err(ErrorKind::NotFound.into())
+		},
+		std::fs::read,
+	)
 }
 
 fn do_runtime(lock: &mut dyn Write) -> Result<()> {
