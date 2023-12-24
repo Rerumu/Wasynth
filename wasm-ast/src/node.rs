@@ -413,17 +413,17 @@ pub struct Select {
 
 impl Select {
 	#[must_use]
-	pub fn condition(&self) -> &Expression {
+	pub const fn condition(&self) -> &Expression {
 		&self.condition
 	}
 
 	#[must_use]
-	pub fn on_true(&self) -> &Expression {
+	pub const fn on_true(&self) -> &Expression {
 		&self.on_true
 	}
 
 	#[must_use]
-	pub fn on_false(&self) -> &Expression {
+	pub const fn on_false(&self) -> &Expression {
 		&self.on_false
 	}
 }
@@ -549,7 +549,7 @@ impl UnOp {
 	}
 
 	#[must_use]
-	pub fn rhs(&self) -> &Expression {
+	pub const fn rhs(&self) -> &Expression {
 		&self.rhs
 	}
 }
@@ -567,12 +567,12 @@ impl BinOp {
 	}
 
 	#[must_use]
-	pub fn lhs(&self) -> &Expression {
+	pub const fn lhs(&self) -> &Expression {
 		&self.lhs
 	}
 
 	#[must_use]
-	pub fn rhs(&self) -> &Expression {
+	pub const fn rhs(&self) -> &Expression {
 		&self.rhs
 	}
 }
@@ -590,12 +590,12 @@ impl CmpOp {
 	}
 
 	#[must_use]
-	pub fn lhs(&self) -> &Expression {
+	pub const fn lhs(&self) -> &Expression {
 		&self.lhs
 	}
 
 	#[must_use]
-	pub fn rhs(&self) -> &Expression {
+	pub const fn rhs(&self) -> &Expression {
 		&self.rhs
 	}
 }
@@ -685,7 +685,7 @@ pub struct BrTable {
 
 impl BrTable {
 	#[must_use]
-	pub fn condition(&self) -> &Expression {
+	pub const fn condition(&self) -> &Expression {
 		&self.condition
 	}
 
@@ -743,7 +743,7 @@ pub struct BrIf {
 
 impl BrIf {
 	#[must_use]
-	pub fn condition(&self) -> &Expression {
+	pub const fn condition(&self) -> &Expression {
 		&self.condition
 	}
 
@@ -761,12 +761,12 @@ pub struct If {
 
 impl If {
 	#[must_use]
-	pub fn condition(&self) -> &Expression {
+	pub const fn condition(&self) -> &Expression {
 		&self.condition
 	}
 
 	#[must_use]
-	pub fn on_true(&self) -> &Block {
+	pub const fn on_true(&self) -> &Block {
 		&self.on_true
 	}
 
@@ -813,7 +813,7 @@ impl CallIndirect {
 	}
 
 	#[must_use]
-	pub fn index(&self) -> &Expression {
+	pub const fn index(&self) -> &Expression {
 		&self.index
 	}
 
@@ -840,7 +840,7 @@ impl SetTemporary {
 	}
 
 	#[must_use]
-	pub fn value(&self) -> &Expression {
+	pub const fn value(&self) -> &Expression {
 		&self.value
 	}
 }
@@ -857,7 +857,7 @@ impl SetLocal {
 	}
 
 	#[must_use]
-	pub fn value(&self) -> &Expression {
+	pub const fn value(&self) -> &Expression {
 		&self.value
 	}
 }
@@ -874,7 +874,7 @@ impl SetGlobal {
 	}
 
 	#[must_use]
-	pub fn value(&self) -> &Expression {
+	pub const fn value(&self) -> &Expression {
 		&self.value
 	}
 }
@@ -904,12 +904,12 @@ impl StoreAt {
 	}
 
 	#[must_use]
-	pub fn pointer(&self) -> &Expression {
+	pub const fn pointer(&self) -> &Expression {
 		&self.pointer
 	}
 
 	#[must_use]
-	pub fn value(&self) -> &Expression {
+	pub const fn value(&self) -> &Expression {
 		&self.value
 	}
 }
@@ -932,7 +932,7 @@ impl MemoryGrow {
 	}
 
 	#[must_use]
-	pub fn size(&self) -> &Expression {
+	pub const fn size(&self) -> &Expression {
 		&self.size
 	}
 }
@@ -949,7 +949,7 @@ impl MemoryArgument {
 	}
 
 	#[must_use]
-	pub fn pointer(&self) -> &Expression {
+	pub const fn pointer(&self) -> &Expression {
 		&self.pointer
 	}
 }
@@ -972,7 +972,7 @@ impl MemoryCopy {
 	}
 
 	#[must_use]
-	pub fn size(&self) -> &Expression {
+	pub const fn size(&self) -> &Expression {
 		&self.size
 	}
 }
@@ -990,12 +990,12 @@ impl MemoryFill {
 	}
 
 	#[must_use]
-	pub fn size(&self) -> &Expression {
+	pub const fn size(&self) -> &Expression {
 		&self.size
 	}
 
 	#[must_use]
-	pub fn value(&self) -> &Expression {
+	pub const fn value(&self) -> &Expression {
 		&self.value
 	}
 }
