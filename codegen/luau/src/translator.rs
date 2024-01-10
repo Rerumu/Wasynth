@@ -97,6 +97,7 @@ fn write_import_list(list: &[Import], w: &mut dyn Write) -> Result<()> {
 }
 
 fn write_export_list(list: &[Export], w: &mut dyn Write) -> Result<()> {
+	writeln!(w, "\t\trt = rt,")?;
 	write_export_of(list, External::Func, w)?;
 	write_export_of(list, External::Table, w)?;
 	write_export_of(list, External::Memory, w)?;
