@@ -1,6 +1,8 @@
 local Numeric = {}
 
-local NUM_ZERO, NUM_ONE, NUM_SIX_FOUR
+local NUM_ZERO = Vector3.zero
+local NUM_ONE, NUM_SIX_FOUR
+
 local NUM_BIT_26, NUM_BIT_52
 
 local bit_lshift = bit32.lshift
@@ -339,11 +341,11 @@ function Numeric.is_negative(value)
 end
 
 function Numeric.is_zero(value)
-	return value.X == 0 and value.Y == 0 and value.Z == 0
+	return value == NUM_ZERO
 end
 
 function Numeric.is_equal(lhs, rhs)
-	return lhs.X == rhs.X and lhs.Y == rhs.Y and lhs.Z == rhs.Z
+	return lhs == rhs
 end
 
 function Numeric.is_less_unsigned(lhs, rhs)
@@ -402,7 +404,6 @@ num_is_negative = Numeric.is_negative
 num_is_zero = Numeric.is_zero
 num_is_less_unsigned = Numeric.is_less_unsigned
 
-NUM_ZERO = from_u64(0)
 NUM_ONE = from_u64(1)
 NUM_SIX_FOUR = from_u64(64)
 NUM_BIT_26 = from_u64(0x4000000)
