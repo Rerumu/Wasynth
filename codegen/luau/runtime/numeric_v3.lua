@@ -20,7 +20,7 @@ local bit_replace = bit32.replace
 local from_u32, from_u64, into_u64
 local num_subtract, num_divide_unsigned, num_negate
 local num_or, num_shift_left, num_shift_right_unsigned
-local num_is_negative, num_is_zero, num_is_less_unsigned
+local num_is_less_unsigned
 
 -- X: a[0 ..21]
 -- Y: a[22..31]
@@ -34,6 +34,10 @@ function Numeric.from_u32(data_1, data_2)
 	local z = bit_replace(bit_rshift(data_1, 22), bit_rshift(data_2, 22), 10, 10)
 
 	return constructor(x, y, z)
+end
+
+local function num_is_zero(value)
+	return value == NUM_ZERO
 end
 
 local function load_d1(value)
@@ -178,6 +182,10 @@ function Numeric.divide_unsigned(lhs, rhs)
 	end
 
 	return quotient, remainder
+end
+
+local function num_is_negative(value)
+	return value.Z >= 0x80000
 end
 
 function Numeric.divide_signed(lhs, rhs)
@@ -336,14 +344,6 @@ function Numeric.rotate_right(lhs, rhs)
 	end
 end
 
-function Numeric.is_negative(value)
-	return value.Z >= 0x80000
-end
-
-function Numeric.is_zero(value)
-	return value == NUM_ZERO
-end
-
 function Numeric.is_equal(lhs, rhs)
 	return lhs == rhs
 end
@@ -400,8 +400,8 @@ num_or = Numeric.bit_or
 num_shift_left = Numeric.shift_left
 num_shift_right_unsigned = Numeric.shift_right_unsigned
 
-num_is_negative = Numeric.is_negative
-num_is_zero = Numeric.is_zero
+Numeric.is_negative = num_is_negative
+Numeric.is_zero = num_is_zero
 num_is_less_unsigned = Numeric.is_less_unsigned
 
 NUM_ONE = from_u64(1)
