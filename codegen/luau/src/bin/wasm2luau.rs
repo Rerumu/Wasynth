@@ -20,6 +20,7 @@ fn do_runtime(lock: &mut dyn Write) -> Result<()> {
 	let runtime = codegen_luau::RUNTIME;
 	let numeric = codegen_luau::NUMERIC;
 
+	writeln!(lock, "--!optimize 2")?;
 	writeln!(lock, "local Integer = (function()")?;
 	writeln!(lock, "{numeric}")?;
 	writeln!(lock, "end)()")?;
