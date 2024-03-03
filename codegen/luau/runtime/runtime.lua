@@ -182,14 +182,12 @@ do
 	local bit_countrz = bit32.countrz
 
 	local function popcnt_i32(num)
-		local count = 0
-
-		while num ~= 0 do
-			num = bit_and(num, num - 1)
-			count = count + 1
-		end
-
-		return count
+        num = bit_and(num, 0x55555555) + bit_and(bit_rshift(num, 1),  0x55555555)
+        num = bit_and(num, 0x33333333) + bit_and(bit_rshift(num, 2),  0x33333333)
+        num = bit_and(num, 0x0f0f0f0f) + bit_and(bit_rshift(num, 4),  0x0f0f0f0f)
+        num = bit_and(num, 0x00ff00ff) + bit_and(bit_rshift(num, 8),  0x00ff00ff)
+        num = bit_and(num, 0x0000ffff) + bit_and(bit_rshift(num, 16), 0x0000ffff)
+		return num
 	end
 
 	popcnt.i32 = popcnt_i32
