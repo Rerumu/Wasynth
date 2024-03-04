@@ -49,7 +49,8 @@ local function load_d2(value)
 end
 
 local function into_u32(value)
-	return load_d1(value), load_d2(value)
+	local x, y, z = value.X, value.Y, value.Z
+	return bit_replace(bit_and(x, 0x3FFFFF), z, 22, 10), bit_replace(bit_and(y, 0x3FFFFF), bit_rshift(z, 10), 22, 10)
 end
 Numeric.into_u32 = into_u32
 
