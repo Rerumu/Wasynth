@@ -48,21 +48,25 @@ local function load_d2(value)
 	return bit_replace(bit_and(value.Y, 0x3FFFFF), bit_rshift(value.Z, 10), 22, 10)
 end
 
-function Numeric.into_u32(value)
+local function into_u32(value)
 	return load_d1(value), load_d2(value)
 end
+Numeric.into_u32 = into_u32
 
 function Numeric.from_u64(value)
 	return from_u32(bit_and(value % 0x100000000), bit_and(value / 0x100000000))
 end
 
 function Numeric.into_u64(value)
-	return load_d1(value) + load_d2(value) * 0x100000000
+	local value_1, value_2 = into_u32(value)
+	return value_1 + value_2 * 0x100000000
 end
 
 function Numeric.add(lhs, rhs)
-	local data_1 = load_d1(lhs) + load_d1(rhs)
-	local data_2 = load_d2(lhs) + load_d2(rhs)
+	local lhs_1, lhs_2 = into_u32(lhs)
+	local rhs_1, rhs_2 = into_u32(rhs)
+	local data_1 = lhs_1 + rhs_1
+	local data_2 = lhs_2 + rhs_2
 
 	if data_1 >= 0x100000000 then
 		data_1 = data_1 - 0x100000000
@@ -77,8 +81,10 @@ function Numeric.add(lhs, rhs)
 end
 
 function Numeric.subtract(lhs, rhs)
-	local data_1 = load_d1(lhs) - load_d1(rhs)
-	local data_2 = load_d2(lhs) - load_d2(rhs)
+	local lhs_1, lhs_2 = into_u32(lhs)
+	local rhs_1, rhs_2 = into_u32(rhs)
+	local data_1 = lhs_1 - rhs_1
+	local data_2 = lhs_2 - rhs_2
 
 	if data_1 < 0 then
 		data_1 = data_1 + 0x100000000
@@ -101,8 +107,8 @@ function Numeric.multiply(lhs, rhs)
 
 	-- Divide each long into 4 chunks of 16 bits, and then add up 4x4 products.
 	-- We can skip products that would overflow.
-	local lhs_1, lhs_2 = load_d1(lhs), load_d2(lhs)
-	local rhs_1, rhs_2 = load_d1(rhs), load_d2(rhs)
+	local lhs_1, lhs_2 = into_u32(lhs)
+	local rhs_1, rhs_2 = into_u32(rhs)
 
 	local a48 = bit_rshift(lhs_2, 16)
 	local a32 = bit_and(lhs_2, 0xFFFF)
@@ -161,11 +167,10 @@ function Numeric.divide_unsigned(lhs, rhs)
 	local quotient = NUM_ZERO
 	local remainder = NUM_ZERO
 
-	local num_1, num_2 = load_d1(lhs), load_d2(lhs)
+	local num_1, num_2 = into_u32(lhs)
 
 	for i = 63, 0, -1 do
-		local temp = num_shift_left(remainder, NUM_ONE)
-		local rem_1, rem_2 = load_d1(temp), load_d2(temp)
+		local rem_1, rem_2 = into_u32(num_shift_left(remainder, NUM_ONE))
 
 		if i > 31 then
 			rem_1 = bit_or(rem_1, bit_extract(num_2, i - 32, 1))
@@ -214,8 +219,9 @@ function Numeric.divide_signed(lhs, rhs)
 end
 
 function Numeric.negate(value)
-	local data_1 = bit_not(load_d1(value)) + 1
-	local data_2 = bit_not(load_d2(value))
+	local value_1, value_2 = into_u32(value)
+	local data_1 = bit_not(value_1) + 1
+	local data_2 = bit_not(value_2)
 
 	if data_1 >= 0x100000000 then
 		data_1 = data_1 - 0x100000000
@@ -268,7 +274,7 @@ function Numeric.shift_left(lhs, rhs)
 		return lhs
 	elseif count < 32 then
 		local pad = 32 - count
-		local lhs_1, lhs_2 = load_d1(lhs), load_d2(lhs)
+		local lhs_1, lhs_2 = into_u32(lhs)
 
 		local data_1 = bit_lshift(lhs_1, count)
 		local data_2 = bit_replace(bit_rshift(lhs_1, pad), lhs_2, count, pad)
@@ -287,7 +293,7 @@ function Numeric.shift_right_unsigned(lhs, rhs)
 	if count == 0 then
 		return lhs
 	elseif count < 32 then
-		local lhs_1, lhs_2 = load_d1(lhs), load_d2(lhs)
+		local lhs_1, lhs_2 = into_u32(lhs)
 
 		local data_1 = bit_replace(bit_rshift(lhs_1, count), lhs_2, 32 - count, count)
 		local data_2 = bit_rshift(lhs_2, count)
@@ -306,7 +312,7 @@ function Numeric.shift_right_signed(lhs, rhs)
 	if count == 0 then
 		return lhs
 	elseif count < 32 then
-		local lhs_1, lhs_2 = load_d1(lhs), load_d2(lhs)
+		local lhs_1, lhs_2 = into_u32(lhs)
 
 		local data_1 = bit_replace(bit_rshift(lhs_1, count), lhs_2, 32 - count, count)
 		local data_2 = bit_arshift(lhs_2, count)
