@@ -1,4 +1,8 @@
-# Wasynth
+## Note of Discontinuation
+
+This project served well as a proof of concept and initial testing ground for what I wanted to work on. It will not receive any further updates due to accumulating technical debt and the rigid design that makes work on it difficult. [Spider](https://github.com/SovereignSatellite/Spider) will be its successor project, where development will continue.
+
+## Wasynth
 
 This is a WebAssembly translation tool and library for arbitrary languages. It contains several modules for different purposes as outlined below.
 
